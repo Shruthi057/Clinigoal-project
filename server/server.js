@@ -11,68 +11,116 @@ require('dotenv').config();
 
 const app = express();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 Created uploads directory:', uploadsDir);
+// ==================== RENDER CONFIGURATIONS ====================
+const isProduction = process.env.NODE_ENV === 'production';
+const PORT = process.env.PORT || 5000;
+
+// Security check for production
+if (isProduction) {
+  const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const missing = requiredEnvVars.filter(envVar => !process.env[envVar]);
+  
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:', missing);
+    console.error('💡 Please set these in your Render dashboard');
+    process.exit(1);
+  }
 }
 
-// Ensure videos subdirectory exists
-const videosDir = path.join(uploadsDir, 'videos');
-if (!fs.existsSync(videosDir)) {
-  fs.mkdirSync(videosDir, { recursive: true });
-  console.log('📁 Created videos directory:', videosDir);
-}
-
-// Ensure notes subdirectory exists
-const notesDir = path.join(uploadsDir, 'notes');
-if (!fs.existsSync(notesDir)) {
-  fs.mkdirSync(notesDir, { recursive: true });
-  console.log('📁 Created notes directory:', notesDir);
-}
-
-// Middleware
+// ==================== MIDDLEWARE ====================
 app.use(cors({
-  origin: ['http://localhost:3000'],
+  origin: isProduction 
+    ? ['https://your-frontend-domain.onrender.com', 'http://localhost:3000'] // Update with your actual frontend URL
+    : ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// MongoDB connection
-mongoose.connect('mongodb://127.0.0.1:27017/clinigoal', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log("MongoDB Connected");
-  // Test route
-  app.get('/api/test', (req, res) => {
-    res.json({ message: 'Server is working!' });
+// ==================== DATABASE CONNECTION ====================
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/clinigoal';
+
+// Enhanced MongoDB connection for Render
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    console.log("✅ MongoDB Connected successfully");
+    
+    if (MONGODB_URI.includes('mongodb.net')) {
+      console.log("📊 Database: MongoDB Atlas (Cloud)");
+    } else {
+      console.log("📊 Database: Local MongoDB");
+    }
+
+    // Test route
+    app.get('/api/test', (req, res) => {
+      res.json({ 
+        message: 'Server is working!',
+        database: 'connected',
+        environment: process.env.NODE_ENV || 'development'
+      });
+    });
+  } catch (err) {
+    console.error("❌ MongoDB Connection Error:", err);
+    
+    if (MONGODB_URI.includes('localhost') && isProduction) {
+      console.error("💡 You're using local MongoDB in production! This won't work on Render.");
+      console.error("💡 Please set MONGODB_URI to a MongoDB Atlas connection string in Render dashboard.");
+    }
+    
+    process.exit(1);
+  }
+};
+
+connectDB();
+
+// ==================== RENDER-SPECIFIC SETUP ====================
+// Create necessary directories for Render
+const createDirectories = () => {
+  const directories = [
+    path.join(__dirname, 'uploads'),
+    path.join(__dirname, 'uploads', 'videos'),
+    path.join(__dirname, 'uploads', 'notes'),
+    path.join(__dirname, 'public')
+  ];
+
+  directories.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log('📁 Created directory:', dir);
+    }
   });
-})
-.catch(err => {
-  console.error("MongoDB Connection Error:", err);
-  process.exit(1);
-});
+};
+
+createDirectories();
+
+// Directory paths
+const uploadsDir = path.join(__dirname, 'uploads');
+const videosDir = path.join(__dirname, 'uploads', 'videos');
+const notesDir = path.join(__dirname, 'uploads', 'notes');
+
+// Serve static files
+app.use('/uploads', express.static(uploadsDir));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== EMAIL TRANSPORTER SETUP ====================
-
-// Create email transporter with better error handling
 let transporter;
 
 // Check if email configuration is available
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({ // FIXED: Changed from createTransporter to createTransport
+  transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    // Add this to handle connection issues
     tls: {
       rejectUnauthorized: false
     }
@@ -83,7 +131,7 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     if (error) {
       console.error('❌ Email transporter error:', error.message);
       console.log('📧 Email sending will be disabled. OTPs will be logged to console only.');
-      transporter = null; // Set to null if verification fails
+      transporter = null;
     } else {
       console.log('📧 Email transporter ready to send messages');
     }
@@ -1997,6 +2045,34 @@ app.get('/api/debug/view-data', async (req, res) => {
   }
 });
 
+// ==================== RENDER HEALTH CHECKS ====================
+
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || 'development',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// Render-specific info endpoint
+app.get('/api/deploy-info', (req, res) => {
+  res.json({
+    deployed: true,
+    platform: 'Render',
+    environment: process.env.NODE_ENV || 'development',
+    nodeVersion: process.version,
+    memory: process.memoryUsage(),
+    uploadsDir: uploadsDir,
+    uploadsExists: fs.existsSync(uploadsDir),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
 // ==================== ERROR HANDLING ====================
 
 // Error handling middleware
@@ -2037,20 +2113,14 @@ app.use((req, res) => {
 });
 
 // ==================== START SERVER ==================== //
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📁 Uploads directory: ${uploadsDir}`);
-  console.log(`📁 Videos directory: ${videosDir}`);
-  console.log(`📁 Notes directory: ${notesDir}`);
-  console.log(`✅ Uploads directory exists: ${fs.existsSync(uploadsDir)}`);
-  console.log(`✅ Videos directory exists: ${fs.existsSync(videosDir)}`);
-  console.log(`✅ Notes directory exists: ${fs.existsSync(notesDir)}`);
+  console.log(`✅ Server is ready to accept requests`);
   
-  // Display email configuration status
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    console.log('📧 Email configuration found');
-  } else {
-    console.log('⚠️ Email configuration not found - OTPs will be logged to console only');
+  if (isProduction) {
+    console.log('🚨 PRODUCTION MODE: File uploads use ephemeral storage');
+    console.log('💡 Consider using cloud storage for persistent file storage');
   }
 });
