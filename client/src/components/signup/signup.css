@@ -1,0 +1,179 @@
+/* signup.css - Fully Updated Light Theme Matching All Pages */
+
+/* Main Colors: */
+/* Background: #f7fafc (Subtle Light Gray) */
+/* Card: #ffffff (White) */
+/* Accent: #0077B6 (Academic Teal) */
+/* Dark Text: #1a202c */
+
+.signup-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ✅ Match Home Page Background: Subtle Light Gray */
+  background: #f7fafc; 
+  padding: 20px;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+}
+
+.signup-card {
+  /* Match Home Page Card/Surface Color: White */
+  background: #ffffff; 
+  padding: 40px;
+  border-radius: 16px;
+  /* Match Home Page Card Shadow */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+              0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 420px;
+  /* Match Home Page Border Color */
+  border: 1px solid #edf2f7;
+  position: relative;
+  z-index: 1;
+}
+
+.signup-card h2 {
+  text-align: center;
+  margin-bottom: 8px;
+  /* Match Home Page Dark Text */
+  color: #1a202c; 
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.signup-subtitle {
+  text-align: center;
+  /* Match Home Page Secondary Text */
+  color: #4a5568; 
+  margin-bottom: 30px;
+  font-size: 0.95rem;
+}
+
+.signup-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  position: relative;
+}
+
+.signup-card input {
+  padding: 14px 16px;
+  /* Match Home Page Input Border Color */
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white; 
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  /* Match Home Page Dark Text */
+  color: #1a202c;
+}
+
+.signup-card input:focus {
+  outline: none;
+  /* ✅ Match Home Page Input Focus Color (Teal) */
+  border-color: #0077B6;
+  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.15);
+}
+
+.signup-card input::placeholder {
+  /* Match Home Page Muted Text */
+  color: #a0aec0;
+}
+
+.signup-btn {
+  padding: 14px;
+  /* ✅ Match Home Page Primary Button Gradient (Teal) */
+  background: linear-gradient(135deg, #0077B6 0%, #005A8D 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  font-family: inherit;
+  width: 100%;
+  /* Match Home Page Primary Button Shadow */
+  box-shadow: 0 4px 14px rgba(0, 119, 182, 0.3);
+}
+
+.signup-btn:hover {
+  /* Darker Teal on Hover */
+  background: linear-gradient(135deg, #005A8D 0%, #004A73 100%);
+  transform: translateY(-2px);
+  /* Match Home Page Primary Button Hover Shadow */
+  box-shadow: 0 8px 20px rgba(0, 119, 182, 0.5);
+}
+
+.signup-btn:active {
+  transform: translateY(0);
+}
+
+.login-text {
+  text-align: center;
+  margin-top: 24px;
+  /* Update to a light but visible text color against the light card background */
+  color: #718096; 
+  font-size: 0.9rem;
+}
+
+.login-link {
+  /* ✅ Match Home Page Accent Link Color (Teal) */
+  color: #0077B6;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+  color: #005A8D;
+}
+
+/* Remember me and optional sections (if needed) */
+.signup-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  /* ✅ Match Home Page Accent Color (Teal) */
+  accent-color: #0077B6;
+}
+
+.remember-me label {
+  /* Match Home Page Dark Text */
+  color: #1a202c;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .signup-container {
+    padding: 16px;
+  }
+
+  .signup-card {
+    padding: 32px 24px;
+    max-width: 100%;
+  }
+}

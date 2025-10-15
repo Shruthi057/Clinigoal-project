@@ -1,0 +1,401 @@
+/* Add to src/App.css */
+
+/* ---------------------------------
+   GLOBAL STYLES & LAYOUT
+   --------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Make sure App takes full height and uses flex column layout */
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #333; /* Base body text color */
+  
+  /* Set the main page background to a very light gray for contrast */
+  background-color: #F7F7F7; 
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* This class ensures the main content area (below the header) takes up the remaining space */
+.App > :nth-child(2) {
+  flex: 1;
+}
+
+/* ---------------------------------
+   MAIN CONTENT STYLES
+   --------------------------------- */
+
+.main-content {
+    /* Push content down to avoid overlapping the fixed header */
+    padding-top: 80px; 
+    padding-bottom: 30px; /* Add some space before the newsletter section starts */
+    
+    /* Ensure the content area itself is white/light for the gray header/footer to contrast */
+    background-color: #FFFFFF; 
+    flex: 1; /* Allows it to grow and push the footer down */
+}
+
+
+/* ---------------------------------
+   NEWSLETTER SECTION STYLES
+   (This is the element you wanted to attach to the footer)
+   --------------------------------- */
+
+.newsletter-section {
+    /* 👇 KEY CHANGE: Use the same medium gray background as the main footer base */
+    background-color: #D9D9D9; 
+    
+    /* Add vertical padding */
+    padding: 3rem 0; 
+    
+    /* Center the text and content */
+    text-align: center;
+    
+    /* Ensure smooth transition to the main footer block */
+    margin-bottom: 0;
+}
+
+.newsletter-section .container {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.newsletter-section p {
+    color: #333; /* Dark text for readability on the gray background */
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Optional: Style the blue button container */
+.newsletter-section .subscribe-form {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+
+/* ---------------------------------
+   FOOTER STYLES (FROM PREVIOUS UPDATE)
+   --------------------------------- */
+
+.footer {
+  /* Main footer section background: Medium gray gradient */
+  background: linear-gradient(135deg, #D0D0D0 0%, #C0C0C0 100%); 
+  color: #1e293b;
+  padding: 4rem 0 0;
+  margin-top: 0; /* Remove margin-top now that the newsletter section is attached */
+  border-top: 1px solid #B0B0B0; 
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.footer-section h4 {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.footer-section h4::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(135deg, #0891b2, #10b981);
+  border-radius: 2px;
+}
+
+/* Company Info */
+.footer-logo h3 {
+  color: #0f172a;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #0891b2, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.footer-description {
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-links a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(8, 145, 178, 0.1);
+  border-radius: 50%;
+  text-decoration: none;
+  font-size: 1.25rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(8, 145, 178, 0.2);
+  color: #0891b2;
+}
+
+.social-links a:hover {
+  background: linear-gradient(135deg, #0891b2, #10b981);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(8, 145, 178, 0.4);
+  border-color: transparent;
+}
+
+/* Footer Links */
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 0.75rem;
+}
+
+.footer-links a {
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+}
+
+.footer-links a:hover {
+  color: #0891b2;
+  transform: translateX(5px);
+}
+
+.footer-links a::before {
+  content: '▸';
+  margin-right: 0.5rem;
+  color: #10b981;
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.footer-links a:hover::before {
+  transform: translateX(3px);
+  color: #0891b2;
+}
+
+/* Contact Info */
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.contact-icon {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+  color: #0891b2;
+}
+
+.contact-item a {
+  color: #475569;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.contact-item a:hover {
+  color: #0891b2;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  border-top: 1px solid #B0B0B0; 
+  padding: 1.5rem 0;
+  /* Copyright bar background */
+  background: #D9D9D9; 
+}
+
+.footer-bottom-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-bottom p {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.footer-legal {
+  display: flex;
+  gap: 2rem;
+}
+
+.footer-legal a {
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.footer-legal a:hover {
+  color: #0891b2;
+}
+
+
+/* ---------------------------------
+   404 Page Styles
+   --------------------------------- */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+.not-found h1 {
+  font-size: 6rem;
+  color: #0891b2;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.not-found h2 {
+  font-size: 2rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.not-found p {
+  color: #64748b;
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  max-width: 400px;
+}
+
+.home-link {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #0891b2, #10b981);
+  color: white;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.home-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(8, 145, 178, 0.4);
+}
+
+
+/* ---------------------------------
+   RESPONSIVE FOOTER STYLES
+   --------------------------------- */
+@media (max-width: 1024px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 3rem 0 0;
+  }
+  
+  .newsletter-section {
+    padding: 2rem 0;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .footer-section h4::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .footer-bottom-content {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .footer-legal {
+    gap: 1rem;
+  }
+
+  .social-links {
+    justify-content: center;
+  }
+
+  .footer-links a::before {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 2rem 0 0;
+  }
+
+  .footer-legal {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .not-found h1 {
+    font-size: 4rem;
+  }
+
+  .not-found h2 {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,222 @@
+/* Admin Login Container */
+.admin-login-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #20B2AA; /* ✅ Same teal color as login page */
+  padding: 20px;
+  position: relative;
+}
+
+/* Admin Login Card */
+.admin-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #f8fafc; /* Light card background */
+  border-radius: 16px;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.3), 0 10px 12px -6px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+}
+
+/* Admin Login Header */
+.admin-login-header {
+  text-align: center;
+  padding: 25px 20px 20px;
+  background: #ffffff; /* White header */
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.admin-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  background: #e5e7eb; /* Soft gray circle */
+  border-radius: 50%;
+  margin-bottom: 15px;
+}
+
+.admin-icon {
+  font-size: 24px;
+  color: #2563eb; /* Icon blue */
+}
+
+.admin-login-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: #1f2937;
+}
+
+/* Form Styles */
+.admin-login-form {
+  padding: 35px 25px 25px; /* ✅ Increased top padding to create space from header */
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.input-container {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+.admin-login-form input {
+  width: 100%;
+  padding: 14px 14px 14px 45px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  background: #ffffff; /* Input white */
+  color: #1f2937;
+}
+
+.admin-login-form input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+/* Button Styles */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* Links */
+.admin-links {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px 20px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.link-btn:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 0 20px 20px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.back-btn:hover {
+  color: #2563eb;
+}
+
+.back-icon {
+  margin-right: 8px;
+}
+
+/* Footer */
+.admin-login-footer {
+  padding: 20px;
+  background: #f1f5f9;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+  color: #1f2937;
+}
+
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.home-link:hover {
+  color: #1d4ed8;
+}
+
+.home-icon {
+  margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .admin-login-card {
+    max-width: 100%;
+  }
+  
+  .admin-login-form {
+    padding: 30px 15px 15px; /* Adjusted padding for mobile */
+  }
+  
+  .admin-links {
+    padding: 0 15px 15px;
+  }
+  
+  .back-btn {
+    margin: 0 15px 15px;
+  }
+  
+  .admin-login-footer {
+    padding: 15px;
+  }
+}

@@ -1,0 +1,165 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Container */
+.register-container,
+.forgot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #20B2AA; /* ✅ Changed to teal background to match other pages */
+}
+
+/* Card */
+.register-card,
+.forgot-card {
+  background-color: white;
+  padding: 50px 40px;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  width: 350px;
+  text-align: center;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.register-card h2,
+.forgot-card h2 { 
+  color: #2a2a72; 
+  margin-bottom: 30px; 
+}
+
+.register-form,
+.forgot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.register-form input,
+.forgot-form input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.register-form button,
+.forgot-form button {
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #2a2a72;
+  color: #ffce00;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.register-form button:hover,
+.forgot-form button:hover { 
+  background-color: #1b1b4f; 
+}
+
+.info-text { 
+  margin-top: 20px; 
+  font-size: 14px; 
+  color: #555; 
+}
+
+/* Animation */
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Additional styles for form elements */
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #555;
+}
+
+.role-select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.form-footer {
+  margin-top: 30px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.form-footer p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.form-footer a {
+  color: #2a2a72;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.form-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Loading state */
+.btn:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .register-card,
+  .forgot-card { 
+    width: 90%; 
+    padding: 40px 20px; 
+  }
+  
+  .register-form input,
+  .forgot-form input,
+  .role-select {
+    padding: 10px;
+    font-size: 14px;
+  }
+  
+  .register-form button,
+  .forgot-form button {
+    padding: 10px;
+    font-size: 14px;
+  }
+}

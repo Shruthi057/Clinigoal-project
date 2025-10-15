@@ -1,0 +1,200 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  /* Using Inter from your home.css, or a standard sans-serif fallback */
+  font-family: 'Inter', sans-serif, 'Segoe UI', Tahoma, Geneva, Verdana;
+}
+
+/* Container */
+.register-container,
+.forgot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  /* Match Home Page Background: Subtle Light Gray */
+  background: #f7fafc; 
+}
+
+/* Card */
+.register-card,
+.forgot-card {
+  /* Match Home Page Card Background: White */
+  background-color: white;
+  padding: 50px 40px;
+  border-radius: 15px;
+  /* Match Home Page Card Shadow */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  width: 350px;
+  text-align: center;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.register-card h2,
+.forgot-card h2 { 
+  /* Match Home Page Dark Text */
+  color: #1a202c; 
+  margin-bottom: 30px; 
+  font-weight: 700;
+}
+
+.register-form,
+.forgot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.register-form input,
+.forgot-form input {
+  padding: 12px;
+  border-radius: 8px;
+  /* Match Home Page Input Border Color */
+  border: 1px solid #e2e8f0;
+  font-size: 16px;
+  color: #1a202c;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.register-form input:focus,
+.forgot-form input:focus {
+  outline: none;
+  /* Match Home Page Input Focus Color (Teal) */
+  border-color: #0077B6;
+  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.15);
+}
+
+.register-form button,
+.forgot-form button {
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  /* Match Home Page Primary Button Gradient (Teal) */
+  background: linear-gradient(135deg, #0077B6 0%, #005A8D 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  /* Match Home Page Button Shadow */
+  box-shadow: 0 4px 14px rgba(0, 119, 182, 0.3);
+}
+
+.register-form button:hover,
+.forgot-form button:hover { 
+  /* Darker Teal on Hover */
+  background: linear-gradient(135deg, #005A8D 0%, #004A73 100%);
+  transform: translateY(-2px);
+  /* Match Home Page Button Hover Shadow */
+  box-shadow: 0 8px 20px rgba(0, 119, 182, 0.5);
+}
+
+.info-text { 
+  margin-top: 20px; 
+  font-size: 14px; 
+  /* Match Home Page Muted Text */
+  color: #718096; 
+}
+
+/* Animation */
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Additional styles for form elements */
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  /* Match Home Page Dark Text */
+  color: #4a5568;
+}
+
+.role-select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  /* Match Home Page Input Border Color */
+  border: 1px solid #e2e8f0;
+  font-size: 16px;
+  background-color: white;
+  color: #1a202c;
+  cursor: pointer;
+}
+
+.error-message {
+  background-color: #fff5f5; /* Very light red background */
+  color: #c53030; /* Darker red text */
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid #fed7d7;
+}
+
+.form-footer {
+  margin-top: 30px;
+  text-align: center;
+  /* Match Home Page Divider Color */
+  border-top: 1px solid #e2e8f0;
+  padding-top: 20px;
+}
+
+.form-footer p {
+  margin: 8px 0;
+  font-size: 14px;
+  /* Match Home Page Muted Text */
+  color: #718096;
+}
+
+.form-footer a {
+  /* Match Home Page Accent Link Color (Teal) */
+  color: #0077B6;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.form-footer a:hover {
+  text-decoration: underline;
+  color: #005A8D;
+}
+
+/* Loading state */
+.btn:disabled {
+  background-color: #cbd5e0 !important;
+  color: #718096;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .register-card,
+  .forgot-card { 
+    width: 90%; 
+    padding: 40px 20px; 
+  }
+  
+  .register-form input,
+  .forgot-form input,
+  .role-select {
+    padding: 10px;
+    font-size: 14px;
+  }
+  
+  .register-form button,
+  .forgot-form button {
+    padding: 10px;
+    font-size: 14px;
+  }
+}
