@@ -13,7 +13,7 @@ const app = express();
 
 // ==================== RENDER CONFIGURATIONS ====================
 const isProduction = process.env.NODE_ENV === 'production';
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // Security check for production
 if (isProduction) {
@@ -30,7 +30,7 @@ if (isProduction) {
 // ==================== MIDDLEWARE ====================
 app.use(cors({
   origin: isProduction 
-    ? ['https://your-frontend-domain.onrender.com', 'http://localhost:3000'] // Update with your actual frontend URL
+    ? ['https://clinigoal.onrender.com', 'http://localhost:3000'] // Update with your actual frontend URL
     : ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -48,7 +48,7 @@ const connectDB = async () => {
     await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
     console.log("✅ MongoDB Connected successfully");
@@ -58,15 +58,6 @@ const connectDB = async () => {
     } else {
       console.log("📊 Database: Local MongoDB");
     }
-
-    // Test route
-    app.get('/api/test', (req, res) => {
-      res.json({ 
-        message: 'Server is working!',
-        database: 'connected',
-        environment: process.env.NODE_ENV || 'development'
-      });
-    });
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err);
     
@@ -110,10 +101,9 @@ const notesDir = path.join(__dirname, 'uploads', 'notes');
 app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== EMAIL TRANSPORTER SETUP ====================
+// ==================== ENHANCED EMAIL TRANSPORTER SETUP ====================
 let transporter;
 
-// Check if email configuration is available
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -121,21 +111,29 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
+    // Better timeout settings for Render
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    secure: true,
     tls: {
       rejectUnauthorized: false
     }
   });
 
-  // Verify transporter configuration
-  transporter.verify((error, success) => {
-    if (error) {
+  // Verify with timeout for Render compatibility
+  const verifyEmail = async () => {
+    try {
+      await transporter.verify();
+      console.log('✅ Email transporter ready to send messages');
+    } catch (error) {
       console.error('❌ Email transporter error:', error.message);
       console.log('📧 Email sending will be disabled. OTPs will be logged to console only.');
       transporter = null;
-    } else {
-      console.log('📧 Email transporter ready to send messages');
     }
-  });
+  };
+  
+  verifyEmail();
 } else {
   console.log('⚠️ Email configuration not found in environment variables');
   console.log('📧 Email sending will be disabled. OTPs will be logged to console only.');
@@ -592,6 +590,25 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+// ==================== ROOT ROUTE ====================
+app.get('/', (req, res) => {
+  res.json({
+    message: '🚀 Clinigoal API Server is running!',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      test: '/api/test',
+      auth: '/api/auth',
+      courses: '/api/courses',
+      admin: '/api/admin',
+      info: '/api/deploy-info'
+    },
+    documentation: 'Check the individual endpoints for more details'
+  });
+});
 
 // ==================== AUTHENTICATION ROUTES ====================
 
@@ -2059,6 +2076,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'Server is working!',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Render-specific info endpoint
 app.get('/api/deploy-info', (req, res) => {
   res.json({
@@ -2108,7 +2135,16 @@ app.use((error, req, res, next) => {
 app.use((req, res) => {
   console.log('❌ 404 - Route not found:', req.method, req.url);
   res.status(404).json({ 
-    error: `Route not found: ${req.method} ${req.url}` 
+    error: `Route not found: ${req.method} ${req.url}`,
+    available_endpoints: {
+      root: '/',
+      health: '/health',
+      test: '/api/test',
+      auth: '/api/auth/*',
+      courses: '/api/courses',
+      admin: '/api/admin/*',
+      info: '/api/deploy-info'
+    }
   });
 });
 
