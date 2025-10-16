@@ -24,7 +24,7 @@ export default function ForgotPassword() {
     
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/check-user", { email });
+      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/check-user", { email });
       setUserExists(response.data.exists);
       
       if (!response.data.exists) {
@@ -46,7 +46,7 @@ export default function ForgotPassword() {
     
     try {
       console.log("Sending OTP to:", email);
-      const response = await axios.post("http://localhost:5000/api/auth/send-otp", { email });
+      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/send-otp", { email });
       console.log("OTP response:", response.data);
       setSuccess(response.data.message);
       setStep(2);
@@ -83,7 +83,7 @@ export default function ForgotPassword() {
     setLoading(true);
     
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
+      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/reset-password", {
         email,
         otp,
         newPassword,
@@ -115,7 +115,7 @@ export default function ForgotPassword() {
     
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/register", {
+      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/register", {
         email,
         password
       });

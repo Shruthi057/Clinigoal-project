@@ -407,7 +407,7 @@ export default function UserDashboard() {
       console.log("🔄 Fetching courses from API...");
       
       // Try to fetch courses from the backend API
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await fetch('https://clinigoal-server.onrender.com/api/courses', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -548,7 +548,7 @@ export default function UserDashboard() {
 
         // Fetch student reviews from API
         try {
-          const reviewsResponse = await fetch('http://localhost:5000/api/reviews');
+          const reviewsResponse = await fetch('https://clinigoal-server.onrender.com/api/reviews');
           if (reviewsResponse.ok) {
             const reviewsData = await reviewsResponse.json();
             setReviews(reviewsData);
@@ -1013,9 +1013,9 @@ export default function UserDashboard() {
     try {
       // Try the new course-specific endpoints first
       const [videosRes, notesRes, quizzesRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/videos/course/${courseId}`),
-        fetch(`http://localhost:5000/api/notes/course/${courseId}`),
-        fetch(`http://localhost:5000/api/quizzes/course/${courseId}`)
+        fetch(`https://clinigoal-server.onrender.com/api/videos/course/${courseId}`),
+        fetch(`https://clinigoal-server.onrender.com/api/notes/course/${courseId}`),
+        fetch(`https://clinigoal-server.onrender.com/api/quizzes/course/${courseId}`)
       ]);
 
       console.log("📡 API Response status:", {
@@ -1034,7 +1034,7 @@ export default function UserDashboard() {
       } else {
         console.log("⚠️ Course-specific videos endpoint failed, falling back to all videos");
         // Fallback to all videos and filter
-        const allVideosRes = await fetch('http://localhost:5000/api/admin/videos');
+        const allVideosRes = await fetch('https://clinigoal-server.onrender.com/api/admin/videos');
         if (allVideosRes.ok) {
           const allVideos = await allVideosRes.json();
           videos = allVideos.filter(video => video.course === courseId);
@@ -1045,7 +1045,7 @@ export default function UserDashboard() {
       if (notesRes.ok) {
         notes = await notesRes.json();
       } else {
-        const allNotesRes = await fetch('http://localhost:5000/api/admin/notes');
+        const allNotesRes = await fetch('https://clinigoal-server.onrender.com/api/admin/notes');
         if (allNotesRes.ok) {
           const allNotes = await allNotesRes.json();
           notes = allNotes.filter(note => note.course === courseId);
@@ -1055,7 +1055,7 @@ export default function UserDashboard() {
       if (quizzesRes.ok) {
         quizzes = await quizzesRes.json();
       } else {
-        const allQuizzesRes = await fetch('http://localhost:5000/api/admin/quizzes');
+        const allQuizzesRes = await fetch('https://clinigoal-server.onrender.com/api/admin/quizzes');
         if (allQuizzesRes.ok) {
           const allQuizzes = await allQuizzesRes.json();
           quizzes = allQuizzes.filter(quiz => quiz.course === courseId);
@@ -1509,7 +1509,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       // If the quiz doesn't have questions, fetch them from the server
       if (!quiz.questions || quiz.questions.length === 0) {
         try {
-          const response = await fetch(`http://localhost:5000/api/admin/quizzes/${quiz._id}`);
+          const response = await fetch(`https://clinigoal-server.onrender.com/api/admin/quizzes/${quiz._id}`);
           if (response.ok) {
             const fullQuiz = await response.json();
             setActiveQuiz(fullQuiz);
@@ -1792,7 +1792,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                            enrollmentForm.paymentOption === 'full' ? 1599900 : 100; // Default to ₹1
 
       // Create order on your server (for demo, we'll simulate this)
-      const orderResponse = await fetch('http://localhost:5000/api/create-order', {
+      const orderResponse = await fetch('https://clinigoal-server.onrender.com/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1829,7 +1829,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         handler: async function (response) {
           try {
             // Verify payment on your server
-            const verifyResponse = await fetch('http://localhost:5000/api/verify-payment', {
+            const verifyResponse = await fetch('https://clinigoal-server.onrender.com/api/verify-payment', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -2090,7 +2090,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
 
       // Method 3: Try to submit to API
       try {
-        const response = await fetch('http://localhost:5000/api/reviews', {
+        const response = await fetch('https://clinigoal-server.onrender.com/api/reviews', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

@@ -591,7 +591,7 @@ function AdminDashboard() {
     try {
       // Try to fetch from API first
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/payments');
+        const response = await axios.get('https://clinigoal-server.onrender.com/api/admin/payments');
         if (response.data && response.data.length > 0) {
           console.log("💰 Payments from API:", response.data);
           setPaymentHistory(response.data);
@@ -1129,7 +1129,7 @@ function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/stats");
+      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/stats");
       setStats(res.data);
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -1149,9 +1149,9 @@ function AdminDashboard() {
   const fetchAllData = async () => {
     try {
       const [videoRes, noteRes, quizRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/admin/videos"),
-        axios.get("http://localhost:5000/api/admin/notes"),
-        axios.get("http://localhost:5000/api/admin/quizzes"),
+        axios.get("https://clinigoal-server.onrender.com/api/admin/videos"),
+        axios.get("https://clinigoal-server.onrender.com/api/admin/notes"),
+        axios.get("https://clinigoal-server.onrender.com/api/admin/quizzes"),
       ]);
       setVideos(videoRes.data);
       setNotes(noteRes.data);
@@ -1173,7 +1173,7 @@ function AdminDashboard() {
 
   const fetchChartData = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/chart-data");
+      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/chart-data");
       setChartData(res.data);
     } catch (error) {
       console.error("Error fetching chart data:", error);
@@ -1191,7 +1191,7 @@ function AdminDashboard() {
 
   const fetchStudents = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/students");
+      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/students");
       setStudents(res.data);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -1201,7 +1201,7 @@ function AdminDashboard() {
 
   const fetchStudentProgress = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/student-progress");
+      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/student-progress");
       setStudentProgress(res.data);
     } catch (error) {
       console.error("Error fetching student progress:", error);
@@ -1211,7 +1211,7 @@ function AdminDashboard() {
 
   const fetchFeedbacks = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/feedbacks");
+      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/feedbacks");
       setFeedbacks(res.data);
     } catch (error) {
       console.error("Error fetching feedbacks:", error);
@@ -1302,7 +1302,7 @@ function AdminDashboard() {
       
       let response;
       if (editingVideoId) {
-        response = await axios.put(`http://localhost:5000/api/admin/videos/${editingVideoId}`, formData, {
+        response = await axios.put(`https://clinigoal-server.onrender.com/api/admin/videos/${editingVideoId}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
@@ -1311,7 +1311,7 @@ function AdminDashboard() {
         setEditingVideoId(null);
         alert("Video updated successfully!");
       } else {
-        response = await axios.post("http://localhost:5000/api/admin/videos", formData, {
+        response = await axios.post("https://clinigoal-server.onrender.com/api/admin/videos", formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
@@ -1355,7 +1355,7 @@ function AdminDashboard() {
   const handleDeleteVideo = async (id) => {
     if (window.confirm("Are you sure you want to delete this video?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/admin/videos/${id}`);
+        await axios.delete(`https://clinigoal-server.onrender.com/api/admin/videos/${id}`);
         fetchAllData();
         alert("Video deleted successfully!");
       } catch (error) {
@@ -1390,7 +1390,7 @@ function AdminDashboard() {
 
     try {
       if (editingNoteId) {
-        await axios.put(`http://localhost:5000/api/admin/notes/${editingNoteId}`, formData, {
+        await axios.put(`https://clinigoal-server.onrender.com/api/admin/notes/${editingNoteId}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -1398,7 +1398,7 @@ function AdminDashboard() {
         setEditingNoteId(null);
         alert("Edited successfully!");
       } else {
-        await axios.post("http://localhost:5000/api/admin/notes", formData, {
+        await axios.post("https://clinigoal-server.onrender.com/api/admin/notes", formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -1419,7 +1419,7 @@ function AdminDashboard() {
   const handleDeleteNote = async (id) => {
     if (window.confirm("Are you sure you want to delete this note?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/admin/notes/${id}`);
+        await axios.delete(`https://clinigoal-server.onrender.com/api/admin/notes/${id}`);
         fetchAllData();
         alert("Deleted successfully!");
       } catch (error) {
@@ -1538,11 +1538,11 @@ function AdminDashboard() {
       };
 
       if (editingQuizId) {
-        await axios.put(`http://localhost:5000/api/admin/quizzes/${editingQuizId}`, quizData);
+        await axios.put(`https://clinigoal-server.onrender.com/api/admin/quizzes/${editingQuizId}`, quizData);
         setEditingQuizId(null);
         alert("Quiz updated successfully!");
       } else {
-        await axios.post("http://localhost:5000/api/admin/quizzes", quizData);
+        await axios.post("https://clinigoal-server.onrender.com/api/admin/quizzes", quizData);
         alert("Quiz created successfully!");
       }
       
@@ -1567,7 +1567,7 @@ function AdminDashboard() {
   const handleDeleteQuiz = async (id) => {
     if (window.confirm("Are you sure you want to delete this quiz?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/admin/quizzes/${id}`);
+        await axios.delete(`https://clinigoal-server.onrender.com/api/admin/quizzes/${id}`);
         fetchAllData();
         alert("Deleted successfully!");
       } catch (error) {
@@ -1615,7 +1615,7 @@ function AdminDashboard() {
       }
       
       console.log("📡 Fetching quiz details from server...");
-      const res = await axios.get(`http://localhost:5000/api/admin/quizzes/${quiz._id}`);
+      const res = await axios.get(`https://clinigoal-server.onrender.com/api/admin/quizzes/${quiz._id}`);
       
       if (res.data) {
         console.log("✅ Quiz data received from server:", res.data);
@@ -2628,7 +2628,7 @@ function AdminDashboard() {
                                 <div className="admin-item-actions">
                                   {video.url && (
                                     <a 
-                                      href={`http://localhost:5000${video.url}`} 
+                                      href={`https://clinigoal-server.onrender.com${video.url}`} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
                                       className="admin-btn action view"
@@ -2759,7 +2759,7 @@ function AdminDashboard() {
                                 </div>
                                 <div className="admin-item-actions">
                                   <a 
-                                    href={`http://localhost:5000${note.url}`} 
+                                    href={`https://clinigoal-server.onrender.com${note.url}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="admin-btn action view"

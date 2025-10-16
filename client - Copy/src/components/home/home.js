@@ -20,7 +20,7 @@ const Home = () => {
     const fetchTestimonials = async () => {
       try {
         // Try to fetch from API first
-        const response = await fetch('http://localhost:5000/api/reviews');
+        const response = await fetch('https://clinigoal-server.onrender.com/api/reviews');
         if (response.ok) {
           const reviewsData = await response.json();
           

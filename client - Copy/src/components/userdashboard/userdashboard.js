@@ -254,7 +254,7 @@ export default function UserDashboard() {
 
         // Fetch student reviews from API
         try {
-          const reviewsResponse = await fetch('http://localhost:5000/api/reviews');
+          const reviewsResponse = await fetch('https://clinigoal-server.onrender.com/api/reviews');
           if (reviewsResponse.ok) {
             const reviewsData = await reviewsResponse.json();
             setReviews(reviewsData);
@@ -687,9 +687,9 @@ export default function UserDashboard() {
     try {
       // Try the new course-specific endpoints first
       const [videosRes, notesRes, quizzesRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/videos/course/${courseId}`),
-        fetch(`http://localhost:5000/api/notes/course/${courseId}`),
-        fetch(`http://localhost:5000/api/quizzes/course/${courseId}`)
+        fetch(`https://clinigoal-server.onrender.com/api/videos/course/${courseId}`),
+        fetch(`https://clinigoal-server.onrender.com/api/notes/course/${courseId}`),
+        fetch(`https://clinigoal-server.onrender.com/api/quizzes/course/${courseId}`)
       ]);
 
       console.log("📡 API Response status:", {
@@ -708,7 +708,7 @@ export default function UserDashboard() {
       } else {
         console.log("⚠️ Course-specific videos endpoint failed, falling back to all videos");
         // Fallback to all videos and filter
-        const allVideosRes = await fetch('http://localhost:5000/api/admin/videos');
+        const allVideosRes = await fetch('https://clinigoal-server.onrender.com/api/admin/videos');
         if (allVideosRes.ok) {
           const allVideos = await allVideosRes.json();
           videos = allVideos.filter(video => video.course === courseId);
@@ -719,7 +719,7 @@ export default function UserDashboard() {
       if (notesRes.ok) {
         notes = await notesRes.json();
       } else {
-        const allNotesRes = await fetch('http://localhost:5000/api/admin/notes');
+        const allNotesRes = await fetch('https://clinigoal-server.onrender.com/api/admin/notes');
         if (allNotesRes.ok) {
           const allNotes = await allNotesRes.json();
           notes = allNotes.filter(note => note.course === courseId);
@@ -729,7 +729,7 @@ export default function UserDashboard() {
       if (quizzesRes.ok) {
         quizzes = await quizzesRes.json();
       } else {
-        const allQuizzesRes = await fetch('http://localhost:5000/api/admin/quizzes');
+        const allQuizzesRes = await fetch('https://clinigoal-server.onrender.com/api/admin/quizzes');
         if (allQuizzesRes.ok) {
           const allQuizzes = await allQuizzesRes.json();
           quizzes = allQuizzes.filter(quiz => quiz.course === courseId);
@@ -1104,7 +1104,7 @@ export default function UserDashboard() {
       // If the quiz doesn't have questions, fetch them from the server
       if (!quiz.questions || quiz.questions.length === 0) {
         try {
-          const response = await fetch(`http://localhost:5000/api/admin/quizzes/${quiz._id}`);
+          const response = await fetch(`https://clinigoal-server.onrender.com/api/admin/quizzes/${quiz._id}`);
           if (response.ok) {
             const fullQuiz = await response.json();
             setActiveQuiz(fullQuiz);
@@ -1527,7 +1527,7 @@ export default function UserDashboard() {
 
       // Method 3: Try to submit to API
       try {
-        const response = await fetch('http://localhost:5000/api/reviews', {
+        const response = await fetch('https://clinigoal-server.onrender.com/api/reviews', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -2985,7 +2985,7 @@ export default function UserDashboard() {
                         </div>
                         <div className="note-actions">
                           <a 
-                            href={`http://localhost:5000${note.url}`} 
+                            href={`https://clinigoal-server.onrender.com${note.url}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="btn-secondary"

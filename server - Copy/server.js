@@ -34,11 +34,15 @@ if (!fs.existsSync(notesDir)) {
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000'],
+  origin: [
+    'http://localhost:3000',                     // for local development
+    'https://clinigoal-project.vercel.app'       // your deployed frontend
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
