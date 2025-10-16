@@ -47,13 +47,14 @@ export default function UserDashboard() {
   const [reviews, setReviews] = useState([]);
   const [hoverRating, setHoverRating] = useState(0);
   
-  // Enrollment form state
+  // Enrollment form state - UPDATED
   const [enrollmentForm, setEnrollmentForm] = useState({
     courseId: '',
     studentName: '',
     studentEmail: '',
     studentPhone: '',
     paymentMethod: 'razorpay',
+    paymentOption: 'demo', // 'demo' for ₹1, 'full' for original price
     agreeToTerms: false
   });
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
@@ -106,17 +107,17 @@ export default function UserDashboard() {
   const [approvedCourses, setApprovedCourses] = useState(new Set());
   const [courseAccess, setCourseAccess] = useState({});
 
-  // Default courses from PRD with proper images - ALL PRICES SET TO ₹1.00
+  // Default courses from PRD with ORIGINAL PRICES and ₹1 demo price - UPDATED WITH DYNAMIC INSTRUCTOR NAMES
   const defaultCourses = [
     {
       _id: '1',
       title: "Clinical Research",
       description: "Comprehensive training in clinical research methodologies, regulatory affairs, and clinical trial management.",
-      instructor: "Dr. Ananya Sharma",
+      instructor: "Clinical Research Expert",
       duration: "12 weeks",
       level: "Advanced",
-      price: "₹1.00",
-      originalPrice: "",
+      price: "₹1.00", // Demo price
+      originalPrice: "₹15,999", // Original price
       image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
       features: [
         "Regulatory Compliance Training",
@@ -130,11 +131,11 @@ export default function UserDashboard() {
       _id: '2',
       title: "Bioinformatics",
       description: "Master the intersection of biology, computer science, and statistics to analyze biological data.",
-      instructor: "Prof. Rajiv Menon",
+      instructor: "Bioinformatics Specialist",
       duration: "16 weeks",
       level: "Intermediate",
-      price: "₹1.00",
-      originalPrice: "",
+      price: "₹1.00", // Demo price
+      originalPrice: "₹12,499", // Original price
       image: "https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
       features: [
         "Genomic Data Analysis",
@@ -148,11 +149,11 @@ export default function UserDashboard() {
       _id: '3',
       title: "Medical Coding",
       description: "Learn medical terminology, coding systems, and billing procedures for healthcare settings.",
-      instructor: "Ms. Priya Nair",
+      instructor: "Medical Coding Professional",
       duration: "10 weeks",
       level: "Beginner",
-      price: "₹1.00",
-      originalPrice: "",
+      price: "₹1.00", // Demo price
+      originalPrice: "₹9,999", // Original price
       image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
       features: [
         "ICD-10 Coding",
@@ -166,11 +167,11 @@ export default function UserDashboard() {
       _id: '4',
       title: "Pharmacovigilance",
       description: "Specialized training in drug safety monitoring, adverse event reporting, and risk management.",
-      instructor: "Dr. Vikram Patel",
+      instructor: "Pharmacovigilance Expert",
       duration: "14 weeks",
       level: "Advanced",
-      price: "₹1.00",
-      originalPrice: "",
+      price: "₹1.00", // Demo price
+      originalPrice: "₹14,499", // Original price
       image: "https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
       features: [
         "Adverse Drug Reactions",
@@ -318,7 +319,7 @@ export default function UserDashboard() {
   };
 
   // NEW: Function to submit enrollment for approval
-  const submitEnrollmentForApproval = (course) => {
+  const submitEnrollmentForApproval = (course, paymentAmount = "₹1.00") => {
     const enrollmentData = {
       id: `enroll_${course._id}_${Date.now()}`,
       courseId: course._id,
@@ -326,7 +327,7 @@ export default function UserDashboard() {
       studentName: userData.userName,
       studentEmail: userData.userEmail,
       enrollmentDate: new Date().toISOString(),
-      paymentAmount: "₹1.00",
+      paymentAmount: paymentAmount,
       paymentMethod: 'razorpay',
       status: 'pending',
       timestamp: Date.now()
@@ -356,7 +357,7 @@ export default function UserDashboard() {
     
     localStorage.setItem(userAccessKey, JSON.stringify(userAccessData));
     
-    alert('✅ Enrollment submitted for admin approval! You will get access once approved.');
+    alert(`✅ Enrollment submitted for admin approval! You will get access once approved.`);
     
     // Update local state
     setPendingApprovals(updatedApprovals);
@@ -400,7 +401,93 @@ export default function UserDashboard() {
     return () => clearInterval(interval);
   }, [userData.userEmail]);
 
-  // Fetch all user data
+  // NEW: Fetch courses from API dynamically
+  const fetchCoursesFromAPI = async () => {
+    try {
+      console.log("🔄 Fetching courses from API...");
+      
+      // Try to fetch courses from the backend API
+      const response = await fetch('http://localhost:5000/api/courses', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const apiCourses = await response.json();
+        console.log("✅ Courses fetched from API:", apiCourses.length);
+        
+        if (apiCourses && apiCourses.length > 0) {
+          // Transform API courses to match our format
+          const transformedCourses = apiCourses.map(course => ({
+            _id: course._id || course.id,
+            title: course.title || course.name,
+            description: course.description || 'No description available',
+            instructor: course.instructor || 'Admin Instructor',
+            duration: course.duration || '8 weeks',
+            level: course.level || 'Intermediate',
+            price: course.demoPrice || "₹1.00",
+            originalPrice: course.price || "₹9,999",
+            image: course.image || 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            features: course.features || ['Comprehensive Learning', 'Expert Instruction', 'Practical Projects'],
+            category: course.category || 'General'
+          }));
+          
+          return transformedCourses;
+        }
+      }
+      
+      console.log("⚠️ Using default courses - API not available or no courses");
+      return defaultCourses;
+      
+    } catch (error) {
+      console.error('❌ Error fetching courses from API:', error);
+      console.log("🔄 Falling back to default courses");
+      return defaultCourses;
+    }
+  };
+
+  // NEW: Load courses from localStorage or API
+  const loadCourses = async () => {
+    try {
+      // Check if we have courses in localStorage
+      const savedCourses = localStorage.getItem('clinigoalCourses');
+      
+      if (savedCourses) {
+        const parsedCourses = JSON.parse(savedCourses);
+        console.log("📚 Loaded courses from localStorage:", parsedCourses.length);
+        setAvailableCourses(parsedCourses);
+        return parsedCourses;
+      } else {
+        // Fetch from API
+        const apiCourses = await fetchCoursesFromAPI();
+        setAvailableCourses(apiCourses);
+        
+        // Save to localStorage for offline use
+        localStorage.setItem('clinigoalCourses', JSON.stringify(apiCourses));
+        return apiCourses;
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+      setAvailableCourses(defaultCourses);
+      return defaultCourses;
+    }
+  };
+
+  // NEW: Refresh courses function
+  const refreshCourses = async () => {
+    console.log("🔄 Manually refreshing courses...");
+    const freshCourses = await fetchCoursesFromAPI();
+    setAvailableCourses(freshCourses);
+    
+    // Update localStorage with fresh data
+    localStorage.setItem('clinigoalCourses', JSON.stringify(freshCourses));
+    
+    alert(`✅ Courses refreshed! Loaded ${freshCourses.length} courses.`);
+  };
+
+  // Fetch all user data - UPDATED with dynamic course loading
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -452,12 +539,12 @@ export default function UserDashboard() {
         // Load approval data
         loadApprovalData();
 
+        // Load courses dynamically
+        await loadCourses();
+
         // Start with no enrolled courses so all courses show enrollment option
         setEnrolledCourses([]);
         localStorage.setItem('userEnrollments', JSON.stringify([]));
-
-        // Set available courses from PRD
-        setAvailableCourses(defaultCourses);
 
         // Fetch student reviews from API
         try {
@@ -500,6 +587,22 @@ export default function UserDashboard() {
     };
 
     fetchUserData();
+  }, []);
+
+  // NEW: Listen for course updates
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'clinigoalCourses' || event.key === null) {
+        console.log("🔄 Storage change detected, refreshing courses...");
+        loadCourses();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Apply dark mode class to body
@@ -725,7 +828,7 @@ export default function UserDashboard() {
     // window.location.href = '/login';
   };
 
-  // Payment History Functions - UPDATED with ₹1.00 pricing
+  // Payment History Functions - UPDATED with dynamic pricing
   const addPaymentToHistory = (course, amount = "₹1.00", paymentMethod = 'razorpay') => {
     const newPayment = {
       id: `payment_${Date.now()}`,
@@ -871,7 +974,7 @@ export default function UserDashboard() {
               <div class="detail-row">
                 <span class="detail-label">Amount Paid:</span>
                 <span class="detail-value" style="font-size: 24px; font-weight: bold; color: #27ae60;">
-                  ₹1.00
+                  ${payment.amount}
                 </span>
               </div>
             </div>
@@ -1653,7 +1756,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     fetchCourseContent(course.courseId || course.id || course._id);
   };
 
-  // Enrollment Form Functions
+  // Enrollment Form Functions - UPDATED
   const handleEnrollmentClick = (course) => {
     setEnrollmentCourse(course);
     setEnrollmentForm({
@@ -1662,6 +1765,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       studentEmail: userData.userEmail,
       studentPhone: '',
       paymentMethod: 'razorpay',
+      paymentOption: 'demo', // Default to ₹1 demo payment
       agreeToTerms: false
     });
     setShowEnrollmentForm(true);
@@ -1675,7 +1779,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     });
   };
 
-  // UPDATED: RazorPay Payment Function with ₹1.00 pricing
+  // UPDATED: RazorPay Payment Function with dynamic pricing
   const handleRazorpayPayment = async () => {
     if (!enrollmentCourse || !razorpayLoaded) {
       alert('Payment system is not ready. Please try again.');
@@ -1683,8 +1787,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     }
 
     try {
-      // Fixed amount of 100 paise (₹1.00)
-      const amountInPaise = 100;
+      // Determine amount based on payment option
+      const amountInPaise = enrollmentForm.paymentOption === 'demo' ? 100 : 
+                           enrollmentForm.paymentOption === 'full' ? 1599900 : 100; // Default to ₹1
 
       // Create order on your server (for demo, we'll simulate this)
       const orderResponse = await fetch('http://localhost:5000/api/create-order', {
@@ -1781,6 +1886,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
   // Handle payment success
   const handlePaymentSuccess = async (paymentResponse) => {
     if (enrollmentCourse) {
+      // Determine payment amount
+      const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
+                           enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
+      
       // Mark course as paid
       const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
       setPaidCourses(updatedPaidCourses);
@@ -1788,15 +1897,15 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       // Save to localStorage
       localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
       
-      // Add payment to history with ₹1.00
+      // Add payment to history with dynamic amount
       const payment = addPaymentToHistory(
         enrollmentCourse, 
-        "₹1.00",
+        paymentAmount,
         'razorpay'
       );
       
       // Submit for approval instead of direct access
-      submitEnrollmentForApproval(enrollmentCourse);
+      submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
       
       // Show success message
       setEnrollmentSuccess(true);
@@ -1812,6 +1921,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
   // DEMO PAYMENT FUNCTION (for testing without real Razorpay)
   const handleDemoPayment = async () => {
     if (enrollmentCourse) {
+      // Determine payment amount
+      const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
+                           enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
+      
       // Mark course as paid
       const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
       setPaidCourses(updatedPaidCourses);
@@ -1819,15 +1932,15 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       // Save to localStorage
       localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
       
-      // Add payment to history with ₹1.00
+      // Add payment to history with dynamic amount
       const payment = addPaymentToHistory(
         enrollmentCourse, 
-        "₹1.00",
+        paymentAmount,
         'razorpay'
       );
       
       // Submit for approval instead of direct access
-      submitEnrollmentForApproval(enrollmentCourse);
+      submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
       
       // Show success message
       setEnrollmentSuccess(true);
@@ -2038,7 +2151,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     return paidCourses.has(courseId);
   };
 
-  // NEW: Render Course Card with Approval Status
+  // NEW: Render Course Card with Approval Status - UPDATED with original prices
   const renderCourseCard = (course) => {
     const status = getEnrollmentStatus(course._id);
     const isAccessible = isCourseAccessible(course._id);
@@ -2090,10 +2203,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           
           <div className="course-meta">
             <span className="duration">⏱️ {course.duration}</span>
-            <span className="price">💰 ₹1.00</span>
-            {course.originalPrice && (
-              <span className="original-price">{course.originalPrice}</span>
-            )}
+            <div className="price-section">
+              <span className="price">💰 {course.price}</span>
+              {course.originalPrice && (
+                <span className="original-price">{course.originalPrice}</span>
+              )}
+            </div>
           </div>
           
           <div className="course-actions">
@@ -2121,7 +2236,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   onClick={() => handleEnrollmentClick(course)}
                   className="btn-primary"
                 >
-                  Enroll Now - ₹1.00
+                  Enroll Now - {course.price}
                 </button>
               </>
             )}
@@ -2131,7 +2246,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Payment Details Section - UPDATED with ₹1.00 pricing
+  // Payment Details Section - UPDATED with dynamic pricing
   const renderPaymentDetails = () => (
     <div className="payment-details-content">
       <div className="section-header">
@@ -2197,7 +2312,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                       </div>
                     </td>
                     <td className="payment-amount">
-                      <span className="amount-badge">₹1.00</span>
+                      <span className="amount-badge">{payment.amount}</span>
                     </td>
                     <td className="payment-method">
                       <span className={`method-badge ${payment.paymentMethod}`}>
@@ -2245,7 +2360,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     </div>
   );
 
-  // Payment Details Modal - UPDATED with ₹1.00 pricing
+  // Payment Details Modal - UPDATED with dynamic pricing
   const renderPaymentModal = () => {
     if (!showPaymentModal || !selectedPayment) return null;
 
@@ -2307,7 +2422,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               <h3>Payment Amount</h3>
               <div className="amount-display">
                 <span className="amount-label">Total Paid:</span>
-                <span className="amount-value">₹1.00</span>
+                <span className="amount-value">{selectedPayment.amount}</span>
               </div>
             </div>
 
@@ -2394,7 +2509,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Dashboard Section
+  // Dashboard Section - UPDATED with better features instead of course progress
   const renderDashboard = () => {
     const accessibleCourses = availableCourses.filter(course => isCourseAccessible(course._id));
     
@@ -2427,22 +2542,22 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           <div className="stat-card">
             <div className="stat-icon">📚</div>
             <div className="stat-info">
-              <h3>{totalCourses}</h3>
-              <p>Approved Courses</p>
+              <h3>{availableCourses.length}</h3>
+              <p>Total Courses</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">🎯</div>
             <div className="stat-info">
-              <h3>{averageProgress}%</h3>
-              <p>Average Progress</p>
+              <h3>{accessibleCourses.length}</h3>
+              <p>Approved Courses</p>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">🏆</div>
             <div className="stat-info">
-              <h3>{completedCourses}</h3>
-              <p>Completed</p>
+              <h3>{certificates.length}</h3>
+              <p>Certificates</p>
             </div>
           </div>
           <div className="stat-card">
@@ -2454,65 +2569,88 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         </div>
 
+        {/* NEW: Dashboard Features Section - Replaces Course Progress */}
         {accessibleCourses.length > 0 ? (
-          <div className="courses-section">
+          <div className="dashboard-features">
             <div className="section-header">
-              <h2>Continue Learning</h2>
-              <button className="view-all" onClick={() => setActiveSection('my-courses')}>
-                View All
-              </button>
+              <h2>Quick Access</h2>
+              <p>Everything you need for successful learning</p>
             </div>
-            <div className="courses-grid">
-              {accessibleCourses.slice(0, 3).map(course => (
-                <div key={course._id} className="course-card enrolled">
-                  <div className="course-image">
-                    <img 
-                      src={course.image} 
-                      alt={course.title}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                    <div className="course-image-fallback">
-                      {course.title.charAt(0)}
-                    </div>
-                    <div className="course-badge">Approved</div>
-                  </div>
-                  <div className="course-content">
-                    <h3>{course.title}</h3>
-                    <p className="instructor">By {course.instructor}</p>
-                    <div className="progress-section">
-                      <ProgressBar progress={calculateCourseCompletion(course._id)} />
-                      <p className="last-accessed">
-                        {calculateCourseCompletion(course._id) === 0 ? 'Start learning today' : `${calculateCourseCompletion(course._id)}% completed`}
-                      </p>
-                    </div>
-                    <div className="course-actions">
-                      <button 
-                        onClick={() => openCourseContent(course)}
-                        className="btn-primary"
-                      >
-                        {calculateCourseCompletion(course._id) === 0 ? 'Start Learning' : 'Continue Learning'}
-                      </button>
-                    </div>
-                  </div>
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">📚</div>
+                <div className="feature-content">
+                  <h3>Learning Resources</h3>
+                  <p>Access videos, notes, and quizzes for all your approved courses</p>
+                  <button 
+                    onClick={() => setActiveSection('my-courses')}
+                    className="btn-secondary"
+                  >
+                    View Resources
+                  </button>
                 </div>
-              ))}
+              </div>
+              
+              <div className="feature-card">
+                <div className="feature-icon">🏆</div>
+                <div className="feature-content">
+                  <h3>Achievements</h3>
+                  <p>Track your certificates and completed courses</p>
+                  <button 
+                    onClick={() => setActiveSection('certificates')}
+                    className="btn-secondary"
+                  >
+                    View Achievements
+                  </button>
+                </div>
+              </div>
+              
+              <div className="feature-card">
+                <div className="feature-icon">💬</div>
+                <div className="feature-content">
+                  <h3>Share Feedback</h3>
+                  <p>Help us improve by reviewing your courses</p>
+                  <button 
+                    onClick={() => setActiveSection('student-review')}
+                    className="btn-secondary"
+                  >
+                    Write Review
+                  </button>
+                </div>
+              </div>
+              
+              <div className="feature-card">
+                <div className="feature-icon">📈</div>
+                <div className="feature-content">
+                  <h3>Learning Analytics</h3>
+                  <p>View detailed progress and time spent learning</p>
+                  <button 
+                    onClick={() => setActiveSection('progress')}
+                    className="btn-secondary"
+                  >
+                    View Analytics
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
           <div className="empty-courses-section">
             <div className="empty-state">
               <div className="empty-icon">📚</div>
-              <h3>No Courses Accessible Yet</h3>
-              <p>Enroll in courses and wait for admin approval to start your clinical education journey</p>
-              <button 
-                onClick={() => setActiveSection('available-courses')}
-                className="btn-primary"
-              >
-                Browse Courses
-              </button>
+              <h3>Ready to Start Learning?</h3>
+              <p>Enroll in clinical courses and begin your educational journey. Once approved, you'll get full access to all learning materials.</p>
+              <div className="empty-actions">
+                <button 
+                  onClick={() => setActiveSection('available-courses')}
+                  className="btn-primary"
+                >
+                  Browse Courses
+                </button>
+                <button className="btn-secondary">
+                  View Course Catalog
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2607,12 +2745,35 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Available Courses Section - UPDATED with approval system
+  // Available Courses Section - UPDATED with dynamic course loading
   const renderAvailableCourses = () => (
     <div className="available-courses-content">
       <div className="section-header">
-        <h2>Clinigoal Courses</h2>
-        <p>Specialized programs for clinical education and career advancement</p>
+        <div className="section-header-row">
+          <div>
+            <h2>Clinigoal Courses</h2>
+            <p>Specialized programs for clinical education and career advancement</p>
+          </div>
+          <div className="section-actions">
+            <button 
+              onClick={refreshCourses}
+              className="btn-secondary"
+              title="Refresh courses from server"
+            >
+              🔄 Refresh Courses
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="courses-info-bar">
+        <span className="courses-count">
+          📚 {availableCourses.length} courses available
+        </span>
+        <span className="courses-source">
+          {availableCourses.some(course => course._id.startsWith('api_')) ? 
+            '🔄 Live from server' : '💾 Local storage'}
+        </span>
       </div>
       
       {availableCourses.length > 0 ? (
@@ -2624,10 +2785,16 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           <div className="empty-icon">🎯</div>
           <h3>No Courses Available</h3>
           <p>There are currently no courses available for enrollment.</p>
+          <button 
+            onClick={refreshCourses}
+            className="btn-primary"
+          >
+            Try Loading Courses
+          </button>
         </div>
       )}
       
-      {/* Enrollment Form Modal - UPDATED with ₹1.00 pricing */}
+      {/* Enrollment Form Modal - UPDATED with payment options */}
       {showEnrollmentForm && enrollmentCourse && (
         <div className="enrollment-modal-overlay">
           <div className="enrollment-modal">
@@ -2645,7 +2812,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               <div className="enrollment-success">
                 <div className="success-icon">✓</div>
                 <h3>Payment Successful!</h3>
-                <p>You have successfully paid ₹1.00 for {enrollmentCourse.title}.</p>
+                <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} for {enrollmentCourse.title}.</p>
                 <p>Your enrollment is now pending admin approval. You will get access once approved.</p>
                 <div className="success-actions">
                   <button 
@@ -2667,8 +2834,59 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     <p><strong>Course:</strong> {enrollmentCourse.title}</p>
                     <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
                     <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
-                    <p><strong>Price:</strong> ₹1.00</p>
+                    <div className="price-options">
+                      <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
+                      <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
+                    </div>
                     <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after payment</p>
+                  </div>
+                </div>
+
+                {/* NEW: Payment Option Selection */}
+                <div className="form-group">
+                  <label>Select Payment Option *</label>
+                  <div className="payment-options">
+                    <div className="payment-option-card">
+                      <input
+                        type="radio"
+                        id="demo-payment"
+                        name="paymentOption"
+                        value="demo"
+                        checked={enrollmentForm.paymentOption === 'demo'}
+                        onChange={handleEnrollmentChange}
+                        className="payment-radio"
+                      />
+                      <label htmlFor="demo-payment" className="payment-option-label">
+                        <div className="payment-option-header">
+                          <span className="payment-option-title">Demo Payment</span>
+                          <span className="payment-option-price">₹1.00</span>
+                        </div>
+                        <p className="payment-option-description">
+                          Pay ₹1 to test the enrollment process (Recommended for testing)
+                        </p>
+                      </label>
+                    </div>
+                    
+                    <div className="payment-option-card">
+                      <input
+                        type="radio"
+                        id="full-payment"
+                        name="paymentOption"
+                        value="full"
+                        checked={enrollmentForm.paymentOption === 'full'}
+                        onChange={handleEnrollmentChange}
+                        className="payment-radio"
+                      />
+                      <label htmlFor="full-payment" className="payment-option-label">
+                        <div className="payment-option-header">
+                          <span className="payment-option-title">Full Payment</span>
+                          <span className="payment-option-price">{enrollmentCourse.originalPrice}</span>
+                        </div>
+                        <p className="payment-option-description">
+                          Pay the full course price to access all features
+                        </p>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -2744,6 +2962,15 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   </label>
                 </div>
                 
+                <div className="payment-summary">
+                  <div className="payment-total">
+                    <span className="total-label">Total Amount:</span>
+                    <span className="total-amount">
+                      {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice}
+                    </span>
+                  </div>
+                </div>
+                
                 <div className="form-actions">
                   <button 
                     type="button" 
@@ -2757,7 +2984,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     className="btn-primary razorpay-btn"
                     disabled={!enrollmentForm.agreeToTerms}
                   >
-                    <span className="razorpay-text">Pay ₹1.00 with Razorpay</span>
+                    <span className="razorpay-text">
+                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} with Razorpay
+                    </span>
                   </button>
                 </div>
 
@@ -2952,9 +3181,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                           onMouseEnter={() => handleRatingHover(star)}
                           onMouseLeave={handleRatingLeave}
                           aria-label={`Rate ${star} stars`}
-                        >
-                          <span className="star-icon">★</span>
-                        </button>
+                        />
                       ))}
                     </div>
                     <div className="rating-value">

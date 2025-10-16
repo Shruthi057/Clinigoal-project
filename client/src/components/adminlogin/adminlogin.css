@@ -1,256 +1,214 @@
-/* Admin Login Container */
-/* Main Colors: */
-/* Background: #f7fafc (Subtle Light Gray) */
-/* Card: #ffffff (White) */
-/* Accent: #0077B6 (Academic Teal) */
-/* Dark Text: #1a202c */
-
+/* Admin Login Styles - Clean Professional Version */
 .admin-login-container {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  /* ✅ Match Home Page Background */
-  background: #f7fafc; 
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 20px;
-  position: relative;
 }
 
-/* Admin Login Card */
 .admin-login-card {
   width: 100%;
-  max-width: 360px; /* Reduced from 420px */
-  /* Match Home Page Card Background */
-  background: #ffffff; 
+  max-width: 440px;
+  background: #ffffff;
   border-radius: 16px;
-  /* Match Home Page Card Shadow */
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.08),
+    0 5px 10px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  position: relative;
-  z-index: 1;
-  /* Match Home Page Border Color */
-  border: 1px solid #edf2f7;
-  /* Match Home Page Dark Text */
-  color: #1a202c;
 }
 
-/* Admin Login Header */
 .admin-login-header {
   text-align: center;
-  padding: 20px 15px 15px; /* Reduced from 25px 20px 20px */
-  /* Match Home Page Card Background */
-  background: #ffffff; 
-  /* Match Home Page Dark Text */
-  color: #1a202c;
-  /* Match Home Page Border/Divider Color */
-  border-bottom: 1px solid #e2e8f0;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  padding: 30px 30px 20px;
+  background: linear-gradient(135deg, #0077B6 0%, #005A8D 100%);
+  color: white;
 }
 
 .admin-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 45px; /* Reduced from 50px */
-  height: 45px; /* Reduced from 50px */
-  /* Match Home Page Secondary Background */
-  background: #f7fafc; 
-  border-radius: 50%;
-  margin-bottom: 12px; /* Reduced from 15px */
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  margin-bottom: 15px;
 }
 
 .admin-icon {
-  font-size: 20px; /* Reduced from 24px */
-  /* ✅ Match Home Page Accent Color (Teal) */
-  color: #0077B6; 
+  font-size: 24px;
+  color: white;
 }
 
 .admin-login-header h2 {
-  font-size: 20px; /* Reduced from 22px */
+  font-size: 24px;
   font-weight: 700;
-  margin: 0;
-  /* Match Home Page Dark Text */
-  color: #1a202c;
+  margin: 0 0 6px 0;
+  color: white;
 }
 
-/* Form Styles */
+.admin-login-header p {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Form Styles - Clean Simple Inputs */
 .admin-login-form {
-  padding: 25px 20px 20px; /* Reduced from 35px 25px 25px */
+  padding: 30px;
 }
 
 .form-group {
-  margin-bottom: 16px; /* Reduced from 20px */
+  margin-bottom: 20px;
 }
 
-.input-container {
-  position: relative;
-}
-
-.input-icon {
-  position: absolute;
-  left: 12px; /* Reduced from 15px */
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px; /* Reduced from 16px */
-  /* Match Home Page Muted Text */
-  color: #a0aec0;
-}
-
+/* Simple Input Fields - No Over-designed Boxes */
 .admin-login-form input {
   width: 100%;
-  padding: 12px 12px 12px 38px; /* Reduced from 14px 14px 14px 45px */
-  /* Match Home Page Input Border Color */
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 14px; /* Reduced from 15px */
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 16px;
+  font-weight: 500;
   transition: all 0.3s ease;
-  background: #ffffff; 
-  /* Match Home Page Dark Text */
-  color: #1a202c;
+  background: transparent;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.admin-login-form input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .admin-login-form input:focus {
-  /* ✅ Match Home Page Input Focus Color (Teal) */
-  border-color: #0077B6;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.15);
+  border-bottom-color: #0077B6;
   outline: none;
+  box-shadow: none;
 }
 
 /* Button Styles */
 .btn {
   width: 100%;
-  padding: 12px; /* Reduced from 14px */
+  padding: 14px 20px;
   border: none;
-  border-radius: 10px;
-  /* ✅ Match Home Page Primary Button Gradient (Teal) */
+  border-radius: 8px;
   background: linear-gradient(135deg, #0077B6 0%, #005A8D 100%);
   color: white;
-  font-size: 15px; /* Reduced from 16px */
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 8px; /* Reduced from 10px */
-  position: relative;
-  overflow: hidden;
-  /* ✅ Match Home Page Button Shadow */
-  box-shadow: 0 4px 14px rgba(0, 119, 182, 0.3);
+  margin-top: 20px;
 }
 
 .btn:hover {
-  /* Match Home Page Primary Button Hover Gradient */
-  background: linear-gradient(135deg, #005A8D 0%, #004A73 100%);
-  transform: translateY(-2px);
-  /* ✅ Match Home Page Button Hover Shadow */
-  box-shadow: 0 8px 20px rgba(0, 119, 182, 0.5);
-}
-
-.btn:active {
-  transform: translateY(0);
-}
-
-.btn:disabled {
-  opacity: 0.8;
-  cursor: not-allowed;
+  background: linear-gradient(135deg, #005A8D 0%, #00467a 100%);
 }
 
 /* Links */
 .admin-links {
   display: flex;
   justify-content: space-between;
-  padding: 0 20px 15px; /* Reduced bottom padding from 20px */
+  padding: 20px 30px;
+  gap: 15px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .link-btn {
   background: none;
   border: none;
-  /* ✅ Match Home Page Accent Link Color (Teal) */
   color: #0077B6;
-  font-size: 13px; /* Reduced from 14px */
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
 }
 
 .link-btn:hover {
-  /* Darker Teal on Hover */
   color: #005A8D;
-  text-decoration: underline;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  margin: 0 20px 15px; /* Reduced bottom margin from 20px */
-  /* Match Home Page Muted Text */
-  color: #718096;
-  font-size: 13px; /* Reduced from 14px */
-  font-weight: 500;
-}
-
-.back-btn:hover {
-  /* ✅ Match Home Page Accent Color (Teal) on Hover */
-  color: #0077B6;
-}
-
-.back-icon {
-  margin-right: 8px;
+  background: rgba(0, 119, 182, 0.05);
 }
 
 /* Footer */
 .admin-login-footer {
-  padding: 15px; /* Reduced from 20px */
-  /* Match Home Page Secondary Background */
-  background: #f7fafc;
+  padding: 15px 30px;
+  background: #f8fafc;
   text-align: center;
-  /* Match Home Page Border/Divider Color */
   border-top: 1px solid #e2e8f0;
-  /* Match Home Page Dark Text */
-  color: #1a202c;
-}
-
-.home-link {
-  display: inline-flex;
-  align-items: center;
-  /* ✅ Match Home Page Accent Link Color (Teal) */
-  color: #0077B6;
-  text-decoration: none;
-  font-size: 13px; /* Reduced from 14px */
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-.home-link:hover {
-  /* Darker Teal on Hover */
-  color: #005A8D;
-}
-
-.home-icon {
-  margin-right: 8px;
+  color: #64748b;
+  font-size: 14px;
 }
 
 /* Responsive Design */
 @media (max-width: 480px) {
+  .admin-login-container {
+    padding: 15px;
+  }
+  
   .admin-login-card {
     max-width: 100%;
+    border-radius: 12px;
+  }
+  
+  .admin-login-header {
+    padding: 25px 20px 15px;
+  }
+  
+  .admin-logo {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .admin-icon {
+    font-size: 20px;
+  }
+  
+  .admin-login-header h2 {
+    font-size: 20px;
+  }
+  
+  .admin-login-header p {
+    font-size: 13px;
   }
   
   .admin-login-form {
-    padding: 20px 15px 15px; /* Reduced from 30px 15px 15px */
+    padding: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .admin-login-form input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  .btn {
+    padding: 12px 16px;
+    font-size: 14px;
   }
   
   .admin-links {
-    padding: 0 15px 12px; /* Reduced bottom padding from 15px */
+    padding: 15px 20px;
+    flex-direction: column;
+    gap: 10px;
   }
   
-  .back-btn {
-    margin: 0 15px 12px; /* Reduced bottom margin from 15px */
+  .link-btn {
+    font-size: 13px;
   }
   
   .admin-login-footer {
-    padding: 12px; /* Reduced from 15px */
+    padding: 12px 20px;
+    font-size: 13px;
   }
 }

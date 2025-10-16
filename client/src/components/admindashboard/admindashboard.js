@@ -99,6 +99,18 @@ const defaultCourses = [
   }
 ];
 
+// Available instructors for dynamic selection
+const availableInstructors = [
+  "Dr. Ananya Sharma",
+  "Prof. Rajiv Menon", 
+  "Ms. Priya Nair",
+  "Dr. Vikram Patel",
+  "Dr. Sanjay Kumar",
+  "Prof. Meera Desai",
+  "Dr. Rohan Mehra",
+  "Ms. Anjali Joshi"
+];
+
 // Safe date formatting function
 const formatDate = (dateString) => {
   if (!dateString || dateString === 'undefined' || dateString === 'null') {
@@ -118,6 +130,31 @@ const formatNumber = (number) => {
     return '0';
   }
   return number.toLocaleString("en-IN");
+};
+
+// Save courses to localStorage
+const saveCoursesToStorage = (coursesData) => {
+  try {
+    localStorage.setItem('adminCourses', JSON.stringify(coursesData));
+    console.log('💾 Courses saved to localStorage:', coursesData.length);
+  } catch (error) {
+    console.error('Error saving courses to localStorage:', error);
+  }
+};
+
+// Load courses from localStorage
+const loadCoursesFromStorage = () => {
+  try {
+    const savedCourses = localStorage.getItem('adminCourses');
+    if (savedCourses) {
+      const courses = JSON.parse(savedCourses);
+      console.log('📂 Courses loaded from localStorage:', courses.length);
+      return courses;
+    }
+  } catch (error) {
+    console.error('Error loading courses from localStorage:', error);
+  }
+  return null;
 };
 
 function AdminDashboard() {
@@ -246,18 +283,837 @@ function AdminDashboard() {
     total: 0
   });
 
-  // Enhanced function to fetch student progress data from user dashboard
+  // Course Management State
+  const [showCourseSidebar, setShowCourseSidebar] = useState(false);
+  const [courses, setCourses] = useState(() => {
+    const savedCourses = loadCoursesFromStorage();
+    return savedCourses || defaultCourses;
+  });
+  const [courseForm, setCourseForm] = useState({
+    title: "",
+    description: "",
+    instructor: "",
+    duration: "",
+    level: "Beginner",
+    price: "",
+    image: "",
+    features: [""]
+  });
+  const [editingCourseId, setEditingCourseId] = useState(null);
+
+  // Progress Tracking Filters
+  const [progressFilters, setProgressFilters] = useState({
+    course: 'all',
+    status: 'all',
+    search: ''
+  });
+
+  // ========== PROGRESS TRACKING FUNCTIONS ==========
+
+  // Track student progress
+  const trackStudentProgress = (studentEmail, courseId, progressData) => {
+    try {
+      const progressKey = `studentProgress_${studentEmail.replace(/[@.]/g, '_')}`;
+      const existingProgress = JSON.parse(localStorage.getItem(progressKey) || '{}');
+      
+      const updatedProgress = {
+        ...existingProgress,
+        [courseId]: {
+          ...progressData,
+          lastUpdated: new Date().toISOString(),
+          studentEmail,
+          courseId
+        }
+      };
+      
+      localStorage.setItem(progressKey, JSON.stringify(updatedProgress));
+      
+      // Also update admin progress tracking
+      updateAdminProgressTracking(studentEmail, courseId, progressData);
+      
+    } catch (error) {
+      console.error('Error tracking student progress:', error);
+    }
+  };
+
+  // Admin progress tracking
+  const updateAdminProgressTracking = (studentEmail, courseId, progressData) => {
+    try {
+      const adminProgressKey = 'adminProgressTracking';
+      const existingAdminProgress = JSON.parse(localStorage.getItem(adminProgressKey) || '{}');
+      
+      if (!existingAdminProgress[courseId]) {
+        existingAdminProgress[courseId] = {
+          courseId,
+          totalStudents: 0,
+          completedStudents: 0,
+          averageProgress: 0,
+          studentProgress: []
+        };
+      }
+      
+      // Update course progress
+      const courseProgress = existingAdminProgress[courseId];
+      const studentIndex = courseProgress.studentProgress.findIndex(
+        sp => sp.studentEmail === studentEmail
+      );
+      
+      if (studentIndex === -1) {
+        courseProgress.studentProgress.push({
+          studentEmail,
+          ...progressData,
+          enrolledDate: new Date().toISOString()
+        });
+        courseProgress.totalStudents++;
+      } else {
+        courseProgress.studentProgress[studentIndex] = {
+          ...courseProgress.studentProgress[studentIndex],
+          ...progressData
+        };
+      }
+      
+      // Calculate averages
+      const totalProgress = courseProgress.studentProgress.reduce(
+        (sum, student) => sum + (student.completionPercentage || 0), 0
+      );
+      courseProgress.averageProgress = totalProgress / courseProgress.studentProgress.length;
+      courseProgress.completedStudents = courseProgress.studentProgress.filter(
+        student => student.completionPercentage === 100
+      ).length;
+      
+      localStorage.setItem(adminProgressKey, JSON.stringify(existingAdminProgress));
+      
+    } catch (error) {
+      console.error('Error updating admin progress tracking:', error);
+    }
+  };
+
+  // Get progress statistics
+  const getProgressStatistics = () => {
+    try {
+      const adminProgress = JSON.parse(localStorage.getItem('adminProgressTracking') || '{}');
+      const statistics = {
+        totalCourses: Object.keys(adminProgress).length,
+        totalStudents: 0,
+        totalCompleted: 0,
+        averageCompletionRate: 0,
+        courseWiseStats: {}
+      };
+      
+      Object.values(adminProgress).forEach(course => {
+        statistics.totalStudents += course.totalStudents || 0;
+        statistics.totalCompleted += course.completedStudents || 0;
+        statistics.courseWiseStats[course.courseId] = {
+          courseName: courses.find(c => c._id === course.courseId)?.title || 'Unknown Course',
+          totalStudents: course.totalStudents,
+          completedStudents: course.completedStudents,
+          averageProgress: course.averageProgress
+        };
+      });
+      
+      statistics.averageCompletionRate = statistics.totalStudents > 0 
+        ? (statistics.totalCompleted / statistics.totalStudents) * 100 
+        : 0;
+      
+      return statistics;
+    } catch (error) {
+      console.error('Error getting progress statistics:', error);
+      return {
+        totalCourses: 0,
+        totalStudents: 0,
+        totalCompleted: 0,
+        averageCompletionRate: 0,
+        courseWiseStats: {}
+      };
+    }
+  };
+
+  // Get filtered progress data
+  const getFilteredProgress = () => {
+    const statistics = getProgressStatistics();
+    let filteredData = Object.values(statistics.courseWiseStats);
+    
+    if (progressFilters.course !== 'all') {
+      filteredData = filteredData.filter(course => 
+        course.courseName.toLowerCase().includes(progressFilters.course.toLowerCase())
+      );
+    }
+    
+    if (progressFilters.status !== 'all') {
+      filteredData = filteredData.filter(course => {
+        if (progressFilters.status === 'completed') {
+          return course.completedStudents > 0;
+        } else if (progressFilters.status === 'in-progress') {
+          return course.completedStudents < course.totalStudents;
+        }
+        return true;
+      });
+    }
+    
+    if (progressFilters.search) {
+      filteredData = filteredData.filter(course =>
+        course.courseName.toLowerCase().includes(progressFilters.search.toLowerCase())
+      );
+    }
+    
+    return filteredData;
+  };
+
+  // ========== COURSE MANAGEMENT FUNCTIONS ==========
+
+  const handleCourseFormChange = (field, value) => {
+    setCourseForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleFeatureChange = (index, value) => {
+    const updatedFeatures = [...courseForm.features];
+    updatedFeatures[index] = value;
+    setCourseForm(prev => ({
+      ...prev,
+      features: updatedFeatures
+    }));
+  };
+
+  const addFeatureField = () => {
+    setCourseForm(prev => ({
+      ...prev,
+      features: [...prev.features, ""]
+    }));
+  };
+
+  const removeFeatureField = (index) => {
+    if (courseForm.features.length > 1) {
+      const updatedFeatures = courseForm.features.filter((_, i) => i !== index);
+      setCourseForm(prev => ({
+        ...prev,
+        features: updatedFeatures
+      }));
+    }
+  };
+
+  const handleAddCourse = async (e) => {
+    e.preventDefault();
+    
+    if (!courseForm.title || !courseForm.description || !courseForm.instructor) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      const courseData = {
+        ...courseForm,
+        features: courseForm.features.filter(feature => feature.trim() !== "")
+      };
+
+      let updatedCourses;
+      
+      if (editingCourseId) {
+        updatedCourses = courses.map(course => 
+          course._id === editingCourseId 
+            ? { ...course, ...courseData }
+            : course
+        );
+      } else {
+        const newCourse = {
+          _id: `course_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          ...courseData,
+          createdAt: new Date().toISOString()
+        };
+        updatedCourses = [newCourse, ...courses];
+      }
+
+      // Save to state AND localStorage
+      setCourses(updatedCourses);
+      saveCoursesToStorage(updatedCourses);
+
+      alert(editingCourseId ? "Course updated successfully!" : "Course added successfully!");
+
+      setCourseForm({
+        title: "",
+        description: "",
+        instructor: "",
+        duration: "",
+        level: "Beginner",
+        price: "",
+        image: "",
+        features: [""]
+      });
+      setEditingCourseId(null);
+      setShowCourseSidebar(false);
+
+    } catch (error) {
+      console.error("Error saving course:", error);
+      alert("Failed to save course. Please try again.");
+    }
+  };
+
+  const handleEditCourse = (course) => {
+    setCourseForm({
+      title: course.title || "",
+      description: course.description || "",
+      instructor: course.instructor || "",
+      duration: course.duration || "",
+      level: course.level || "Beginner",
+      price: course.price || "",
+      image: course.image || "",
+      features: course.features && course.features.length > 0 ? course.features : [""]
+    });
+    setEditingCourseId(course._id);
+    setShowCourseSidebar(true);
+  };
+
+  const handleDeleteCourse = (courseId) => {
+    if (window.confirm("Are you sure you want to delete this course?")) {
+      const updatedCourses = courses.filter(course => course._id !== courseId);
+      setCourses(updatedCourses);
+      saveCoursesToStorage(updatedCourses);
+      alert("Course deleted successfully!");
+    }
+  };
+
+  const handleCancelCourseEdit = () => {
+    setCourseForm({
+      title: "",
+      description: "",
+      instructor: "",
+      duration: "",
+      level: "Beginner",
+      price: "",
+      image: "",
+      features: [""]
+    });
+    setEditingCourseId(null);
+    setShowCourseSidebar(false);
+  };
+
+  // ========== COURSE SIDEBAR COMPONENT ==========
+
+  const renderCourseSidebar = () => {
+    if (!showCourseSidebar) return null;
+
+    return (
+      <div className="admin-course-sidebar">
+        <div className="course-sidebar-header">
+          <div className="course-header-content">
+            <h3>{editingCourseId ? 'Edit Course' : 'Add New Course'}</h3>
+          </div>
+          <button 
+            className="course-sidebar-close"
+            onClick={handleCancelCourseEdit}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="course-sidebar-content">
+          <form onSubmit={handleAddCourse} className="course-form">
+            <div className="form-group">
+              <label>Course Title *</label>
+              <input
+                type="text"
+                value={courseForm.title}
+                onChange={(e) => handleCourseFormChange('title', e.target.value)}
+                required
+                placeholder="Enter course title"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Description *</label>
+              <textarea
+                value={courseForm.description}
+                onChange={(e) => handleCourseFormChange('description', e.target.value)}
+                required
+                rows="3"
+                placeholder="Enter course description"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Instructor *</label>
+              <select
+                value={courseForm.instructor}
+                onChange={(e) => handleCourseFormChange('instructor', e.target.value)}
+                required
+              >
+                <option value="">Select Instructor</option>
+                {availableInstructors.map((instructor, index) => (
+                  <option key={index} value={instructor}>
+                    {instructor}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Duration</label>
+                <input
+                  type="text"
+                  value={courseForm.duration}
+                  onChange={(e) => handleCourseFormChange('duration', e.target.value)}
+                  placeholder="e.g., 12 weeks"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Level</label>
+                <select
+                  value={courseForm.level}
+                  onChange={(e) => handleCourseFormChange('level', e.target.value)}
+                >
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Price</label>
+              <input
+                type="text"
+                value={courseForm.price}
+                onChange={(e) => handleCourseFormChange('price', e.target.value)}
+                placeholder="e.g., ₹1.00"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Image URL</label>
+              <input
+                type="text"
+                value={courseForm.image}
+                onChange={(e) => handleCourseFormChange('image', e.target.value)}
+                placeholder="Enter image URL"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Course Features</label>
+              {courseForm.features.map((feature, index) => (
+                <div key={index} className="feature-input-group">
+                  <input
+                    type="text"
+                    value={feature}
+                    onChange={(e) => handleFeatureChange(index, e.target.value)}
+                    placeholder={`Feature ${index + 1}`}
+                  />
+                  {courseForm.features.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeFeatureField(index)}
+                      className="remove-feature-btn"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addFeatureField}
+                className="add-feature-btn"
+              >
+                + Add Feature
+              </button>
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="admin-btn primary">
+                {editingCourseId ? 'Update Course' : 'Add Course'}
+              </button>
+              <button 
+                type="button" 
+                className="admin-btn secondary"
+                onClick={handleCancelCourseEdit}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== COURSE MANAGEMENT COMPONENT ==========
+
+  const renderCourseManagement = () => {
+    return (
+      <div className="admin-course-management">
+        <div className="admin-page-header">
+          <div className="admin-page-header-left">
+            <h1 className="admin-page-title">Course Management</h1>
+            <p>Manage all courses in the platform</p>
+          </div>
+          <div className="admin-page-actions">
+            <button 
+              className="admin-btn primary"
+              onClick={() => setShowCourseSidebar(true)}
+            >
+              + Add New Course
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-stats-grid">
+          <div className="admin-stat-card primary">
+            <div className="admin-stat-icon">📚</div>
+            <div className="admin-stat-content">
+              <h3>{courses.length}</h3>
+              <p>Total Courses</p>
+              <span className="admin-stat-change positive">Available courses</span>
+            </div>
+          </div>
+          <div className="admin-stat-card success">
+            <div className="admin-stat-icon">👨‍🏫</div>
+            <div className="admin-stat-content">
+              <h3>{new Set(courses.map(course => course.instructor)).size}</h3>
+              <p>Active Instructors</p>
+              <span className="admin-stat-change positive">Teaching staff</span>
+            </div>
+          </div>
+          <div className="admin-stat-card warning">
+            <div className="admin-stat-icon">🎯</div>
+            <div className="admin-stat-content">
+              <h3>{courses.filter(course => course.level === 'Advanced').length}</h3>
+              <p>Advanced Courses</p>
+              <span className="admin-stat-change positive">Expert level</span>
+            </div>
+          </div>
+          <div className="admin-stat-card info">
+            <div className="admin-stat-icon">⏱️</div>
+            <div className="admin-stat-content">
+              <h3>{courses.reduce((acc, course) => {
+                const duration = parseInt(course.duration) || 0;
+                return acc + duration;
+              }, 0)}</h3>
+              <p>Total Weeks</p>
+              <span className="admin-stat-change positive">Combined duration</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-courses-grid">
+          {courses.map(course => (
+            <div key={course._id} className="admin-course-card">
+              <div className="course-card-header">
+                <div className="course-image">
+                  {course.image ? (
+                    <img src={course.image} alt={course.title} />
+                  ) : (
+                    <div className="course-image-placeholder">📚</div>
+                  )}
+                </div>
+                <div className="course-basic-info">
+                  <h3>{course.title}</h3>
+                  <p className="course-instructor">👨‍🏫 {course.instructor}</p>
+                  <div className="course-meta">
+                    <span className="course-duration">⏱️ {course.duration}</span>
+                    <span className={`course-level ${course.level?.toLowerCase()}`}>
+                      {course.level}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="course-description">
+                <p>{course.description}</p>
+              </div>
+
+              {course.features && course.features.length > 0 && (
+                <div className="course-features">
+                  <h4>Key Features:</h4>
+                  <ul>
+                    {course.features.slice(0, 3).map((feature, index) => (
+                      <li key={index}>✓ {feature}</li>
+                    ))}
+                    {course.features.length > 3 && (
+                      <li>+ {course.features.length - 3} more features</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              <div className="course-price">
+                <span className="price">{course.price}</span>
+              </div>
+
+              <div className="course-actions">
+                <button 
+                  onClick={() => handleEditCourse(course)}
+                  className="admin-btn action primary"
+                >
+                  ✏️ Edit
+                </button>
+                <button 
+                  onClick={() => handleDeleteCourse(course._id)}
+                  className="admin-btn action danger"
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {courses.length === 0 && (
+          <div className="admin-empty-message">
+            <div className="admin-empty-icon">📚</div>
+            <h3>No Courses Available</h3>
+            <p>Get started by adding your first course using the "Add New Course" button.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ========== PROGRESS TRACKING COMPONENT ==========
+
+  const renderProgressTracking = () => {
+    const progressStats = getProgressStatistics();
+    const filteredProgress = getFilteredProgress();
+
+    return (
+      <div className="admin-progress-tracking">
+        <div className="admin-page-header">
+          <h1 className="admin-page-title">Progress Tracking</h1>
+          <div className="admin-page-actions">
+            <button 
+              className="admin-btn primary"
+              onClick={() => {
+                fetchAdminProgress();
+                alert('Progress data refreshed!');
+              }}
+            >
+              🔄 Refresh Data
+            </button>
+          </div>
+        </div>
+
+        {/* Progress Statistics */}
+        <div className="admin-stats-grid">
+          <div className="admin-stat-card primary">
+            <div className="admin-stat-icon">📚</div>
+            <div className="admin-stat-content">
+              <h3>{progressStats.totalCourses}</h3>
+              <p>Active Courses</p>
+              <span className="admin-stat-change positive">With student progress</span>
+            </div>
+          </div>
+          <div className="admin-stat-card success">
+            <div className="admin-stat-icon">👥</div>
+            <div className="admin-stat-content">
+              <h3>{progressStats.totalStudents}</h3>
+              <p>Total Students</p>
+              <span className="admin-stat-change positive">Enrolled students</span>
+            </div>
+          </div>
+          <div className="admin-stat-card warning">
+            <div className="admin-stat-icon">🎯</div>
+            <div className="admin-stat-content">
+              <h3>{progressStats.totalCompleted}</h3>
+              <p>Completed Courses</p>
+              <span className="admin-stat-change positive">Total completions</span>
+            </div>
+          </div>
+          <div className="admin-stat-card info">
+            <div className="admin-stat-icon">📊</div>
+            <div className="admin-stat-content">
+              <h3>{Math.round(progressStats.averageCompletionRate)}%</h3>
+              <p>Average Completion</p>
+              <span className="admin-stat-change positive">Overall progress</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Filters */}
+        <div className="admin-progress-filters">
+          <div className="admin-search-box">
+            <span className="admin-search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search courses..."
+              className="admin-search-input"
+              value={progressFilters.search}
+              onChange={(e) => setProgressFilters(prev => ({
+                ...prev,
+                search: e.target.value
+              }))}
+            />
+          </div>
+          
+          <div className="admin-filter-group">
+            <label>Course</label>
+            <select 
+              className="admin-filter-select"
+              value={progressFilters.course}
+              onChange={(e) => setProgressFilters(prev => ({
+                ...prev,
+                course: e.target.value
+              }))}
+            >
+              <option value="all">All Courses</option>
+              {courses.map(course => (
+                <option key={course._id} value={course.title}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="admin-filter-group">
+            <label>Status</label>
+            <select 
+              className="admin-filter-select"
+              value={progressFilters.status}
+              onChange={(e) => setProgressFilters(prev => ({
+                ...prev,
+                status: e.target.value
+              }))}
+            >
+              <option value="all">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="in-progress">In Progress</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Progress Table */}
+        <div className="admin-table-card">
+          <h3>Course Progress Overview</h3>
+          {filteredProgress.length > 0 ? (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Course Name</th>
+                  <th>Total Students</th>
+                  <th>Completed</th>
+                  <th>In Progress</th>
+                  <th>Average Progress</th>
+                  <th>Completion Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProgress.map((course, index) => (
+                  <tr key={index}>
+                    <td>
+                      <strong>{course.courseName}</strong>
+                    </td>
+                    <td>{course.totalStudents}</td>
+                    <td>
+                      <span className="progress-badge completed">
+                        {course.completedStudents}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="progress-badge in-progress">
+                        {course.totalStudents - course.completedStudents}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="progress-bar-container">
+                        <div 
+                          className="progress-bar-fill"
+                          style={{ width: `${course.averageProgress || 0}%` }}
+                        ></div>
+                        <span className="progress-text">
+                          {Math.round(course.averageProgress || 0)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`completion-rate ${
+                        (course.completedStudents / course.totalStudents) * 100 > 70 
+                          ? 'high' 
+                          : (course.completedStudents / course.totalStudents) * 100 > 40 
+                          ? 'medium' 
+                          : 'low'
+                      }`}>
+                        {course.totalStudents > 0 
+                          ? Math.round((course.completedStudents / course.totalStudents) * 100) 
+                          : 0
+                        }%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="admin-empty-message">
+              <div className="admin-empty-icon">📊</div>
+              <h3>No Progress Data</h3>
+              <p>Student progress data will appear here as students start taking courses.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Progress Charts */}
+        <div className="admin-progress-charts">
+          <div className="admin-chart-card">
+            <h3>Course Completion Rates</h3>
+            <div className="admin-chart-container">
+              <Bar 
+                data={{
+                  labels: filteredProgress.map(course => course.courseName),
+                  datasets: [
+                    {
+                      label: 'Completion Rate %',
+                      data: filteredProgress.map(course => 
+                        course.totalStudents > 0 
+                          ? Math.round((course.completedStudents / course.totalStudents) * 100) 
+                          : 0
+                      ),
+                      backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                      borderColor: 'rgba(34, 197, 94, 1)',
+                      borderWidth: 1,
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      max: 100,
+                      ticks: {
+                        callback: function(value) {
+                          return value + '%';
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== EXISTING FUNCTIONS CONTINUED ==========
+
   const fetchStudentProgressData = () => {
     try {
       console.log("🔄 Fetching student progress data from user dashboard...");
       
-      // Get all user data from localStorage with safe parsing
       const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
       const userLoginLogs = JSON.parse(localStorage.getItem('userLoginLogs') || '[]');
       
       const progressData = [];
       
-      // If no users found, return empty array
       if (!uniqueUsers || uniqueUsers.length === 0) {
         console.log("📊 No users found in localStorage");
         return [];
@@ -270,19 +1126,15 @@ function AdminDashboard() {
             return;
           }
 
-          // Get user's course access with safe parsing
           const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
           const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
           
-          // Get user's reviews to extract name
           const userReviewsKey = `userReviews_${userEmail.replace(/[@.]/g, '_')}`;
           const userReviews = JSON.parse(localStorage.getItem(userReviewsKey) || '[]');
           
-          // Get user's progress data
           const userProgressKey = `userProgress_${userEmail.replace(/[@.]/g, '_')}`;
           const userProgress = JSON.parse(localStorage.getItem(userProgressKey) || {});
           
-          // Get user's completed items
           const watchedVideosKey = `watchedVideos_${userEmail.replace(/[@.]/g, '_')}`;
           const completedNotesKey = `completedNotes_${userEmail.replace(/[@.]/g, '_')}`;
           const completedQuizzesKey = `completedQuizzes_${userEmail.replace(/[@.]/g, '_')}`;
@@ -291,29 +1143,23 @@ function AdminDashboard() {
           const completedNotes = JSON.parse(localStorage.getItem(completedNotesKey) || '[]');
           const completedQuizzes = JSON.parse(localStorage.getItem(completedQuizzesKey) || '[]');
           
-          // Get user's certificates
           const userCertificatesKey = `userCertificates_${userEmail.replace(/[@.]/g, '_')}`;
           const userCertificates = JSON.parse(localStorage.getItem(userCertificatesKey) || '[]');
           
-          // Find user name from reviews or login logs
           const userLog = Array.isArray(userLoginLogs) ? userLoginLogs.find(log => log && log.email === userEmail) : null;
           const userName = userLog?.name || 
                           (userReviews[0]?.userName || userEmail.split('@')[0]);
           
-          // Get enrolled courses from access data
           const enrolledCourses = Object.keys(userAccessData).filter(courseId => 
             userAccessData[courseId]?.status === 'approved'
           );
           
-          // Calculate progress for each course
           const courseProgress = {};
           enrolledCourses.forEach(courseId => {
-            const course = defaultCourses.find(c => c._id === courseId);
+            const course = courses.find(c => c._id === courseId);
             if (course) {
-              // Get course-specific progress
               const courseUserProgress = userProgress[courseId] || {};
               
-              // Calculate completion based on actual user progress
               const totalModules = 5;
               const completedModules = courseUserProgress.completedModules || 
                 Object.values(courseUserProgress.modules || {}).filter(status => 
@@ -339,7 +1185,6 @@ function AdminDashboard() {
             }
           });
           
-          // Calculate overall progress
           const totalEnrolled = enrolledCourses.length;
           const totalCompleted = Object.values(courseProgress).filter(course => 
             course.completionPercentage === 100
@@ -380,7 +1225,6 @@ function AdminDashboard() {
     }
   };
 
-  // Function to calculate progress statistics
   const calculateProgressStats = (progressData) => {
     if (!progressData || !Array.isArray(progressData)) {
       return {
@@ -405,17 +1249,14 @@ function AdminDashboard() {
     const monthlyProgress = {};
     const activityData = {};
 
-    // Initialize course data
-    defaultCourses.forEach(course => {
+    courses.forEach(course => {
       courseEnrollments[course._id] = 0;
       courseCompletions[course._id] = 0;
     });
 
-    // Calculate statistics from progress data
     progressData.forEach(student => {
       if (!student) return;
 
-      // Count enrollments
       if (student.enrolledCourses && Array.isArray(student.enrolledCourses)) {
         totalEnrollments += student.enrolledCourses.length;
         
@@ -426,7 +1267,6 @@ function AdminDashboard() {
         });
       }
 
-      // Count completed courses and calculate progress
       if (student.progress && typeof student.progress === 'object') {
         Object.entries(student.progress).forEach(([courseId, courseProgress]) => {
           if (courseProgress && courseProgress.completionPercentage === 100) {
@@ -435,7 +1275,6 @@ function AdminDashboard() {
           }
           totalProgressSum += courseProgress.completionPercentage || 0;
           
-          // Track monthly progress
           if (courseProgress.lastActivity) {
             try {
               const month = new Date(courseProgress.lastActivity).toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -447,7 +1286,6 @@ function AdminDashboard() {
         });
       }
 
-      // Track activity data
       if (student.lastActive) {
         try {
           const date = new Date(student.lastActive).toLocaleDateString();
@@ -458,7 +1296,6 @@ function AdminDashboard() {
       }
     });
 
-    // Calculate average progress
     const averageProgress = totalEnrollments > 0 ? Math.round(totalProgressSum / totalEnrollments) : 0;
 
     return {
@@ -473,13 +1310,11 @@ function AdminDashboard() {
     };
   };
 
-  // Update the fetchAdminProgress function
   const fetchAdminProgress = () => {
     try {
       const progressData = fetchStudentProgressData();
       setAdminProgress(progressData);
       
-      // Calculate and set progress statistics
       const stats = calculateProgressStats(progressData);
       setProgressStats(stats);
       
@@ -501,7 +1336,6 @@ function AdminDashboard() {
     }
   };
 
-  // Function to view individual student details
   const viewStudentDetails = (student) => {
     setSelectedEnrollment({
       type: 'student',
@@ -523,7 +1357,6 @@ function AdminDashboard() {
     fetchCertificateStats();
     fetchPendingApprovals();
 
-    // Set up real-time interval for checking new data
     const interval = setInterval(() => {
       fetchAdminProgress();
       fetchCertificateStats();
@@ -535,7 +1368,8 @@ function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch pending approvals from user dashboard
+  // ========== APPROVAL SYSTEM FUNCTIONS ==========
+
   const fetchPendingApprovals = () => {
     try {
       console.log("🔄 Fetching pending approvals from user dashboard...");
@@ -545,7 +1379,6 @@ function AdminDashboard() {
       const adminApprovals = JSON.parse(localStorage.getItem('adminApprovals') || '{}');
       const courseEnrollments = JSON.parse(localStorage.getItem('courseEnrollments') || '[]');
 
-      // Combine all pending enrollments and remove duplicates
       const allPending = [
         ...(Array.isArray(allEnrollments) ? allEnrollments.filter(e => e && e.status === 'pending') : []),
         ...(Array.isArray(pendingEnrollments) ? pendingEnrollments : []),
@@ -558,14 +1391,12 @@ function AdminDashboard() {
       console.log("⏳ Final pending approvals:", allPending.length);
       setPendingApprovals(allPending);
 
-      // Get approved and rejected from admin approvals
       const approved = Array.isArray(adminApprovals.approved) ? adminApprovals.approved : [];
       const rejected = Array.isArray(adminApprovals.rejected) ? adminApprovals.rejected : [];
 
       setApprovedEnrollments(approved);
       setRejectedEnrollments(rejected);
 
-      // Update approval stats
       setApprovalStats({
         pending: allPending.length,
         approved: approved.length,
@@ -581,7 +1412,6 @@ function AdminDashboard() {
     }
   };
 
-  // Update user dashboard when course is approved
   const updateUserDashboardOnApproval = (userEmail, courseId) => {
     try {
       console.log(`✅ Granting access to ${userEmail} for course ${courseId}`);
@@ -605,7 +1435,6 @@ function AdminDashboard() {
     }
   };
 
-  // Handle approve enrollment
   const handleApproveEnrollment = (enrollment) => {
     if (!enrollment) return;
     
@@ -664,7 +1493,6 @@ function AdminDashboard() {
     }
   };
 
-  // Handle reject enrollment
   const handleRejectEnrollment = (enrollment) => {
     if (!enrollment) return;
     
@@ -724,7 +1552,6 @@ function AdminDashboard() {
     }
   };
 
-  // Bulk approve all pending enrollments
   const handleBulkApprove = () => {
     if (pendingApprovals.length === 0) {
       alert("No pending enrollments to approve.");
@@ -798,7 +1625,6 @@ function AdminDashboard() {
     }
   };
 
-  // DEBUG: Check what's actually in localStorage
   const debugEnrollmentStorage = () => {
     console.log("🐛 DEBUG - Enrollment Storage:");
     
@@ -821,19 +1647,16 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     `);
   };
 
-  // View enrollment details
   const handleViewEnrollmentDetails = (enrollment) => {
     if (enrollment) {
       setSelectedEnrollment(enrollment);
     }
   };
 
-  // Close enrollment details
   const handleCloseEnrollmentDetails = () => {
     setSelectedEnrollment(null);
   };
 
-  // Render approval sidebar
   const renderApprovalSidebar = () => {
     if (!showApprovalSidebar) return null;
 
@@ -979,7 +1802,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     );
   };
 
-  // Render enrollment details modal
   const renderEnrollmentDetailsModal = () => {
     if (!selectedEnrollment) return null;
 
@@ -1015,7 +1837,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 <div className="student-courses-progress">
                   <h4>Course Progress</h4>
                   {student.enrolledCourses.map(courseId => {
-                    const course = defaultCourses.find(c => c._id === courseId);
+                    const course = courses.find(c => c._id === courseId);
                     const progress = student.progress?.[courseId];
                     if (!course || !progress) return null;
 
@@ -1125,7 +1947,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                   <div className="detail-item">
                     <span className="detail-label">Course Price:</span>
                     <span className="detail-value">
-                      {defaultCourses.find(c => c._id === selectedEnrollment.courseId)?.price || 'N/A'}
+                      {courses.find(c => c._id === selectedEnrollment.courseId)?.price || 'N/A'}
                     </span>
                   </div>
                   <div className="detail-item">
@@ -1186,7 +2008,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     );
   };
 
-  // Render approval dashboard section
   const renderApprovalDashboard = () => {
     return (
       <div className="admin-approval-dashboard">
@@ -1400,7 +2221,8 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     );
   };
 
-  // Fetch certificate statistics
+  // ========== EXISTING FUNCTIONS CONTINUED ==========
+
   const fetchCertificateStats = () => {
     try {
       let totalIssued = 0;
@@ -1443,7 +2265,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // Enhanced function to fetch student reviews from user dashboard storage
   const fetchStudentReviews = async () => {
     try {
       console.log("🔄 Fetching student reviews from user dashboard...");
@@ -1529,7 +2350,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // Function to get filtered reviews
   const getFilteredReviews = () => {
     return studentReviews.filter(review => {
       if (!review) return false;
@@ -1548,7 +2368,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     });
   };
 
-  // Function to simulate user submitting a review (for testing)
   const simulateUserReview = () => {
     const testUsers = [
       { name: "John Doe", email: "john@example.com" },
@@ -1557,7 +2376,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       { name: "Sarah Wilson", email: "sarah@example.com" }
     ];
     
-    const courses = defaultCourses;
     const reviews = [
       "Excellent course! The content was very comprehensive and well-structured. I learned so much about clinical research methodologies.",
       "Great learning experience. The instructor was very knowledgeable and provided practical insights that I can apply in my work.",
@@ -1604,7 +2422,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     alert(`✅ Test review submitted by ${randomUser.name} for ${randomCourse.title}`);
   };
 
-  // Function to calculate review statistics
   const calculateReviewStats = (reviews) => {
     if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
       setReviewStats({
@@ -1635,7 +2452,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     });
   };
 
-  // Function to delete a review
   const handleDeleteReview = async (reviewId) => {
     if (window.confirm("Are you sure you want to delete this review?")) {
       try {
@@ -1663,7 +2479,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // Function to reply to a review
   const handleReplyToReview = (reviewId, studentName) => {
     const review = studentReviews.find(r => r && r._id === reviewId);
     if (!review) return;
@@ -1703,7 +2518,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // Function to clear all reviews
   const handleClearAllReviews = () => {
     if (window.confirm("Are you sure you want to delete ALL reviews? This action cannot be undone.")) {
       try {
@@ -1730,7 +2544,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // Function to mark review as featured
   const handleToggleFeatured = (reviewId) => {
     const updatedReviews = studentReviews.map(review => {
       if (review && review._id === reviewId) {
@@ -1753,7 +2566,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // Function to get recent reviews (last 24 hours)
   const getRecentReviews = () => {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     return studentReviews.filter(review => {
@@ -1763,14 +2575,12 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     });
   };
 
-  // Function to refresh reviews manually
   const handleRefreshReviews = () => {
     fetchStudentReviews();
     setLastUpdate(Date.now());
     alert("🔄 Reviews refreshed successfully!");
   };
 
-  // Function to handle review filter changes
   const handleReviewFilterChange = (filterType, value) => {
     setReviewFilters(prev => ({
       ...prev,
@@ -1778,7 +2588,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }));
   };
 
-  // Function to get unique courses from reviews
   const getUniqueCoursesFromReviews = () => {
     const courses = studentReviews
       .map(review => review && review.courseTitle)
@@ -1786,7 +2595,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     return [...new Set(courses)];
   };
 
-  // Payment Details functions
   const fetchPaymentHistory = async () => {
     try {
       try {
@@ -2051,552 +2859,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     };
   };
 
-  // Enhanced Progress Tracking Section with Text Data
-  const renderProgressTracking = () => {
-    // Prepare chart data
-    const courseProgressData = {
-      labels: defaultCourses.map(course => course.title),
-      datasets: [
-        {
-          label: 'Enrollments',
-          data: defaultCourses.map(course => progressStats.courseEnrollments[course._id] || 0),
-          backgroundColor: 'rgba(79, 70, 229, 0.7)',
-          borderColor: 'rgba(79, 70, 229, 1)',
-          borderWidth: 1,
-        },
-        {
-          label: 'Completions',
-          data: defaultCourses.map(course => progressStats.courseCompletions[course._id] || 0),
-          backgroundColor: 'rgba(34, 197, 94, 0.7)',
-          borderColor: 'rgba(34, 197, 94, 1)',
-          borderWidth: 1,
-        }
-      ]
-    };
-
-    const monthlyProgressData = {
-      labels: Object.keys(progressStats.monthlyProgress).slice(-6),
-      datasets: [
-        {
-          label: 'Monthly Activity',
-          data: Object.values(progressStats.monthlyProgress).slice(-6),
-          borderColor: 'rgba(59, 130, 246, 1)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          fill: true,
-          tension: 0.4
-        }
-      ]
-    };
-
-    // Calculate progress distribution
-    const progressRanges = [
-      { range: '0%', label: 'Not Started', count: 0 },
-      { range: '1-25%', label: 'Beginner', count: 0 },
-      { range: '26-50%', label: 'Intermediate', count: 0 },
-      { range: '51-75%', label: 'Advanced', count: 0 },
-      { range: '76-100%', label: 'Completed', count: 0 }
-    ];
-
-    adminProgress.forEach(student => {
-      if (student && student.progress && typeof student.progress === 'object') {
-        Object.values(student.progress).forEach(courseProgress => {
-          if (courseProgress) {
-            const progress = courseProgress.completionPercentage || 0;
-            if (progress === 0) progressRanges[0].count++;
-            else if (progress <= 25) progressRanges[1].count++;
-            else if (progress <= 50) progressRanges[2].count++;
-            else if (progress <= 75) progressRanges[3].count++;
-            else progressRanges[4].count++;
-          }
-        });
-      }
-    });
-
-    const studentProgressDistribution = {
-      labels: progressRanges.map(range => range.label),
-      datasets: [
-        {
-          data: progressRanges.map(range => range.count),
-          backgroundColor: [
-            'rgba(239, 68, 68, 0.7)',
-            'rgba(249, 115, 22, 0.7)',
-            'rgba(234, 179, 8, 0.7)',
-            'rgba(34, 197, 94, 0.7)',
-            'rgba(22, 163, 74, 0.7)'
-          ],
-          borderColor: [
-            'rgba(239, 68, 68, 1)',
-            'rgba(249, 115, 22, 1)',
-            'rgba(234, 179, 8, 1)',
-            'rgba(34, 197, 94, 1)',
-            'rgba(22, 163, 74, 1)'
-          ],
-          borderWidth: 1
-        }
-      ]
-    };
-
-    return (
-      <div className="admin-progress-tracking">
-        <div className="admin-page-header">
-          <h1 className="admin-page-title">Student Progress Tracking</h1>
-          <div className="admin-page-actions">
-            <button className="admin-btn primary" onClick={fetchAdminProgress}>
-              🔄 Refresh Data
-            </button>
-            <button className="admin-btn secondary" onClick={() => setActiveTab('students')}>
-              👥 View All Students
-            </button>
-          </div>
-        </div>
-
-        {/* Progress Statistics */}
-        <div className="admin-stats-grid">
-          <div className="admin-stat-card primary">
-            <div className="admin-stat-icon">👥</div>
-            <div className="admin-stat-content">
-              <h3>{progressStats.totalStudents}</h3>
-              <p>Total Students</p>
-              <span className="admin-stat-change positive">Active users</span>
-            </div>
-          </div>
-          <div className="admin-stat-card success">
-            <div className="admin-stat-icon">📚</div>
-            <div className="admin-stat-content">
-              <h3>{progressStats.totalEnrollments}</h3>
-              <p>Total Enrollments</p>
-              <span className="admin-stat-change positive">Course enrollments</span>
-            </div>
-          </div>
-          <div className="admin-stat-card warning">
-            <div className="admin-stat-icon">🎯</div>
-            <div className="admin-stat-content">
-              <h3>{progressStats.averageProgress}%</h3>
-              <p>Average Progress</p>
-              <span className="admin-stat-change positive">Overall completion</span>
-            </div>
-          </div>
-          <div className="admin-stat-card info">
-            <div className="admin-stat-icon">🏆</div>
-            <div className="admin-stat-content">
-              <h3>{progressStats.totalCompletedCourses}</h3>
-              <p>Completed Courses</p>
-              <span className="admin-stat-change positive">Total completions</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Text-Based Progress Overview */}
-        <div className="admin-progress-overview">
-          <h3>📈 Progress Overview</h3>
-          <div className="progress-text-grid">
-            <div className="progress-text-card">
-              <h4>Course Enrollment Distribution</h4>
-              <div className="course-enrollment-list">
-                {defaultCourses.map(course => (
-                  <div key={course._id} className="course-enrollment-item">
-                    <span className="course-name">{course.title}</span>
-                    <div className="enrollment-stats">
-                      <span className="enrollment-count">
-                        {progressStats.courseEnrollments[course._id] || 0} students
-                      </span>
-                      <span className="completion-count">
-                        {progressStats.courseCompletions[course._id] || 0} completed
-                      </span>
-                    </div>
-                    <div className="enrollment-progress">
-                      <div 
-                        className="enrollment-progress-bar"
-                        style={{ 
-                          width: `${progressStats.totalStudents > 0 ? 
-                            ((progressStats.courseEnrollments[course._id] || 0) / progressStats.totalStudents) * 100 : 0}%` 
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="progress-text-card">
-              <h4>Progress Distribution</h4>
-              <div className="progress-distribution-list">
-                {progressRanges.map((range, index) => (
-                  <div key={index} className="progress-range-item">
-                    <span className="range-label">{range.label}</span>
-                    <span className="range-count">{range.count} courses</span>
-                    <div className="range-bar">
-                      <div 
-                        className="range-fill"
-                        style={{ 
-                          width: `${progressStats.totalEnrollments > 0 ? 
-                            (range.count / progressStats.totalEnrollments) * 100 : 0}%` 
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Progress Charts */}
-        <div className="admin-progress-charts">
-          <div className="admin-chart-card">
-            <h3>Course Enrollment vs Completion</h3>
-            <div className="admin-chart-container">
-              <Bar 
-                data={courseProgressData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          return `${context.dataset.label}: ${context.raw} students`;
-                        }
-                      }
-                    }
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        precision: 0
-                      },
-                      title: {
-                        display: true,
-                        text: 'Number of Students'
-                      }
-                    },
-                    x: {
-                      title: {
-                        display: true,
-                        text: 'Courses'
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="admin-chart-card">
-            <h3>Monthly Activity Trend</h3>
-            <div className="admin-chart-container">
-              <Line 
-                data={monthlyProgressData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    }
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      title: {
-                        display: true,
-                        text: 'Active Students'
-                      }
-                    },
-                    x: {
-                      title: {
-                        display: true,
-                        text: 'Months'
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="admin-chart-card">
-            <h3>Student Progress Distribution</h3>
-            <div className="admin-chart-container">
-              <Doughnut 
-                data={studentProgressDistribution}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'bottom',
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          const total = progressStats.totalEnrollments;
-                          const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                          return `${context.label}: ${context.raw} courses (${percentage}%)`;
-                        }
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="admin-chart-card">
-            <h3>Course Completion Rates</h3>
-            <div className="admin-chart-container">
-              <Pie 
-                data={{
-                  labels: defaultCourses.map(course => course.title),
-                  datasets: [
-                    {
-                      data: defaultCourses.map(course => {
-                        const enrollments = progressStats.courseEnrollments[course._id] || 0;
-                        const completions = progressStats.courseCompletions[course._id] || 0;
-                        return enrollments > 0 ? Math.round((completions / enrollments) * 100) : 0;
-                      }),
-                      backgroundColor: [
-                        'rgba(79, 70, 229, 0.7)',
-                        'rgba(236, 72, 153, 0.7)',
-                        'rgba(249, 115, 22, 0.7)',
-                        'rgba(34, 197, 94, 0.7)'
-                      ],
-                      borderColor: [
-                        'rgba(79, 70, 229, 1)',
-                        'rgba(236, 72, 153, 1)',
-                        'rgba(249, 115, 22, 1)',
-                        'rgba(34, 197, 94, 1)'
-                      ],
-                      borderWidth: 1
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'right',
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          return `${context.label}: ${context.raw}% completion rate`;
-                        }
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Individual Student Progress - Text Based Data */}
-        <div className="admin-progress-details">
-          <h3>📋 Student Progress Details</h3>
-          <div className="progress-controls">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search students..."
-                className="search-input"
-              />
-            </div>
-            <div className="filter-controls">
-              <select className="filter-select">
-                <option value="all">All Courses</option>
-                {defaultCourses.map(course => (
-                  <option key={course._id} value={course._id}>{course.title}</option>
-                ))}
-              </select>
-              <select className="filter-select">
-                <option value="all">All Progress</option>
-                <option value="completed">Completed</option>
-                <option value="in-progress">In Progress</option>
-                <option value="not-started">Not Started</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="admin-table-card">
-            {adminProgress.length > 0 ? (
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Student Information</th>
-                    <th>Contact</th>
-                    <th>Enrolled Courses</th>
-                    <th>Progress Overview</th>
-                    <th>Completed</th>
-                    <th>Last Activity</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminProgress.map((student, index) => {
-                    if (!student) return null;
-                    
-                    const enrolledCount = student.enrolledCourses ? student.enrolledCourses.length : 0;
-                    const completedCount = student.totalCompletedCourses || 0;
-                    const overallProgress = student.overallProgress || 0;
-                    
-                    return (
-                      <tr key={student.id || index}>
-                        <td>
-                          <div className="admin-student-info">
-                            <div className="admin-student-avatar">
-                              {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
-                            </div>
-                            <div className="admin-student-details">
-                              <span className="admin-student-name">{student.userName || 'Unknown User'}</span>
-                              <span className="admin-student-id">ID: {student.id || 'N/A'}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="student-contact">
-                            <div className="student-email">📧 {student.userEmail || 'No email'}</div>
-                            <div className="student-login">🕒 Last login: {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="enrolled-courses">
-                            <span className="course-count">{enrolledCount} courses</span>
-                            {student.enrolledCourses && student.enrolledCourses.slice(0, 2).map(courseId => {
-                              const course = defaultCourses.find(c => c._id === courseId);
-                              return course ? (
-                                <div key={courseId} className="course-tag">{course.title}</div>
-                              ) : null;
-                            })}
-                            {enrolledCount > 2 && (
-                              <div className="more-courses">+{enrolledCount - 2} more</div>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="progress-overview">
-                            <div className="admin-progress-bar-small">
-                              <div 
-                                className="admin-progress-fill" 
-                                style={{ width: `${overallProgress}%` }}
-                              ></div>
-                              <span>{overallProgress}%</span>
-                            </div>
-                            <div className="progress-details">
-                              {student.enrolledCourses && student.enrolledCourses.slice(0, 2).map(courseId => {
-                                const course = defaultCourses.find(c => c._id === courseId);
-                                const progress = student.progress?.[courseId]?.completionPercentage || 0;
-                                return course ? (
-                                  <div key={courseId} className="course-progress-item">
-                                    <span className="course-name">{course.title}</span>
-                                    <span className="course-progress">{progress}%</span>
-                                  </div>
-                                ) : null;
-                              })}
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="completion-stats">
-                            <span className="completed-count">{completedCount}</span>
-                            <span className="completion-label">courses completed</span>
-                            {student.certificates && student.certificates.length > 0 && (
-                              <span className="certificate-count">🎓 {student.certificates.length} certificates</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="last-activity">
-                            <span className="activity-date">
-                              {student.lastActive ? new Date(student.lastActive).toLocaleDateString() : 'Never'}
-                            </span>
-                            <span className="activity-time">
-                              {student.lastActive ? new Date(student.lastActive).toLocaleTimeString() : ''}
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <button 
-                            className="admin-btn action primary"
-                            onClick={() => viewStudentDetails(student)}
-                          >
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="admin-empty-message">
-                <div className="admin-empty-icon">📊</div>
-                <h3>No Progress Data Available</h3>
-                <p>Student progress data will appear here as users enroll in courses and make progress.</p>
-                <p>Data is synchronized from the user dashboard in real-time.</p>
-                <button className="admin-btn primary" onClick={fetchAdminProgress}>
-                  🔄 Check for Data
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Course-wise Progress Breakdown */}
-        <div className="course-progress-breakdown">
-          <h3>🎯 Course-wise Progress Breakdown</h3>
-          <div className="course-progress-grid">
-            {defaultCourses.map(course => {
-              const enrollments = progressStats.courseEnrollments[course._id] || 0;
-              const completions = progressStats.courseCompletions[course._id] || 0;
-              const completionRate = enrollments > 0 ? Math.round((completions / enrollments) * 100) : 0;
-              
-              return (
-                <div key={course._id} className="course-progress-card">
-                  <div className="course-header">
-                    <h4>{course.title}</h4>
-                    <span className="course-level">{course.level}</span>
-                  </div>
-                  <div className="course-stats">
-                    <div className="stat-item">
-                      <span className="stat-value">{enrollments}</span>
-                      <span className="stat-label">Enrolled</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-value">{completions}</span>
-                      <span className="stat-label">Completed</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-value">{completionRate}%</span>
-                      <span className="stat-label">Completion Rate</span>
-                    </div>
-                  </div>
-                  <div className="progress-breakdown">
-                    <div className="progress-item">
-                      <span>Average Progress:</span>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill" 
-                          style={{ width: `${completionRate}%` }}
-                        ></div>
-                      </div>
-                      <span>{completionRate}%</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderPaymentDetails = () => {
     const filteredPayments = getFilteredPayments();
     const paymentStats = calculatePaymentStats();
@@ -2805,8 +3067,8 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                   <span className="admin-detail-value">{selectedPayment.userName || 'Unknown Student'}</span>
                 </div>
                 <div className="admin-detail-item">
-                  <span className="admin-detail-label">Student Email:</span>
-                  <span className="admin-detail-value">{selectedPayment.userEmail || 'No email'}</span>
+                  <span className="detail-label">Student Email:</span>
+                  <span className="detail-value">{selectedPayment.userEmail || 'No email'}</span>
                 </div>
                 <div className="admin-detail-item">
                   <span className="admin-detail-label">Student ID:</span>
@@ -2987,7 +3249,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     }
   };
 
-  // ---------------- Video Handlers ----------------
   const handleAddVideo = async (e) => {
     e.preventDefault();
     
@@ -3098,7 +3359,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     setVideoFile(null);
   };
 
-  // ---------------- Note Handlers ----------------
   const handleAddNote = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -3155,7 +3415,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     setNoteCourse(note.course || "");
   };
 
-  // ---------------- Quiz Handlers ----------------
   const addQuestion = () => {
     setQuestions([...questions, { 
       id: Date.now(), 
@@ -3367,7 +3626,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     setViewingQuiz(null);
   };
 
-  // Enhanced Dashboard Charts
   const renderDashboardCharts = () => {
     return (
       <div className="admin-charts-section">
@@ -3376,11 +3634,11 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
           <div className="admin-chart-container">
             <Bar 
               data={{
-                labels: defaultCourses.map(course => course.title),
+                labels: courses.map(course => course.title),
                 datasets: [
                   {
                     label: 'Students Enrolled',
-                    data: defaultCourses.map(course => progressStats.courseEnrollments[course._id] || 0),
+                    data: courses.map(course => progressStats.courseEnrollments[course._id] || 0),
                     backgroundColor: 'rgba(79, 70, 229, 0.7)',
                     borderColor: 'rgba(79, 70, 229, 1)',
                     borderWidth: 1,
@@ -3528,6 +3786,23 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
               </button>
             </li>
             
+            {/* Course Management Menu Item */}
+            <li className={`admin-menu-item ${activeTab === 'courses' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('courses'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📚</span>
+                <span>Course Management</span>
+                <span className="admin-menu-count">{courses.length}</span>
+              </button>
+            </li>
+
+            {/* Progress Tracking Menu Item */}
+            <li className={`admin-menu-item ${activeTab === 'progress-tracking' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('progress-tracking'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📈</span>
+                <span>Progress Tracking</span>
+              </button>
+            </li>
+
             {/* Approval Menu Item */}
             <li className={`admin-menu-item ${activeTab === 'approvals' && !viewingQuiz ? 'active' : ''}`}>
               <button onClick={() => { setActiveTab('approvals'); setViewingQuiz(null); }}>
@@ -3548,7 +3823,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
             <li className={`admin-menu-item ${activeTab === 'progress' && !viewingQuiz ? 'active' : ''}`}>
               <button onClick={() => { setActiveTab('progress'); setViewingQuiz(null); }}>
                 <span className="admin-menu-icon">📊</span>
-                <span>Progress Tracking</span>
+                <span>Student Progress</span>
               </button>
             </li>
             <li className={`admin-menu-item ${activeTab === 'feedbacks' && !viewingQuiz ? 'active' : ''}`}>
@@ -3760,6 +4035,12 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 </div>
               )}
 
+              {/* Course Management Section */}
+              {activeTab === 'courses' && renderCourseManagement()}
+
+              {/* Progress Tracking Section */}
+              {activeTab === 'progress-tracking' && renderProgressTracking()}
+
               {/* Approval Dashboard Section */}
               {activeTab === 'approvals' && renderApprovalDashboard()}
 
@@ -3871,8 +4152,177 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 </div>
               )}
 
-              {/* Progress Tracking - UPDATED */}
-              {activeTab === 'progress' && renderProgressTracking()}
+              {/* Student Progress - UPDATED */}
+              {activeTab === 'progress' && (
+                <div className="admin-progress-tracking">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Student Progress Tracking</h1>
+                    <div className="admin-page-actions">
+                      <button className="admin-btn primary" onClick={fetchAdminProgress}>
+                        🔄 Refresh Data
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="admin-stats-grid">
+                    <div className="admin-stat-card primary">
+                      <div className="admin-stat-icon">👥</div>
+                      <div className="admin-stat-content">
+                        <h3>{progressStats.totalStudents}</h3>
+                        <p>Total Students</p>
+                        <span className="admin-stat-change positive">Active users</span>
+                      </div>
+                    </div>
+                    <div className="admin-stat-card success">
+                      <div className="admin-stat-icon">📚</div>
+                      <div className="admin-stat-content">
+                        <h3>{progressStats.totalEnrollments}</h3>
+                        <p>Total Enrollments</p>
+                        <span className="admin-stat-change positive">Course enrollments</span>
+                      </div>
+                    </div>
+                    <div className="admin-stat-card warning">
+                      <div className="admin-stat-icon">🎯</div>
+                      <div className="admin-stat-content">
+                        <h3>{progressStats.averageProgress}%</h3>
+                        <p>Average Progress</p>
+                        <span className="admin-stat-change positive">Overall completion</span>
+                      </div>
+                    </div>
+                    <div className="admin-stat-card info">
+                      <div className="admin-stat-icon">🏆</div>
+                      <div className="admin-stat-content">
+                        <h3>{progressStats.totalCompletedCourses}</h3>
+                        <p>Completed Courses</p>
+                        <span className="admin-stat-change positive">Total completions</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="admin-table-card">
+                    {adminProgress.length > 0 ? (
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Student Information</th>
+                            <th>Contact</th>
+                            <th>Enrolled Courses</th>
+                            <th>Progress Overview</th>
+                            <th>Completed</th>
+                            <th>Last Activity</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adminProgress.map((student, index) => {
+                            if (!student) return null;
+                            
+                            const enrolledCount = student.enrolledCourses ? student.enrolledCourses.length : 0;
+                            const completedCount = student.totalCompletedCourses || 0;
+                            const overallProgress = student.overallProgress || 0;
+                            
+                            return (
+                              <tr key={student.id || index}>
+                                <td>
+                                  <div className="admin-student-info">
+                                    <div className="admin-student-avatar">
+                                      {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
+                                    </div>
+                                    <div className="admin-student-details">
+                                      <span className="admin-student-name">{student.userName || 'Unknown User'}</span>
+                                      <span className="admin-student-id">ID: {student.id || 'N/A'}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="student-contact">
+                                    <div className="student-email">📧 {student.userEmail || 'No email'}</div>
+                                    <div className="student-login">🕒 Last login: {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}</div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="enrolled-courses">
+                                    <span className="course-count">{enrolledCount} courses</span>
+                                    {student.enrolledCourses && student.enrolledCourses.slice(0, 2).map(courseId => {
+                                      const course = courses.find(c => c._id === courseId);
+                                      return course ? (
+                                        <div key={courseId} className="course-tag">{course.title}</div>
+                                      ) : null;
+                                    })}
+                                    {enrolledCount > 2 && (
+                                      <div className="more-courses">+{enrolledCount - 2} more</div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="progress-overview">
+                                    <div className="admin-progress-bar-small">
+                                      <div 
+                                        className="admin-progress-fill" 
+                                        style={{ width: `${overallProgress}%` }}
+                                      ></div>
+                                      <span>{overallProgress}%</span>
+                                    </div>
+                                    <div className="progress-details">
+                                      {student.enrolledCourses && student.enrolledCourses.slice(0, 2).map(courseId => {
+                                        const course = courses.find(c => c._id === courseId);
+                                        const progress = student.progress?.[courseId]?.completionPercentage || 0;
+                                        return course ? (
+                                          <div key={courseId} className="course-progress-item">
+                                            <span className="course-name">{course.title}</span>
+                                            <span className="course-progress">{progress}%</span>
+                                          </div>
+                                        ) : null;
+                                      })}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="completion-stats">
+                                    <span className="completed-count">{completedCount}</span>
+                                    <span className="completion-label">courses completed</span>
+                                    {student.certificates && student.certificates.length > 0 && (
+                                      <span className="certificate-count">🎓 {student.certificates.length} certificates</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="last-activity">
+                                    <span className="activity-date">
+                                      {student.lastActive ? new Date(student.lastActive).toLocaleDateString() : 'Never'}
+                                    </span>
+                                    <span className="activity-time">
+                                      {student.lastActive ? new Date(student.lastActive).toLocaleTimeString() : ''}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td>
+                                  <button 
+                                    className="admin-btn action primary"
+                                    onClick={() => viewStudentDetails(student)}
+                                  >
+                                    View Details
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="admin-empty-message">
+                        <div className="admin-empty-icon">📊</div>
+                        <h3>No Progress Data Available</h3>
+                        <p>Student progress data will appear here as users enroll in courses and make progress.</p>
+                        <p>Data is synchronized from the user dashboard in real-time.</p>
+                        <button className="admin-btn primary" onClick={fetchAdminProgress}>
+                          🔄 Check for Data
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Student Feedback & Reviews */}
               {activeTab === 'feedbacks' && (
@@ -4117,7 +4567,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                           required
                         >
                           <option value="">Select Course</option>
-                          {defaultCourses.map(course => (
+                          {courses.map(course => (
                             <option key={course._id} value={course._id}>
                               {course.title}
                             </option>
@@ -4236,7 +4686,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                           required
                         >
                           <option value="">Select Course</option>
-                          {defaultCourses.map(course => (
+                          {courses.map(course => (
                             <option key={course._id} value={course._id}>
                               {course.title}
                             </option>
@@ -4351,7 +4801,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                           required
                         >
                           <option value="">Select Course</option>
-                          {defaultCourses.map(course => (
+                          {courses.map(course => (
                             <option key={course._id} value={course._id}>
                               {course.title}
                             </option>
@@ -4525,6 +4975,9 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
           )}
         </main>
       </div>
+
+      {/* Course Sidebar */}
+      {renderCourseSidebar()}
 
       {/* Approval Sidebar */}
       {renderApprovalSidebar()}
