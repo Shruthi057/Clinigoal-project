@@ -30,7 +30,7 @@ if (isProduction) {
 // ==================== MIDDLEWARE ====================
 app.use(cors({
   origin: isProduction 
-    ? ['https://https://clinigoal-project.vercel.app/', 'http://localhost:3000'] // Update with your actual frontend URL
+    ? ['https://https://clinigoal-project.vercel.app', 'http://localhost:3000'] // Update with your actual frontend URL
     : ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
