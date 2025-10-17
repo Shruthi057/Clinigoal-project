@@ -14,8 +14,6 @@ export default function Signup() {
     password: "",
     confirmPassword: "",
   });
-  const [otp, setOtp] = useState("");
-  const [showOtpModal, setShowOtpModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -26,12 +24,8 @@ export default function Signup() {
     });
   };
 
-  const handleOtpChange = (e) => {
-    setOtp(e.target.value);
-  };
-
-  // Step 1: Send OTP to email
-  const handleSendOtp = async (e) => {
+  // Direct signup without OTP
+  const handleSignup = async (e) => {
     e.preventDefault();
 
     // Basic validation
@@ -54,7 +48,7 @@ export default function Signup() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/send-signup-otp`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,46 +57,6 @@ export default function Signup() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setShowOtpModal(true);
-        setMessage("OTP sent to your email!");
-      } else {
-        setMessage(data.message || "Failed to send OTP");
-      }
-    } catch (error) {
-      console.error("OTP send error:", error);
-      setMessage("Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Step 2: Verify OTP and create account
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    
-    if (!otp) {
-      alert("Please enter OTP");
-      return;
-    }
-
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-     const response = await fetch(`${API_BASE_URL}/api/auth/verify-signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: otp,
         }),
       });
 
@@ -115,54 +69,17 @@ export default function Signup() {
           name: formData.name,
         });
 
-        // Store user data
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", formData.email);
-        localStorage.setItem("userName", formData.name);
-
-        setMessage("Account created successfully!");
+        setMessage("Account created successfully! Redirecting to login...");
         
-        // Navigate to dashboard
+        // Navigate to login page after 2 seconds
         setTimeout(() => {
-          navigate("/user-dashboard");
-        }, 1000);
+          navigate("/login");
+        }, 2000);
       } else {
-        setMessage(data.message || "OTP verification failed");
+        setMessage(data.error || data.message || "Signup failed. Please try again.");
       }
     } catch (error) {
-      console.error("OTP verification error:", error);
-      setMessage("Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resendOtp = async () => {
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-     const response = await fetch(`${API_BASE_URL}/api/auth/send-signup-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage("New OTP sent to your email!");
-      } else {
-        setMessage(data.message || "Failed to resend OTP");
-      }
-    } catch (error) {
-      console.error("Resend OTP error:", error);
+      console.error("Signup error:", error);
       setMessage("Network error. Please try again.");
     } finally {
       setIsLoading(false);
@@ -181,7 +98,7 @@ export default function Signup() {
           </div>
         )}
 
-        <form onSubmit={handleSendOtp}>
+        <form onSubmit={handleSignup}>
           <input
             type="text"
             name="name"
@@ -224,57 +141,9 @@ export default function Signup() {
             className="signup-btn"
             disabled={isLoading}
           >
-            {isLoading ? "Sending OTP..." : "Send OTP"}
+            {isLoading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
-
-        {/* OTP Verification Modal */}
-        {showOtpModal && (
-          <div className="otp-modal-overlay">
-            <div className="otp-modal">
-              <h3>Verify Your Email</h3>
-              <p>Enter the 6-digit OTP sent to {formData.email}</p>
-              
-              <form onSubmit={handleVerifyOtp}>
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  value={otp}
-                  onChange={handleOtpChange}
-                  maxLength="6"
-                  required
-                  className="otp-input"
-                />
-                
-                <div className="otp-buttons">
-                  <button 
-                    type="submit" 
-                    className="verify-btn"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Verifying..." : "Verify OTP"}
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    className="resend-btn"
-                    onClick={resendOtp}
-                    disabled={isLoading}
-                  >
-                    Resend OTP
-                  </button>
-                </div>
-              </form>
-              
-              <button 
-                className="close-modal"
-                onClick={() => setShowOtpModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
 
         <p className="login-text">
           Already have an account?{" "}

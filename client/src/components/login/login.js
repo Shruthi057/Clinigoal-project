@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { trackUserLogin } from "../../utils/userTracking";
 import "./Login.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 export default function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
@@ -44,34 +46,57 @@ export default function Login() {
     try {
       console.log("Login data:", formData);
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Actual API call to your backend
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-      // Track user login
-      const userData = {
-        email: formData.email,
-        name: formData.email.split('@')[0], // Use email prefix as name
-        userId: `user_${Date.now()}`,
-        loginTime: new Date().toISOString()
-      };
-      
-      trackUserLogin(userData);
+      const data = await response.json();
 
-      // Store user data in localStorage
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', formData.email);
-      localStorage.setItem('userName', formData.email.split('@')[0]);
-      localStorage.setItem('userId', userData.userId);
-      localStorage.setItem('loginTime', new Date().toISOString());
-      
-      console.log("✅ Login successful, navigating to dashboard...");
-      
-      // Navigate to dashboard
-      navigate("/user-dashboard");
+      if (response.ok) {
+        // Track user login
+        const userData = {
+          email: data.user.email,
+          name: data.user.name,
+          userId: data.user.id,
+          loginTime: new Date().toISOString()
+        };
+        
+        trackUserLogin(userData);
+
+        // Store user data in localStorage
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', data.user.email);
+        localStorage.setItem('userName', data.user.name);
+        localStorage.setItem('userId', data.user.id);
+        localStorage.setItem('userRole', data.user.role || 'student');
+        localStorage.setItem('userToken', data.token);
+        localStorage.setItem('loginTime', new Date().toISOString());
+        
+        console.log("✅ Login successful, navigating to dashboard...");
+        
+        // Navigate to dashboard based on user role
+        if (data.user.role === 'admin') {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/user-dashboard");
+        }
+
+      } else {
+        // Handle API errors
+        setError(data.error || "Login failed. Please check your credentials.");
+      }
 
     } catch (err) {
       console.error("Login error:", err);
-      setError("Login failed. Please try again.");
+      setError("Network error. Please check if the server is running.");
     } finally {
       setLoading(false);
     }
