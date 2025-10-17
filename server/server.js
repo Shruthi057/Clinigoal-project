@@ -30,14 +30,55 @@ if (isProduction) {
 // ==================== MIDDLEWARE ====================
 app.use(cors({
   origin: isProduction 
-    ? ['https://https://clinigoal-project.vercel.app', 'http://localhost:3000'] // Update with your actual frontend URL
+    ? ['https://clinigoal-project.vercel.app', 'http://localhost:3000']
     : ['http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ==================== ESSENTIAL ROUTES ====================
+
+// Root route - Render checks this
+app.get('/', (req, res) => {
+  res.json({
+    message: '🚀 Clinigoal Backend API is running successfully!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    status: 'active',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// HEAD requests for root (Render uses this for health checks)
+app.head('/', (req, res) => {
+  res.status(200).end();
+});
+
+// Health check endpoint (for monitoring)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || 'development',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// Basic test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: '✅ Server is working perfectly!',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // ==================== DATABASE CONNECTION ====================
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/clinigoal';
@@ -58,15 +99,6 @@ const connectDB = async () => {
     } else {
       console.log("📊 Database: Local MongoDB");
     }
-
-    // Test route
-    app.get('/api/test', (req, res) => {
-      res.json({ 
-        message: 'Server is working!',
-        database: 'connected',
-        environment: process.env.NODE_ENV || 'development'
-      });
-    });
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err);
     
@@ -2417,18 +2449,6 @@ app.get('/api/debug/view-data', async (req, res) => {
 
 // ==================== RENDER HEALTH CHECKS ====================
 
-// Health check endpoint for Render
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV || 'development',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
-});
-
 // Render-specific info endpoint
 app.get('/api/deploy-info', (req, res) => {
   res.json({
@@ -2478,7 +2498,8 @@ app.use((error, req, res, next) => {
 app.use((req, res) => {
   console.log('❌ 404 - Route not found:', req.method, req.url);
   res.status(404).json({ 
-    error: `Route not found: ${req.method} ${req.url}` 
+    error: `Route not found: ${req.method} ${req.url}`,
+    suggestion: 'Visit / for available endpoints'
   });
 });
 
@@ -2488,6 +2509,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📁 Uploads directory: ${uploadsDir}`);
   console.log(`✅ Server is ready to accept requests`);
+
   
   if (isProduction) {
     console.log('🚨 PRODUCTION MODE: File uploads use ephemeral storage');
