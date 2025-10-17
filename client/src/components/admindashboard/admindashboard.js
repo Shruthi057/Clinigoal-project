@@ -18,6 +18,8 @@ import {
 } from 'chart.js';
 import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 // Register Chart.js components
 ChartJS.register(
   CategoryScale,
@@ -2175,7 +2177,8 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   const fetchPaymentHistory = async () => {
     try {
       try {
-        const response = await axios.get('https://clinigoal-server.onrender.com/api/admin/payments');
+       const response = await axios.get(`${API_BASE_URL}/api/admin/payments`);
+
         if (response.data && response.data.length > 0) {
           console.log("💰 Payments from API:", response.data);
           setPaymentHistory(response.data);
@@ -3222,7 +3225,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/stats");
+      const res = await axios.get(`${API_BASE_URL}/api/admin/stats`);
       setStats(res.data);
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -3242,9 +3245,9 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   const fetchAllData = async () => {
     try {
       const [videoRes, noteRes, quizRes] = await Promise.all([
-        axios.get("https://clinigoal-server.onrender.com/api/admin/videos"),
-        axios.get("https://clinigoal-server.onrender.com/api/admin/notes"),
-        axios.get("https://clinigoal-server.onrender.com/api/admin/quizzes"),
+        axios.get(`${API_BASE_URL}/api/admin/videos`),
+       axios.get(`${API_BASE_URL}/api/admin/notes`),
+        axios.get(`${API_BASE_URL}/api/admin/quizzes`),
       ]);
       setVideos(videoRes.data);
       setNotes(noteRes.data);
@@ -3266,7 +3269,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
   const fetchChartData = async () => {
     try {
-      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/chart-data");
+      const res = await axios.get(`${API_BASE_URL}/api/admin/chart-data`);
       setChartData(res.data);
     } catch (error) {
       console.error("Error fetching chart data:", error);
@@ -3284,7 +3287,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
   const fetchStudents = async () => {
     try {
-      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/students");
+      const res = await axios.get(`${API_BASE_URL}/api/admin/students`);
       setStudents(res.data);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -3294,7 +3297,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
   const fetchStudentProgress = async () => {
     try {
-      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/student-progress");
+      const res = await axios.get(`${API_BASE_URL}/api/admin/student-progress`);
       setStudentProgress(res.data);
     } catch (error) {
       console.error("Error fetching student progress:", error);
@@ -3304,7 +3307,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
   const fetchFeedbacks = async () => {
     try {
-      const res = await axios.get("https://clinigoal-server.onrender.com/api/admin/feedbacks");
+     const res = await axios.get(`${API_BASE_URL}/api/admin/feedbacks`);
       setFeedbacks(res.data);
     } catch (error) {
       console.error("Error fetching feedbacks:", error);
@@ -3396,7 +3399,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       
       let response;
       if (editingVideoId) {
-        response = await axios.put(`https://clinigoal-server.onrender.com/api/admin/videos/${editingVideoId}`, formData, {
+       response = await axios.put(`${API_BASE_URL}/api/admin/videos/${editingVideoId}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
@@ -3405,7 +3408,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
         setEditingVideoId(null);
         alert("Video updated successfully!");
       } else {
-        response = await axios.post("https://clinigoal-server.onrender.com/api/admin/videos", formData, {
+       response = await axios.post(`${API_BASE_URL}/api/admin/videos`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
@@ -3447,7 +3450,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   const handleDeleteVideo = async (id) => {
     if (window.confirm("Are you sure you want to delete this video?")) {
       try {
-        await axios.delete(`https://clinigoal-server.onrender.com/api/admin/videos/${id}`);
+        await axios.delete(`${API_BASE_URL}/api/admin/videos/${id}`);
         fetchAllData();
         alert("Video deleted successfully!");
       } catch (error) {
@@ -3483,7 +3486,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
     try {
       if (editingNoteId) {
-        await axios.put(`https://clinigoal-server.onrender.com/api/admin/notes/${editingNoteId}`, formData, {
+      await axios.put(`${API_BASE_URL}/api/admin/notes/${editingNoteId}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -3491,7 +3494,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
         setEditingNoteId(null);
         alert("Edited successfully!");
       } else {
-        await axios.post("https://clinigoal-server.onrender.com/api/admin/notes", formData, {
+       await axios.post(`${API_BASE_URL}/api/admin/notes`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -3512,7 +3515,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   const handleDeleteNote = async (id) => {
     if (window.confirm("Are you sure you want to delete this note?")) {
       try {
-        await axios.delete(`https://clinigoal-server.onrender.com/api/admin/notes/${id}`);
+        await axios.delete(`${API_BASE_URL}/api/admin/notes/${id}`);
         fetchAllData();
         alert("Deleted successfully!");
       } catch (error) {
@@ -3632,11 +3635,11 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       };
 
       if (editingQuizId) {
-        await axios.put(`https://clinigoal-server.onrender.com/api/admin/quizzes/${editingQuizId}`, quizData);
+        await axios.put(`${API_BASE_URL}/api/admin/quizzes/${editingQuizId}`, quizData);
         setEditingQuizId(null);
         alert("Quiz updated successfully!");
       } else {
-        await axios.post("https://clinigoal-server.onrender.com/api/admin/quizzes", quizData);
+        await axios.post(`${API_BASE_URL}/api/admin/quizzes`, quizData);
         alert("Quiz created successfully!");
       }
       
@@ -3661,7 +3664,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   const handleDeleteQuiz = async (id) => {
     if (window.confirm("Are you sure you want to delete this quiz?")) {
       try {
-        await axios.delete(`https://clinigoal-server.onrender.com/api/admin/quizzes/${id}`);
+        await axios.delete(`${API_BASE_URL}/api/admin/quizzes/${id}`);
         fetchAllData();
         alert("Deleted successfully!");
       } catch (error) {
@@ -3713,7 +3716,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       }
       
       console.log("📡 Fetching quiz details from server...");
-      const res = await axios.get(`https://clinigoal-server.onrender.com/api/admin/quizzes/${quiz._id}`);
+      const res = await axios.get(`${API_BASE_URL}/api/admin/quizzes/${quiz._id}`);
       
       if (res.data) {
         console.log("✅ Quiz data received from server:", res.data);

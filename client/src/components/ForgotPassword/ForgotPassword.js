@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./ForgotPassword.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -24,7 +26,7 @@ export default function ForgotPassword() {
     
     setLoading(true);
     try {
-      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/check-user", { email });
+     window.open(`${API_BASE_URL}/api/certificate/generate?certificateId=${certificateId}`, '_blank');
       setUserExists(response.data.exists);
       
       if (!response.data.exists) {
@@ -46,7 +48,7 @@ export default function ForgotPassword() {
     
     try {
       console.log("Sending OTP to:", email);
-      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/send-otp", { email });
+      const response = await axios.post(`${API_BASE_URL}/api/auth/send-otp`, { email });
       console.log("OTP response:", response.data);
       setSuccess(response.data.message);
       setStep(2);
@@ -83,7 +85,7 @@ export default function ForgotPassword() {
     setLoading(true);
     
     try {
-      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/reset-password", {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
         email,
         otp,
         newPassword,
@@ -115,7 +117,7 @@ export default function ForgotPassword() {
     
     setLoading(true);
     try {
-      const response = await axios.post("https://clinigoal-server.onrender.com/api/auth/register", {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         email,
         password
       });

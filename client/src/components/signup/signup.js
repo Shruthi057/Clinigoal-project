@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { trackUserLogin } from "../../utils/userTracking";
 import "./signup.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 export default function Signup() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -52,7 +54,7 @@ export default function Signup() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/auth/send-signup-otp", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-signup-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +95,7 @@ export default function Signup() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/auth/verify-signup", {
+     const response = await fetch(`${API_BASE_URL}/api/auth/verify-signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -140,7 +142,7 @@ export default function Signup() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/auth/send-signup-otp", {
+     const response = await fetch(`${API_BASE_URL}/api/auth/send-signup-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

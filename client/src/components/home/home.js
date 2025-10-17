@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 const Home = () => {
   const [email, setEmail] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -20,7 +22,7 @@ const Home = () => {
     const fetchTestimonials = async () => {
       try {
         // Try to fetch from API first
-        const response = await fetch('https://clinigoal-server.onrender.com/api/reviews');
+        const response = await fetch(`${API_BASE_URL}/api/reviews`);
         if (response.ok) {
           const reviewsData = await response.json();
           

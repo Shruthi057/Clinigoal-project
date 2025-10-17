@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import "./Certificate.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 export default function Certificate({ courseId, courseTitle, onClose }) {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,7 @@ export default function Certificate({ courseId, courseTitle, onClose }) {
   const fetchUserCertificates = async () => {
     try {
       const userEmail = localStorage.getItem("userEmail");
-      const response = await fetch(`/api/certificate/user/${userEmail}`);
+      const response = await fetch(`${API_BASE_URL}/api/certificate/user/${userEmail}`);
       const data = await response.json();
       setCertificates(data);
     } catch (error) {
@@ -26,7 +28,7 @@ export default function Certificate({ courseId, courseTitle, onClose }) {
     try {
       const userEmail = localStorage.getItem("userEmail");
       
-      const response = await fetch("/api/certificate/generate", {
+     const response = await fetch(`${API_BASE_URL}/api/certificate/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -57,7 +59,7 @@ export default function Certificate({ courseId, courseTitle, onClose }) {
   };
 
   const viewCertificate = (certificateId) => {
-    window.open(`/api/certificate/generate?certificateId=${certificateId}`, '_blank');
+   window.open(`${API_BASE_URL}/api/certificate/generate?certificateId=${certificateId}`, '_blank');
   };
 
   return (
