@@ -14,16 +14,6 @@ const Home = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Career Guidance Form State
-  const [careerForm, setCareerForm] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    background: '',
-    interest: ''
-  });
-  const [careerSubmitted, setCareerSubmitted] = useState(false);
-
   // Enrollment form state
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
   const [enrollmentCourse, setEnrollmentCourse] = useState(null);
@@ -281,49 +271,17 @@ const Home = () => {
     }
   ];
 
-  // Career Guidance Form Handler
-  const handleCareerSubmit = (e) => {
-    e.preventDefault();
-    
-    if (!careerForm.fullName || !careerForm.email || !careerForm.phone) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    // Save career consultation to localStorage
-    const consultations = JSON.parse(localStorage.getItem('careerConsultations') || '[]');
-    const newConsultation = {
-      id: `consult_${Date.now()}`,
-      ...careerForm,
-      submittedAt: new Date().toISOString(),
-      status: 'pending'
-    };
-    
-    localStorage.setItem('careerConsultations', JSON.stringify([...consultations, newConsultation]));
-    
-    setCareerSubmitted(true);
-    
-    // Reset form
-    setCareerForm({
-      fullName: '',
-      email: '',
-      phone: '',
-      background: '',
-      interest: ''
-    });
-
-    // Show success message
-    setTimeout(() => {
-      setCareerSubmitted(false);
-    }, 5000);
+  // Navigation handlers - FIXED VERSION
+  const handleExploreCourses = () => {
+    navigate('/courses');
   };
 
-  const handleCareerChange = (e) => {
-    const { name, value } = e.target;
-    setCareerForm({
-      ...careerForm,
-      [name]: value
-    });
+  const handleViewAllCourses = () => {
+    navigate('/courses');
+  };
+
+  const handleStartLearning = () => {
+    navigate('/courses');
   };
 
   // Enrollment form functions
@@ -425,19 +383,6 @@ const Home = () => {
     console.log('Course details clicked:', course);
     // Navigate to full course details page
     navigate(`/courses/${course._id}`);
-  };
-
-  // Navigation handlers
-  const handleExploreCourses = () => {
-    navigate('/userdashboard', { state: { activeSection: 'available-courses' } });
-  };
-
-  const handleViewAllCourses = () => {
-    navigate('/userdashboard', { state: { activeSection: 'available-courses' } });
-  };
-
-  const handleStartLearning = () => {
-    navigate('/userdashboard', { state: { activeSection: 'available-courses' } });
   };
 
   const features = [
@@ -734,24 +679,6 @@ const Home = () => {
 
   return (
     <div className={`home ${isVisible ? 'page-visible' : ''}`}>
-      {/* Success Message for Career Guidance */}
-      {careerSubmitted && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: '#10b981',
-          color: 'white',
-          padding: '16px 20px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          animation: 'slideInRight 0.3s ease'
-        }}>
-          ✅ Thank you! Our career expert will contact you within 24 hours.
-        </div>
-      )}
-
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-background">
@@ -1107,82 +1034,82 @@ const Home = () => {
       </section>
 
       {/* Healthcare Industry Info Section */}
-<section className="industry-info">
-  <div className="container">
-    <div className="section-header">
-      <span className="section-subtitle">Industry Insights</span>
-      <h2 className="section-title">Why Healthcare Sciences?</h2>
-      <p className="section-description">
-        The healthcare and life sciences industry is rapidly evolving with tremendous growth opportunities
-      </p>
-    </div>
-    
-    <div className="industry-stats">
-      <div className="stat-card">
-        <div className="stat-icon">📈</div>
-        <div className="stat-number">18%</div>
-        <div className="stat-label">Projected Growth in Clinical Research</div>
-        <div className="stat-description">By 2026, creating 50,000+ new jobs in India</div>
-      </div>
-      
-      <div className="stat-card">
-        <div className="stat-icon">💰</div>
-        <div className="stat-number">₹6-12 LPA</div>
-        <div className="stat-label">Average Starting Salary</div>
-        <div className="stat-description">For trained professionals in healthcare sciences</div>
-      </div>
-      
-      <div className="stat-card">
-        <div className="stat-icon">🏥</div>
-        <div className="stat-number">1000+</div>
-        <div className="stat-label">New Healthcare Companies</div>
-        <div className="stat-description">Established in India in the last 3 years</div>
-      </div>
-      
-      <div className="stat-card">
-        <div className="stat-icon">🌍</div>
-        <div className="stat-number">Global</div>
-        <div className="stat-label">Career Opportunities</div>
-        <div className="stat-description">Work with international pharmaceutical companies</div>
-      </div>
-    </div>
+      <section className="industry-info">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-subtitle">Industry Insights</span>
+            <h2 className="section-title">Why Healthcare Sciences?</h2>
+            <p className="section-description">
+              The healthcare and life sciences industry is rapidly evolving with tremendous growth opportunities
+            </p>
+          </div>
+          
+          <div className="industry-stats">
+            <div className="stat-card">
+              <div className="stat-icon">📈</div>
+              <div className="stat-number">18%</div>
+              <div className="stat-label">Projected Growth in Clinical Research</div>
+              <div className="stat-description">By 2026, creating 50,000+ new jobs in India</div>
+            </div>
+            
+            <div className="stat-card">
+              <div className="stat-icon">💰</div>
+              <div className="stat-number">₹6-12 LPA</div>
+              <div className="stat-label">Average Starting Salary</div>
+              <div className="stat-description">For trained professionals in healthcare sciences</div>
+            </div>
+            
+            <div className="stat-card">
+              <div className="stat-icon">🏥</div>
+              <div className="stat-number">1000+</div>
+              <div className="stat-label">New Healthcare Companies</div>
+              <div className="stat-description">Established in India in the last 3 years</div>
+            </div>
+            
+            <div className="stat-card">
+              <div className="stat-icon">🌍</div>
+              <div className="stat-number">Global</div>
+              <div className="stat-label">Career Opportunities</div>
+              <div className="stat-description">Work with international pharmaceutical companies</div>
+            </div>
+          </div>
 
-    <div className="industry-features">
-      <div className="feature-column">
-        <h3>📊 High-Demand Skills</h3>
-        <ul>
-          <li>Clinical Trial Management</li>
-          <li>Regulatory Affairs</li>
-          <li>Medical Coding & Billing</li>
-          <li>Drug Safety Monitoring</li>
-          <li>Bioinformatics Analysis</li>
-        </ul>
-      </div>
-      
-      <div className="feature-column">
-        <h3>🎯 Career Paths</h3>
-        <ul>
-          <li>Clinical Research Coordinator</li>
-          <li>Medical Coder</li>
-          <li>Pharmacovigilance Officer</li>
-          <li>Bioinformatics Specialist</li>
-          <li>Regulatory Affairs Manager</li>
-        </ul>
-      </div>
-      
-      <div className="feature-column">
-        <h3>💼 Top Recruiters</h3>
-        <ul>
-          <li>Pharmaceutical Companies</li>
-          <li>Research Organizations</li>
-          <li>Hospitals & Healthcare</li>
-          <li>IT Healthcare Firms</li>
-          <li>Medical Device Companies</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
+          <div className="industry-features">
+            <div className="feature-column">
+              <h3>📊 High-Demand Skills</h3>
+              <ul>
+                <li>Clinical Trial Management</li>
+                <li>Regulatory Affairs</li>
+                <li>Medical Coding & Billing</li>
+                <li>Drug Safety Monitoring</li>
+                <li>Bioinformatics Analysis</li>
+              </ul>
+            </div>
+            
+            <div className="feature-column">
+              <h3>🎯 Career Paths</h3>
+              <ul>
+                <li>Clinical Research Coordinator</li>
+                <li>Medical Coder</li>
+                <li>Pharmacovigilance Officer</li>
+                <li>Bioinformatics Specialist</li>
+                <li>Regulatory Affairs Manager</li>
+              </ul>
+            </div>
+            
+            <div className="feature-column">
+              <h3>💼 Top Recruiters</h3>
+              <ul>
+                <li>Pharmaceutical Companies</li>
+                <li>Research Organizations</li>
+                <li>Hospitals & Healthcare</li>
+                <li>IT Healthcare Firms</li>
+                <li>Medical Device Companies</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Render Enrollment Modal */}
       {renderEnrollmentForm()}
