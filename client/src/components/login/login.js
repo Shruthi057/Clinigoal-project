@@ -13,14 +13,18 @@ export default function Login() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ 
       ...formData, 
       [e.target.name]: e.target.value 
     });
-    // Clear error when user starts typing
     if (error) setError("");
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -28,14 +32,12 @@ export default function Login() {
     setLoading(true);
     setError("");
 
-    // Basic validation
     if (!formData.email || !formData.password) {
       setError("Please fill in all fields");
       setLoading(false);
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError("Please enter a valid email address");
@@ -46,7 +48,6 @@ export default function Login() {
     try {
       console.log("Login data:", formData);
       
-      // Actual API call to your backend
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
@@ -61,7 +62,6 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        // Track user login
         const userData = {
           email: data.user.email,
           name: data.user.name,
@@ -71,7 +71,6 @@ export default function Login() {
         
         trackUserLogin(userData);
 
-        // Store user data in localStorage
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userEmail', data.user.email);
         localStorage.setItem('userName', data.user.name);
@@ -82,7 +81,6 @@ export default function Login() {
         
         console.log("✅ Login successful, navigating to dashboard...");
         
-        // Navigate to dashboard based on user role
         if (data.user.role === 'admin') {
           navigate("/admin-dashboard");
         } else {
@@ -90,7 +88,6 @@ export default function Login() {
         }
 
       } else {
-        // Handle API errors
         setError(data.error || "Login failed. Please check your credentials.");
       }
 
@@ -104,49 +101,85 @@ export default function Login() {
 
   return (
     <div className="login-container">
+      <div className="login-background">
+        <div className="login-particles">
+          {[...Array(15)].map((_, i) => (
+            <div key={i} className="particle" style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`
+            }}></div>
+          ))}
+        </div>
+      </div>
+      
       <div className="login-card">
         <div className="login-header">
-          <h2>Welcome Back!</h2>
-          <p className="login-subtitle">Login to continue to Clinigoal</p>
+          <div className="logo">
+            <h2>Clinigoal</h2>
+          </div>
+          <h1>Welcome Back</h1>
+          <p>Sign in to your account to continue</p>
         </div>
 
         {error && (
           <div className="error-message">
-            ⚠️ {error}
+            <span className="error-icon">⚠️</span>
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              className={error && !formData.email ? "error" : ""}
-            />
+            <label htmlFor="email">Email Address</label>
+            <div className="input-container">
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className={error && !formData.email ? "error" : ""}
+                placeholder="Enter your email"
+              />
+              <span className="input-icon">✉️</span>
+            </div>
           </div>
 
           <div className="form-group">
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              className={error && !formData.password ? "error" : ""}
-              minLength="6"
-            />
+            <label htmlFor="password">Password</label>
+            <div className="input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className={error && !formData.password ? "error" : ""}
+                placeholder="Enter your password"
+                minLength="6"
+              />
+              <span className="input-icon">🔒</span>
+              <button 
+                type="button"
+                className="password-toggle"
+                onClick={togglePasswordVisibility}
+                tabIndex="-1"
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
           </div>
           
-          {/* Forgot Password Link */}
-          <div className="forgot-password-container">
-            <Link to="/forgot-password" className="forgot-password-link">
+          <div className="form-options">
+            <div className="remember-me">
+              <input type="checkbox" id="remember" />
+              <label htmlFor="remember">Remember me</label>
+            </div>
+            <Link to="/forgot-password" className="forgot-password">
               Forgot Password?
             </Link>
           </div>
@@ -159,18 +192,20 @@ export default function Login() {
             {loading ? (
               <>
                 <div className="spinner"></div>
-                Logging in...
+                Signing In...
               </>
             ) : (
-              "Login"
+              "Sign In"
             )}
           </button>
         </form>
 
-        <p className="signup-text">
-          Don't have an account?{" "}
-          <Link to="/signup" className="signup-link">Sign Up</Link>
-        </p>
+        <div className="login-footer">
+          <p>
+            Don't have an account?{" "}
+            <Link to="/signup" className="signup-link">Create Account</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

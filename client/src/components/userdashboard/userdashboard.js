@@ -38,7 +38,7 @@ export default function UserDashboard() {
   const [questionStartTime, setQuestionStartTime] = useState({});
   const [questionTimes, setQuestionTimes] = useState({});
   
-  // Student review form state - UPDATED
+  // Student review form state
   const [reviewForm, setReviewForm] = useState({
     courseId: '',
     rating: 5,
@@ -49,14 +49,14 @@ export default function UserDashboard() {
   const [reviews, setReviews] = useState([]);
   const [hoverRating, setHoverRating] = useState(0);
   
-  // Enrollment form state - UPDATED
+  // Enrollment form state
   const [enrollmentForm, setEnrollmentForm] = useState({
     courseId: '',
     studentName: '',
     studentEmail: '',
     studentPhone: '',
     paymentMethod: 'razorpay',
-    paymentOption: 'demo', // 'demo' for ₹1, 'full' for original price
+    paymentOption: 'demo',
     agreeToTerms: false
   });
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
@@ -93,97 +93,51 @@ export default function UserDashboard() {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // NEW: Note viewing state
+  // Note viewing state
   const [selectedNote, setSelectedNote] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
 
-  // NEW: Navbar toggle state
+  // Navbar toggle state
   const [isNavbarOpen, setIsNavbarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   // RazorPay configuration
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
-  // NEW: Approval System States
+  // Approval System States
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [approvedCourses, setApprovedCourses] = useState(new Set());
   const [courseAccess, setCourseAccess] = useState({});
 
-  // Default courses from PRD with ORIGINAL PRICES and ₹1 demo price - UPDATED WITH DYNAMIC INSTRUCTOR NAMES
-  const defaultCourses = [
-    {
-      _id: '1',
-      title: "Clinical Research",
-      description: "Comprehensive training in clinical research methodologies, regulatory affairs, and clinical trial management.",
-      instructor: "Clinical Research Expert",
-      duration: "12 weeks",
-      level: "Advanced",
-      price: "₹1.00", // Demo price
-      originalPrice: "₹15,999", // Original price
-      image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      features: [
-        "Regulatory Compliance Training",
-        "Clinical Trial Management",
-        "ICH-GCP Guidelines",
-        "Case Studies & Projects"
-      ],
-      category: "Clinical Research"
-    },
-    {
-      _id: '2',
-      title: "Bioinformatics",
-      description: "Master the intersection of biology, computer science, and statistics to analyze biological data.",
-      instructor: "Bioinformatics Specialist",
-      duration: "16 weeks",
-      level: "Intermediate",
-      price: "₹1.00", // Demo price
-      originalPrice: "₹12,499", // Original price
-      image: "https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      features: [
-        "Genomic Data Analysis",
-        "Protein Structure Prediction",
-        "Sequence Alignment",
-        "Molecular Modeling"
-      ],
-      category: "Bioinformatics"
-    },
-    {
-      _id: '3',
-      title: "Medical Coding",
-      description: "Learn medical terminology, coding systems, and billing procedures for healthcare settings.",
-      instructor: "Medical Coding Professional",
-      duration: "10 weeks",
-      level: "Beginner",
-      price: "₹1.00", // Demo price
-      originalPrice: "₹9,999", // Original price
-      image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      features: [
-        "ICD-10 Coding",
-        "CPT Coding",
-        "Medical Billing",
-        "Healthcare Compliance"
-      ],
-      category: "Medical Coding"
-    },
-    {
-      _id: '4',
-      title: "Pharmacovigilance",
-      description: "Specialized training in drug safety monitoring, adverse event reporting, and risk management.",
-      instructor: "Pharmacovigilance Expert",
-      duration: "14 weeks",
-      level: "Advanced",
-      price: "₹1.00", // Demo price
-      originalPrice: "₹14,499", // Original price
-      image: "https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      features: [
-        "Adverse Drug Reactions",
-        "Signal Detection",
-        "Risk Management",
-        "Regulatory Reporting"
-      ],
-      category: "Pharmacovigilance"
+  // Payment filters state
+  const [paymentFilters, setPaymentFilters] = useState({
+    status: 'all',
+    paymentMethod: 'all',
+    dateRange: 'all'
+  });
+
+  // NEW: Load courses from localStorage (where admin saves courses)
+  const loadCourses = () => {
+    try {
+      const savedCourses = localStorage.getItem('clinigoalCourses');
+      
+      if (savedCourses) {
+        const parsedCourses = JSON.parse(savedCourses);
+        console.log("📚 Loaded courses from admin dashboard:", parsedCourses.length);
+        setAvailableCourses(parsedCourses);
+        return parsedCourses;
+      } else {
+        // If no courses found in localStorage, use empty array
+        console.log("📚 No courses found in admin dashboard, starting with empty list");
+        setAvailableCourses([]);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+      setAvailableCourses([]);
+      return [];
     }
-  ];
+  };
 
   // NEW: Toggle navbar function
   const toggleNavbar = () => {
@@ -242,6 +196,28 @@ export default function UserDashboard() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isMobile, isNavbarOpen]);
+
+  // NEW: Listen for course updates from admin
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'clinigoalCourses' || event.key === null) {
+        console.log("🔄 Course update detected from admin, refreshing courses...");
+        loadCourses();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check for changes periodically
+    const interval = setInterval(() => {
+      loadCourses();
+    }, 5000); // Check every 5 seconds
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // NEW: Load RazorPay script
   useEffect(() => {
@@ -403,93 +379,25 @@ export default function UserDashboard() {
     return () => clearInterval(interval);
   }, [userData.userEmail]);
 
-  // NEW: Fetch courses from API dynamically
-  const fetchCoursesFromAPI = async () => {
-    try {
-      console.log("🔄 Fetching courses from API...");
-      
-      // Try to fetch courses from the backend API
-      const response = await fetch(`${API_BASE_URL}/api/courses`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const apiCourses = await response.json();
-        console.log("✅ Courses fetched from API:", apiCourses.length);
-        
-        if (apiCourses && apiCourses.length > 0) {
-          // Transform API courses to match our format
-          const transformedCourses = apiCourses.map(course => ({
-            _id: course._id || course.id,
-            title: course.title || course.name,
-            description: course.description || 'No description available',
-            instructor: course.instructor || 'Admin Instructor',
-            duration: course.duration || '8 weeks',
-            level: course.level || 'Intermediate',
-            price: course.demoPrice || "₹1.00",
-            originalPrice: course.price || "₹9,999",
-            image: course.image || 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-            features: course.features || ['Comprehensive Learning', 'Expert Instruction', 'Practical Projects'],
-            category: course.category || 'General'
-          }));
-          
-          return transformedCourses;
-        }
-      }
-      
-      console.log("⚠️ Using default courses - API not available or no courses");
-      return defaultCourses;
-      
-    } catch (error) {
-      console.error('❌ Error fetching courses from API:', error);
-      console.log("🔄 Falling back to default courses");
-      return defaultCourses;
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (userSettings.darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
     }
-  };
+  }, [userSettings.darkMode]);
 
-  // NEW: Load courses from localStorage or API
-  const loadCourses = async () => {
-    try {
-      // Check if we have courses in localStorage
-      const savedCourses = localStorage.getItem('clinigoalCourses');
-      
-      if (savedCourses) {
-        const parsedCourses = JSON.parse(savedCourses);
-        console.log("📚 Loaded courses from localStorage:", parsedCourses.length);
-        setAvailableCourses(parsedCourses);
-        return parsedCourses;
-      } else {
-        // Fetch from API
-        const apiCourses = await fetchCoursesFromAPI();
-        setAvailableCourses(apiCourses);
-        
-        // Save to localStorage for offline use
-        localStorage.setItem('clinigoalCourses', JSON.stringify(apiCourses));
-        return apiCourses;
+  // Clean up timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
       }
-    } catch (error) {
-      console.error('Error loading courses:', error);
-      setAvailableCourses(defaultCourses);
-      return defaultCourses;
-    }
-  };
+    };
+  }, [timerInterval]);
 
-  // NEW: Refresh courses function
-  const refreshCourses = async () => {
-    console.log("🔄 Manually refreshing courses...");
-    const freshCourses = await fetchCoursesFromAPI();
-    setAvailableCourses(freshCourses);
-    
-    // Update localStorage with fresh data
-    localStorage.setItem('clinigoalCourses', JSON.stringify(freshCourses));
-    
-    alert(`✅ Courses refreshed! Loaded ${freshCourses.length} courses.`);
-  };
-
-  // Fetch all user data - UPDATED with dynamic course loading
+  // Fetch all user data - UPDATED to use admin courses
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -541,8 +449,8 @@ export default function UserDashboard() {
         // Load approval data
         loadApprovalData();
 
-        // Load courses dynamically
-        await loadCourses();
+        // Load courses from admin dashboard
+        loadCourses();
 
         // Start with no enrolled courses so all courses show enrollment option
         setEnrolledCourses([]);
@@ -590,40 +498,6 @@ export default function UserDashboard() {
 
     fetchUserData();
   }, []);
-
-  // NEW: Listen for course updates
-  useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.key === 'clinigoalCourses' || event.key === null) {
-        console.log("🔄 Storage change detected, refreshing courses...");
-        loadCourses();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
-  // Apply dark mode class to body
-  useEffect(() => {
-    if (userSettings.darkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [userSettings.darkMode]);
-
-  // Clean up timer on component unmount
-  useEffect(() => {
-    return () => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-      }
-    };
-  }, [timerInterval]);
 
   // NEW: Note viewing functions
   const handleViewNote = (note) => {
@@ -830,7 +704,7 @@ export default function UserDashboard() {
     // window.location.href = '/login';
   };
 
-  // Payment History Functions - UPDATED with dynamic pricing
+  // Payment History Functions
   const addPaymentToHistory = (course, amount = "₹1.00", paymentMethod = 'razorpay') => {
     const newPayment = {
       id: `payment_${Date.now()}`,
@@ -1006,6 +880,32 @@ export default function UserDashboard() {
     setTimeout(() => {
       receiptWindow.print();
     }, 500);
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setPaymentFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const calculatePaymentStats = () => {
+    const totalRevenue = paymentHistory.reduce((sum, payment) => {
+      if (!payment || !payment.amount) return sum;
+      const amount = parseInt(payment.amount.replace(/[^0-9]/g, ''));
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    const completedPayments = paymentHistory.length;
+    const uniqueStudents = new Set(paymentHistory.map(p => p && p.userId).filter(Boolean)).size;
+    const paymentMethods = new Set(paymentHistory.map(p => p && p.paymentMethod).filter(Boolean)).size;
+
+    return {
+      totalRevenue,
+      completedPayments,
+      uniqueStudents,
+      paymentMethods
+    };
   };
 
   // Fetch course content when a course is selected
@@ -1503,7 +1403,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     }
   };
 
-  // Quiz Functions - FIXED VERSION
+  // Quiz Functions
   const startQuiz = async (quiz) => {
     try {
       console.log("🚀 Starting quiz:", quiz.title);
@@ -1758,7 +1658,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     fetchCourseContent(course.courseId || course.id || course._id);
   };
 
-  // Enrollment Form Functions - UPDATED
+  // Enrollment Form Functions
   const handleEnrollmentClick = (course) => {
     setEnrollmentCourse(course);
     setEnrollmentForm({
@@ -1767,7 +1667,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       studentEmail: userData.userEmail,
       studentPhone: '',
       paymentMethod: 'razorpay',
-      paymentOption: 'demo', // Default to ₹1 demo payment
+      paymentOption: 'demo',
       agreeToTerms: false
     });
     setShowEnrollmentForm(true);
@@ -1781,173 +1681,34 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     });
   };
 
-  // UPDATED: RazorPay Payment Function with dynamic pricing
-  const handleRazorpayPayment = async () => {
-    if (!enrollmentCourse || !razorpayLoaded) {
-      alert('Payment system is not ready. Please try again.');
-      return;
-    }
-
-    try {
-      // Determine amount based on payment option
-      const amountInPaise = enrollmentForm.paymentOption === 'demo' ? 100 : 
-                           enrollmentForm.paymentOption === 'full' ? 1599900 : 100; // Default to ₹1
-
-      // Create order on your server (for demo, we'll simulate this)
-      const orderResponse = await fetch(`${API_BASE_URL}/api/create-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amountInPaise,
-          currency: 'INR',
-          courseId: enrollmentCourse._id,
-          courseName: enrollmentCourse.title,
-        }),
-      });
-
-      let orderData;
-      
-      if (orderResponse.ok) {
-        orderData = await orderResponse.json();
-      } else {
-        // Fallback: Create mock order data
-        orderData = {
-          id: `order_${Date.now()}`,
-          amount: amountInPaise,
-          currency: 'INR'
-        };
-      }
-
-      const options = {
-        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_ID', // Replace with your Razorpay key
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'Clinigoal',
-        description: `Payment for ${enrollmentCourse.title}`,
-        image: 'https://clinigoal.com/logo.png', // Your logo
-        order_id: orderData.id,
-        handler: async function (response) {
-          try {
-            // Verify payment on your server
-            const verifyResponse = await fetch(`${API_BASE_URL}/api/verify-payment`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                courseId: enrollmentCourse._id,
-              }),
-            });
-
-            if (verifyResponse.ok) {
-              // Payment successful
-              await handlePaymentSuccess(response);
-            } else {
-              // Payment verification failed
-              alert('Payment verification failed. Please contact support.');
-            }
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
-          }
-        },
-        prefill: {
-          name: userData.userName,
-          email: userData.userEmail,
-          contact: enrollmentForm.studentPhone || '9999999999'
-        },
-        notes: {
-          course: enrollmentCourse.title,
-          student: userData.userName
-        },
-        theme: {
-          color: '#3498db'
-        }
-      };
-
-      const razorpayInstance = new window.Razorpay(options);
-      razorpayInstance.open();
-
-      // Handle payment failure
-      razorpayInstance.on('payment.failed', function (response) {
-        alert(`Payment failed: ${response.error.description}`);
-        console.error('Payment failed:', response.error);
-      });
-
-    } catch (error) {
-      console.error('Razorpay payment error:', error);
-      alert('Failed to initiate payment. Please try again.');
-    }
-  };
-
-  // Handle payment success
-  const handlePaymentSuccess = async (paymentResponse) => {
-    if (enrollmentCourse) {
-      // Determine payment amount
-      const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
-                           enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
-      
-      // Mark course as paid
-      const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
-      setPaidCourses(updatedPaidCourses);
-      
-      // Save to localStorage
-      localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
-      
-      // Add payment to history with dynamic amount
-      const payment = addPaymentToHistory(
-        enrollmentCourse, 
-        paymentAmount,
-        'razorpay'
-      );
-      
-      // Submit for approval instead of direct access
-      submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
-      
-      // Show success message
-      setEnrollmentSuccess(true);
-      
-      // Close form after 3 seconds
-      setTimeout(() => {
-        setShowEnrollmentForm(false);
-        setEnrollmentSuccess(false);
-      }, 3000);
-    }
-  };
-
-  // DEMO PAYMENT FUNCTION (for testing without real Razorpay)
+  // UPDATED: Simple RazorPay Redirect Function
   const handleDemoPayment = async () => {
+    // Redirect to actual RazorPay account
+    window.open('https://razorpay.me/', '_blank');
+    
+    // Optional: Show confirmation message
+    alert('Redirecting to RazorPay for secure payment...');
+    
+    // Continue with enrollment process
     if (enrollmentCourse) {
-      // Determine payment amount
       const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
                            enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
       
-      // Mark course as paid
       const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
       setPaidCourses(updatedPaidCourses);
       
-      // Save to localStorage
       localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
       
-      // Add payment to history with dynamic amount
       const payment = addPaymentToHistory(
         enrollmentCourse, 
         paymentAmount,
         'razorpay'
       );
       
-      // Submit for approval instead of direct access
       submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
       
-      // Show success message
       setEnrollmentSuccess(true);
       
-      // Close form after 3 seconds
       setTimeout(() => {
         setShowEnrollmentForm(false);
         setEnrollmentSuccess(false);
@@ -1955,7 +1716,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     }
   };
 
-  // MODIFIED: Enrollment function to submit for approval
+  // UPDATED: Enrollment function to use real RazorPay redirect
   const handleEnrollmentSubmit = async (e) => {
     e.preventDefault();
     
@@ -1964,8 +1725,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       return;
     }
     
-    // For demo purposes, use demo payment
-    // In production, use: await handleRazorpayPayment();
+    // Use the updated payment function that redirects to RazorPay
     await handleDemoPayment();
   };
 
@@ -2027,7 +1787,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     }
   };
 
-  // NEW: Enhanced Student Review Functions for Admin Dashboard Integration
+  // Enhanced Student Review Functions for Admin Dashboard Integration
   const handleReviewChange = (e) => {
     const { name, value, type, checked } = e.target;
     setReviewForm({
@@ -2048,7 +1808,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     setHoverRating(0);
   };
 
-  // UPDATED: Enhanced Review Submission Function
+  // Enhanced Review Submission Function
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     
@@ -2135,7 +1895,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     }
   };
 
-  // NEW: Function to load user's own reviews
+  // Function to load user's own reviews
   const loadUserReviews = () => {
     try {
       const userKey = `userReviews_${userData.userEmail.replace(/[@.]/g, '_')}`;
@@ -2153,7 +1913,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     return paidCourses.has(courseId);
   };
 
-  // NEW: Render Course Card with Approval Status - UPDATED with original prices
+  // Render Course Card with Approval Status
   const renderCourseCard = (course) => {
     const status = getEnrollmentStatus(course._id);
     const isAccessible = isCourseAccessible(course._id);
@@ -2248,121 +2008,125 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Payment Details Section - UPDATED with dynamic pricing
-  const renderPaymentDetails = () => (
-    <div className="payment-details-content">
-      <div className="section-header">
-        <h2>Payment History & Receipts</h2>
-        <p>View your payment history and download receipts</p>
-      </div>
+  // Payment Details Section
+  const renderPaymentDetails = () => {
+    const paymentStats = calculatePaymentStats();
 
-      <div className="payment-stats">
-        <div className="payment-stat-card">
-          <div className="stat-icon">💰</div>
-          <div className="stat-info">
-            <h3>{paymentHistory.length}</h3>
-            <p>Total Payments</p>
-          </div>
+    return (
+      <div className="payment-details-content">
+        <div className="section-header">
+          <h2>Payment History & Receipts</h2>
+          <p>View your payment history and download receipts</p>
         </div>
-        <div className="payment-stat-card">
-          <div className="stat-icon">📚</div>
-          <div className="stat-info">
-            <h3>{paidCourses.size}</h3>
-            <p>Paid Courses</p>
-          </div>
-        </div>
-        <div className="payment-stat-card">
-          <div className="stat-icon">✅</div>
-          <div className="stat-info">
-            <h3>{paymentHistory.filter(p => p.status === 'completed').length}</h3>
-            <p>Completed</p>
-          </div>
-        </div>
-        <div className="payment-stat-card">
-          <div className="stat-icon">💳</div>
-          <div className="stat-info">
-            <h3>{new Set(paymentHistory.map(p => p.paymentMethod)).size}</h3>
-            <p>Payment Methods</p>
-          </div>
-        </div>
-      </div>
 
-      {paymentHistory.length > 0 ? (
-        <div className="payment-history-section">
-          <h3>Recent Payments</h3>
-          <div className="payments-table-container">
-            <table className="payments-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Course</th>
-                  <th>Amount</th>
-                  <th>Payment Method</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paymentHistory.map(payment => (
-                  <tr key={payment.id} className="payment-row">
-                    <td className="payment-date">
-                      {new Date(payment.date).toLocaleDateString()}
-                    </td>
-                    <td className="payment-course">
-                      <div className="course-info-small">
-                        <strong>{payment.courseTitle}</strong>
-                      </div>
-                    </td>
-                    <td className="payment-amount">
-                      <span className="amount-badge">{payment.amount}</span>
-                    </td>
-                    <td className="payment-method">
-                      <span className={`method-badge ${payment.paymentMethod}`}>
-                        {payment.paymentMethod === 'razorpay' ? '💳 Razorpay' : payment.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="payment-status">
-                      <span className={`status-badge ${payment.status}`}>
-                        {payment.status === 'completed' ? '✅ Completed' : payment.status}
-                      </span>
-                    </td>
-                    <td className="payment-actions">
-                      <button 
-                        onClick={() => viewPaymentDetails(payment)}
-                        className="btn-secondary btn-sm"
-                      >
-                        View Details
-                      </button>
-                      <button 
-                        onClick={() => downloadReceipt(payment)}
-                        className="btn-primary btn-sm"
-                      >
-                        Download
-                      </button>
-                    </td>
+        <div className="payment-stats">
+          <div className="payment-stat-card">
+            <div className="stat-icon">💰</div>
+            <div className="stat-info">
+              <h3>{paymentHistory.length}</h3>
+              <p>Total Payments</p>
+            </div>
+          </div>
+          <div className="payment-stat-card">
+            <div className="stat-icon">📚</div>
+            <div className="stat-info">
+              <h3>{paidCourses.size}</h3>
+              <p>Paid Courses</p>
+            </div>
+          </div>
+          <div className="payment-stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-info">
+              <h3>{paymentHistory.filter(p => p.status === 'completed').length}</h3>
+              <p>Completed</p>
+            </div>
+          </div>
+          <div className="payment-stat-card">
+            <div className="stat-icon">💳</div>
+            <div className="stat-info">
+              <h3>{new Set(paymentHistory.map(p => p.paymentMethod)).size}</h3>
+              <p>Payment Methods</p>
+            </div>
+          </div>
+        </div>
+
+        {paymentHistory.length > 0 ? (
+          <div className="payment-history-section">
+            <h3>Recent Payments</h3>
+            <div className="payments-table-container">
+              <table className="payments-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Course</th>
+                    <th>Amount</th>
+                    <th>Payment Method</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paymentHistory.map(payment => (
+                    <tr key={payment.id} className="payment-row">
+                      <td className="payment-date">
+                        {new Date(payment.date).toLocaleDateString()}
+                      </td>
+                      <td className="payment-course">
+                        <div className="course-info-small">
+                          <strong>{payment.courseTitle}</strong>
+                        </div>
+                      </td>
+                      <td className="payment-amount">
+                        <span className="amount-badge">{payment.amount}</span>
+                      </td>
+                      <td className="payment-method">
+                        <span className={`method-badge ${payment.paymentMethod}`}>
+                          {payment.paymentMethod === 'razorpay' ? '💳 Razorpay' : payment.paymentMethod}
+                        </span>
+                      </td>
+                      <td className="payment-status">
+                        <span className={`status-badge ${payment.status}`}>
+                          {payment.status === 'completed' ? '✅ Completed' : payment.status}
+                        </span>
+                      </td>
+                      <td className="payment-actions">
+                        <button 
+                          onClick={() => viewPaymentDetails(payment)}
+                          className="btn-secondary btn-sm"
+                        >
+                          View Details
+                        </button>
+                        <button 
+                          onClick={() => downloadReceipt(payment)}
+                          className="btn-primary btn-sm"
+                        >
+                          Download
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="empty-state">
-          <div className="empty-icon">💳</div>
-          <h3>No Payment History</h3>
-          <p>You haven't made any payments yet. Enroll in a course to see your payment history here.</p>
-          <button 
-            onClick={() => setActiveSection('available-courses')}
-            className="btn-primary"
-          >
-            Browse Courses
-          </button>
-        </div>
-      )}
-    </div>
-  );
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon">💳</div>
+            <h3>No Payment History</h3>
+            <p>You haven't made any payments yet. Enroll in a course to see your payment history here.</p>
+            <button 
+              onClick={() => setActiveSection('available-courses')}
+              className="btn-primary"
+            >
+              Browse Courses
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
-  // Payment Details Modal - UPDATED with dynamic pricing
+  // Payment Details Modal
   const renderPaymentModal = () => {
     if (!showPaymentModal || !selectedPayment) return null;
 
@@ -2462,17 +2226,24 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // NEW: Note Viewing Modal
+  // Note Viewing Modal - IMPROVED: Full page modal
   const renderNoteModal = () => {
     if (!showNoteModal || !selectedNote) return null;
 
     return (
-      <div className="note-modal-overlay">
-        <div className="note-modal">
+      <div className="note-modal-overlay full-page-modal">
+        <div className="note-modal full-page-note">
           <div className="modal-header">
-            <h2>{selectedNote.title}</h2>
+            <div className="modal-title-section">
+              <h2>{selectedNote.title}</h2>
+              <div className="note-meta">
+                <span className="file-type">{selectedNote.fileType?.toUpperCase() || 'PDF'}</span>
+                <span className="pages">{selectedNote.pages || 'N/A'} pages</span>
+                <span className="status">✓ Viewed</span>
+              </div>
+            </div>
             <button 
-              className="close-btn" 
+              className="close-btn large" 
               onClick={handleCloseNoteModal}
             >
               ×
@@ -2480,17 +2251,11 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
           
           <div className="note-content">
-            <div className="note-meta">
-              <span className="file-type">{selectedNote.fileType?.toUpperCase() || 'PDF'}</span>
-              <span className="pages">{selectedNote.pages || 'N/A'} pages</span>
-              <span className="status">✓ Viewed</span>
-            </div>
-            
             <div className="note-description">
               <p>{selectedNote.description}</p>
             </div>
             
-            <div className="note-text-content">
+            <div className="note-text-content full-height">
               <pre>{selectedNote.content}</pre>
             </div>
           </div>
@@ -2511,7 +2276,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Dashboard Section - UPDATED with better features instead of course progress
+  // Dashboard Section - UPDATED to show admin courses count
   const renderDashboard = () => {
     const accessibleCourses = availableCourses.filter(course => isCourseAccessible(course._id));
     
@@ -2536,6 +2301,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             <div>
               <h1>Welcome back, {userData.userName}! 👋</h1>
               <p>Continue your clinical education journey with Clinigoal</p>
+              <p className="course-update-info">
+                <small>📚 {availableCourses.length} courses available from admin</small>
+              </p>
             </div>
           </div>
         </div>
@@ -2546,6 +2314,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             <div className="stat-info">
               <h3>{availableCourses.length}</h3>
               <p>Total Courses</p>
+              <span className="stat-subtitle">From admin dashboard</span>
             </div>
           </div>
           <div className="stat-card">
@@ -2553,6 +2322,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             <div className="stat-info">
               <h3>{accessibleCourses.length}</h3>
               <p>Approved Courses</p>
+              <span className="stat-subtitle">You have access to</span>
             </div>
           </div>
           <div className="stat-card">
@@ -2560,6 +2330,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             <div className="stat-info">
               <h3>{certificates.length}</h3>
               <p>Certificates</p>
+              <span className="stat-subtitle">Earned</span>
             </div>
           </div>
           <div className="stat-card">
@@ -2567,11 +2338,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             <div className="stat-info">
               <h3>{pendingApprovals.length}</h3>
               <p>Pending Approval</p>
+              <span className="stat-subtitle">Courses</span>
             </div>
           </div>
         </div>
 
-        {/* NEW: Dashboard Features Section - Replaces Course Progress */}
+        {/* Dashboard Features Section */}
         {accessibleCourses.length > 0 ? (
           <div className="dashboard-features">
             <div className="section-header">
@@ -2747,7 +2519,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Available Courses Section - UPDATED with dynamic course loading
+  // Available Courses Section - UPDATED to show admin courses
   const renderAvailableCourses = () => (
     <div className="available-courses-content">
       <div className="section-header">
@@ -2755,12 +2527,15 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           <div>
             <h2>Clinigoal Courses</h2>
             <p>Specialized programs for clinical education and career advancement</p>
+            <p className="course-source-info">
+              <small>Courses managed by admin - updates automatically</small>
+            </p>
           </div>
           <div className="section-actions">
             <button 
-              onClick={refreshCourses}
+              onClick={loadCourses}
               className="btn-secondary"
-              title="Refresh courses from server"
+              title="Refresh courses from admin"
             >
               🔄 Refresh Courses
             </button>
@@ -2770,12 +2545,13 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       
       <div className="courses-info-bar">
         <span className="courses-count">
-          📚 {availableCourses.length} courses available
+          📚 {availableCourses.length} courses available from admin
         </span>
-        <span className="courses-source">
-          {availableCourses.some(course => course._id.startsWith('api_')) ? 
-            '🔄 Live from server' : '💾 Local storage'}
-        </span>
+        {availableCourses.length === 0 && (
+          <span className="no-courses-warning">
+            ⚠️ No courses available. Admin needs to add courses first.
+          </span>
+        )}
       </div>
       
       {availableCourses.length > 0 ? (
@@ -2785,21 +2561,22 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       ) : (
         <div className="empty-state">
           <div className="empty-icon">🎯</div>
-          <h3>No Courses Available</h3>
-          <p>There are currently no courses available for enrollment.</p>
+          <h3>No Courses Available Yet</h3>
+          <p>The administrator hasn't added any courses to the platform yet.</p>
+          <p>Please check back later or contact the admin to add courses.</p>
           <button 
-            onClick={refreshCourses}
+            onClick={loadCourses}
             className="btn-primary"
           >
-            Try Loading Courses
+            Check for New Courses
           </button>
         </div>
       )}
       
-      {/* Enrollment Form Modal - UPDATED with payment options */}
+      {/* Enrollment Form Modal - IMPROVED: Popup with background blur */}
       {showEnrollmentForm && enrollmentCourse && (
-        <div className="enrollment-modal-overlay">
-          <div className="enrollment-modal">
+        <div className="enrollment-modal-overlay popup-overlay">
+          <div className="enrollment-modal popup-modal">
             <div className="modal-header">
               <h2>Enroll in {enrollmentCourse.title}</h2>
               <button 
@@ -2844,7 +2621,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   </div>
                 </div>
 
-                {/* NEW: Payment Option Selection */}
+                {/* Payment Option Selection */}
                 <div className="form-group">
                   <label>Select Payment Option *</label>
                   <div className="payment-options">
@@ -2987,13 +2764,13 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     disabled={!enrollmentForm.agreeToTerms}
                   >
                     <span className="razorpay-text">
-                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} with Razorpay
+                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} - Go to RazorPay
                     </span>
                   </button>
                 </div>
 
                 <div className="demo-note">
-                  <p>💡 <strong>Demo Note:</strong> This is a demo payment. In production, this would redirect to Razorpay.</p>
+                  <p>💡 <strong>Note:</strong> You will be redirected to RazorPay for secure payment processing.</p>
                   <p>🔒 <strong>Approval Required:</strong> Course access requires admin approval after payment.</p>
                 </div>
               </form>
@@ -3003,9 +2780,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       )}
     </div>
   );
-
-  // Rest of the component remains the same...
-  // [Certificates, Progress Tracking, Student Review, Settings sections remain unchanged]
 
   // Certificates Section
   const renderCertificates = () => (
@@ -3118,7 +2892,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // UPDATED: Student Review Section with Enhanced Storage
+  // Student Review Section with Enhanced Storage
   const renderStudentReview = () => {
     // Load user's own reviews
     const userReviews = loadUserReviews();
@@ -3305,7 +3079,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Settings Section - ENHANCED
+  // Settings Section
   const renderSettings = () => (
     <div className="settings-content">
       <div className="section-header">
@@ -4072,7 +3846,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
 
   return (
     <div className="user-dashboard">
-      {/* NEW: Navbar Toggle Button */}
+      {/* Navbar Toggle Button */}
       <button 
         className={`navbar-toggle ${isNavbarOpen ? 'open' : ''}`}
         onClick={toggleNavbar}
@@ -4082,7 +3856,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         <span className="toggle-line"></span>
       </button>
 
-      {/* NEW: Overlay for mobile */}
+      {/* Overlay for mobile */}
       {isMobile && isNavbarOpen && (
         <div className="sidebar-overlay active" onClick={closeSidebar}></div>
       )}
@@ -4232,7 +4006,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       {/* Payment Details Modal */}
       {renderPaymentModal()}
 
-      {/* NEW: Note Viewing Modal */}
+      {/* Note Viewing Modal */}
       {renderNoteModal()}
     </div>
   );

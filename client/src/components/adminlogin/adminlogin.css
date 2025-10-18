@@ -6,22 +6,24 @@
   align-items: center;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 20px;
+  font-family: 'Inter', sans-serif;
 }
 
 .admin-login-card {
   width: 100%;
-  max-width: 440px;
+  max-width: 420px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 20px;
   box-shadow: 
-    0 10px 25px rgba(0, 0, 0, 0.08),
-    0 5px 10px rgba(0, 0, 0, 0.05);
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  margin: 20px;
 }
 
 .admin-login-header {
   text-align: center;
-  padding: 30px 30px 20px;
+  padding: 35px 30px 25px;
   background: linear-gradient(135deg, #0077B6 0%, #005A8D 100%);
   color: white;
 }
@@ -30,93 +32,170 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  margin-bottom: 15px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
 }
 
 .admin-icon {
-  font-size: 24px;
+  font-size: 28px;
   color: white;
 }
 
 .admin-login-header h2 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   color: white;
+  letter-spacing: -0.5px;
 }
 
 .admin-login-header p {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   margin: 0;
   opacity: 0.9;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
-/* Form Styles - Clean Simple Inputs */
+/* Form Styles */
 .admin-login-form {
   padding: 30px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-/* Simple Input Fields - No Over-designed Boxes */
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #374151;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  color: #6b7280;
+  font-size: 18px;
+  z-index: 2;
+}
+
 .admin-login-form input {
   width: 100%;
-  padding: 12px 16px;
-  border: none;
-  border-bottom: 2px solid #e2e8f0;
-  font-size: 16px;
+  padding: 14px 50px 14px 48px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
   transition: all 0.3s ease;
-  background: transparent;
-  color: #0f172a;
+  background: #ffffff;
+  color: #111827;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .admin-login-form input::placeholder {
-  color: #94a3b8;
+  color: #9ca3af;
   font-weight: 400;
 }
 
 .admin-login-form input:focus {
-  border-bottom-color: #0077B6;
+  border-color: #0077B6;
   outline: none;
-  box-shadow: none;
+  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Password Toggle */
+.password-toggle {
+  position: absolute;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 4px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: #0077B6;
+  transform: scale(1.1);
 }
 
 /* Button Styles */
 .btn {
   width: 100%;
-  padding: 14px 20px;
+  padding: 16px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #0077B6 0%, #005A8D 100%);
   color: white;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 20px;
+  margin-top: 10px;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn:hover {
   background: linear-gradient(135deg, #005A8D 0%, #00467a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 119, 182, 0.3);
 }
 
-/* Links */
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button Spinner */
+.btn-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Links Section */
 .admin-links {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
   padding: 20px 30px;
-  gap: 15px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #f3f4f6;
 }
 
 .link-btn {
@@ -127,88 +206,196 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 16px;
+  border-radius: 8px;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .link-btn:hover {
   color: #005A8D;
   background: rgba(0, 119, 182, 0.05);
+  transform: translateY(-1px);
+}
+
+.back-btn {
+  color: #6b7280;
+}
+
+.back-btn:hover {
+  color: #374151;
+  background: rgba(107, 114, 128, 0.05);
+}
+
+.back-icon {
+  font-size: 16px;
 }
 
 /* Footer */
 .admin-login-footer {
-  padding: 15px 30px;
+  padding: 20px 30px;
   background: #f8fafc;
   text-align: center;
-  border-top: 1px solid #e2e8f0;
-  color: #64748b;
+  border-top: 1px solid #e5e7eb;
+}
+
+.home-link {
+  color: #6b7280;
+  text-decoration: none;
   font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.home-link:hover {
+  color: #0077B6;
+  background: rgba(0, 119, 182, 0.05);
+}
+
+.home-icon {
+  font-size: 16px;
 }
 
 /* Responsive Design */
 @media (max-width: 480px) {
   .admin-login-container {
     padding: 15px;
+    align-items: flex-start;
+    padding-top: 40px;
   }
   
   .admin-login-card {
     max-width: 100%;
-    border-radius: 12px;
+    border-radius: 16px;
+    margin: 0;
   }
   
   .admin-login-header {
-    padding: 25px 20px 15px;
+    padding: 25px 20px 20px;
   }
   
   .admin-logo {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .admin-icon {
-    font-size: 20px;
-  }
-  
-  .admin-login-header h2 {
-    font-size: 20px;
-  }
-  
-  .admin-login-header p {
-    font-size: 13px;
-  }
-  
-  .admin-login-form {
-    padding: 20px;
-  }
-  
-  .form-group {
+    width: 60px;
+    height: 60px;
     margin-bottom: 15px;
   }
   
+  .admin-icon {
+    font-size: 24px;
+  }
+  
+  .admin-login-header h2 {
+    font-size: 22px;
+  }
+  
+  .admin-login-header p {
+    font-size: 14px;
+  }
+  
+  .admin-login-form {
+    padding: 25px 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
   .admin-login-form input {
-    padding: 10px 12px;
+    padding: 12px 45px 12px 42px;
     font-size: 14px;
   }
   
   .btn {
-    padding: 12px 16px;
-    font-size: 14px;
+    padding: 14px 16px;
+    font-size: 15px;
   }
   
   .admin-links {
     padding: 15px 20px;
-    flex-direction: column;
     gap: 10px;
   }
   
   .link-btn {
     font-size: 13px;
+    padding: 8px 12px;
   }
   
   .admin-login-footer {
-    padding: 12px 20px;
+    padding: 15px 20px;
+  }
+  
+  .home-link {
     font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-login-header {
+    padding: 20px 15px 15px;
+  }
+  
+  .admin-login-form {
+    padding: 20px 15px;
+  }
+  
+  .admin-login-form input {
+    padding: 10px 40px 10px 38px;
+  }
+  
+  .input-icon {
+    left: 12px;
+    font-size: 16px;
+  }
+  
+  .password-toggle {
+    right: 12px;
+    font-size: 16px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .admin-login-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  
+  .admin-login-card {
+    background: #1f2937;
+  }
+  
+  .admin-login-form input {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+  
+  .admin-login-form input:focus {
+    border-color: #0077B6;
+  }
+  
+  .form-group label {
+    color: #d1d5db;
+  }
+  
+  .admin-login-footer {
+    background: #111827;
+    border-top-color: #374151;
+  }
+  
+  .home-link {
+    color: #9ca3af;
+  }
+  
+  .home-link:hover {
+    color: #0077B6;
+    background: rgba(0, 119, 182, 0.1);
   }
 }

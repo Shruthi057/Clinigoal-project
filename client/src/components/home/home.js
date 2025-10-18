@@ -10,134 +10,119 @@ const Home = () => {
   const [hoveredCourse, setHoveredCourse] = useState(null);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
-  const [testimonials, setTestimonials] = useState([]); // Changed from static array to state
+  const [testimonials, setTestimonials] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  // Initialize navigate for routing
   const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
-    
-    // Fetch testimonials from API or localStorage
-    const fetchTestimonials = async () => {
-      try {
-        // Try to fetch from API first
-        const response = await fetch(`${API_BASE_URL}/api/reviews`);
-        if (response.ok) {
-          const reviewsData = await response.json();
-          
-          // Transform the review data to match the testimonial structure
-          const formattedTestimonials = reviewsData.map(review => ({
-            id: review._id,
-            name: review.userName,
-            role: "Student", // Default role since it's not in the review data
-            text: review.reviewText,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName)}&background=random`, // Generate avatar based on name
-            rating: review.rating
-          }));
-          
-          setTestimonials(formattedTestimonials);
-        } else {
-          // If API fails, use fallback testimonials
-          setTestimonials([
-            {
-              id: 1,
-              name: "Dr. Sarah Johnson",
-              role: "Clinical Research Coordinator",
-              text: "Clinigoal's courses transformed my career. The content was comprehensive and directly applicable to my work.",
-              avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
-              rating: 5
-            },
-            {
-              id: 2,
-              name: "Michael Chen",
-              role: "Bioinformatics Specialist",
-              text: "The instructors are industry experts who provide practical insights you won't find in textbooks.",
-              avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
-              rating: 5
-            },
-            {
-              id: 3,
-              name: "Priya Sharma",
-              role: "Medical Coder",
-              text: "I landed my dream job just two months after completing the Medical Coding program. Highly recommended!",
-              avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
-              rating: 5
-            }
-          ]);
-        }
-      } catch (error) {
-        console.error('Error fetching testimonials:', error);
-        
-        // If there's an error, use fallback testimonials
-        setTestimonials([
-          {
-            id: 1,
-            name: "Dr. Sarah Johnson",
-            role: "Clinical Research Coordinator",
-            text: "Clinigoal's courses transformed my career. The content was comprehensive and directly applicable to my work.",
-            avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
-            rating: 5
-          },
-          {
-            id: 2,
-            name: "Michael Chen",
-            role: "Bioinformatics Specialist",
-            text: "The instructors are industry experts who provide practical insights you won't find in textbooks.",
-            avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
-            rating: 5
-          },
-          {
-            id: 3,
-            name: "Priya Sharma",
-            role: "Medical Coder",
-            text: "I landed my dream job just two months after completing the Medical Coding program. Highly recommended!",
-            avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
-            rating: 5
-          }
-        ]);
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      await Promise.all([
+        fetchTestimonials(),
+        fetchCourses(),
+        fetchReviews()
+      ]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTestimonials = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reviews`);
+      if (response.ok) {
+        const reviewsData = await response.json();
+        const formattedTestimonials = reviewsData.map(review => ({
+          id: review._id,
+          name: review.userName,
+          role: "Student",
+          text: review.reviewText,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName)}&background=random`,
+          rating: review.rating
+        }));
+        setTestimonials(formattedTestimonials);
+      } else {
+        setTestimonials(getFallbackTestimonials());
       }
-    };
-    
-    fetchTestimonials();
-  }, []); // Empty dependency array means this runs once on component mount
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert(`Thank you for subscribing with: ${email}`);
-    setEmail('');
+    } catch (error) {
+      console.error('Error fetching testimonials:', error);
+      setTestimonials(getFallbackTestimonials());
+    }
   };
 
-  // Navigation handlers
-  const handleExploreCourses = () => {
-    navigate('/courses');
+  const fetchCourses = async () => {
+    try {
+      // First try to get courses from admin dashboard
+      const savedCourses = localStorage.getItem('clinigoalCourses');
+      if (savedCourses) {
+        const parsedCourses = JSON.parse(savedCourses);
+        setCourses(parsedCourses);
+        return;
+      }
+
+      // Fallback to API if no courses in localStorage
+      const response = await fetch(`${API_BASE_URL}/api/courses`);
+      if (response.ok) {
+        const coursesData = await response.json();
+        setCourses(coursesData);
+      } else {
+        setCourses(getFallbackCourses());
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setCourses(getFallbackCourses());
+    }
   };
 
-  const handleWatchDemo = () => {
-    navigate('/demo');
+  const fetchReviews = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reviews`);
+      if (response.ok) {
+        const reviewsData = await response.json();
+        // Update testimonials with latest reviews
+        const formattedTestimonials = reviewsData.map(review => ({
+          id: review._id,
+          name: review.userName,
+          role: "Student",
+          text: review.reviewText,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName)}&background=random`,
+          rating: review.rating
+        }));
+        setTestimonials(formattedTestimonials);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
   };
 
-  const handleEnrollNow = (courseId) => {
-    navigate(`/enroll/${courseId}`);
-  };
+  const getFallbackTestimonials = () => [
+    {
+      id: 1,
+      name: "Dr. Sarah Johnson",
+      role: "Clinical Research Coordinator",
+      text: "Clinigoal's courses transformed my career. The content was comprehensive and directly applicable to my work.",
+      avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
+      rating: 5
+    },
+    {
+      id: 2,
+      name: "Michael Chen",
+      role: "Bioinformatics Specialist",
+      text: "The instructors are industry experts who provide practical insights you won't find in textbooks.",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80",
+      rating: 5
+    }
+  ];
 
-  const handleLearnMore = (courseId) => {
-    navigate(`/courses/${courseId}`);
-  };
-
-  const handleViewAllCourses = () => {
-    navigate('/courses');
-  };
-
-  const handleStartLearning = () => {
-    navigate('/courses');
-  };
-
-  const handleScheduleConsultation = () => {
-    navigate('/consultation');
-  };
-
-  const courses = [
+  const getFallbackCourses = () => [
     {
       id: 1,
       title: "Clinical Research",
@@ -155,26 +140,35 @@ const Home = () => {
       duration: "8 Months",
       level: "Intermediate",
       color: "#10b981"
-    },
-    {
-      id: 3,
-      title: "Medical Coding",
-      description: "Learn accurate medical coding for healthcare billing and insurance claims.",
-      image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      duration: "4 Months",
-      level: "Beginner",
-      color: "#8b5cf6"
-    },
-    {
-      id: 4,
-      title: "Pharmacovigilance",
-      description: "Specialized training in drug safety monitoring and adverse event reporting.",
-      image: "https://images.unsplash.com/photo-1584362917165-526a968579e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      duration: "5 Months",
-      level: "Intermediate",
-      color: "#f59e0b"
     }
   ];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert(`Thank you for subscribing with: ${email}`);
+    setEmail('');
+  };
+
+  // Navigation handlers
+  const handleExploreCourses = () => {
+    navigate('/courses');
+  };
+
+  const handleEnrollNow = (courseId) => {
+    navigate(`/enroll/${courseId}`);
+  };
+
+  const handleLearnMore = (courseId) => {
+    navigate(`/courses/${courseId}`);
+  };
+
+  const handleViewAllCourses = () => {
+    navigate('/courses');
+  };
+
+  const handleStartLearning = () => {
+    navigate('/courses');
+  };
 
   const features = [
     {
@@ -211,7 +205,6 @@ const Home = () => {
     { number: "10,000+", label: "Students Trained", icon: "👨‍🎓" },
     { number: "95%", label: "Completion Rate", icon: "📈" },
     { number: "89%", label: "Job Placement", icon: "💼" },
-    
   ];
 
   const registrationSteps = [
@@ -244,6 +237,17 @@ const Home = () => {
       color: "#7e22ce"
     }
   ];
+
+  if (loading) {
+    return (
+      <div className="home loading">
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Loading Clinigoal...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`home ${isVisible ? 'page-visible' : ''}`}>
@@ -281,13 +285,6 @@ const Home = () => {
                   </svg>
                   <div className="btn-sparkle">✨</div>
                 </button>
-                <button className="btn-secondary hero-btn" onClick={handleWatchDemo}>
-                  <span>Watch Demo</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
-                  </svg>
-                  <div className="btn-glow"></div>
-                </button>
               </div>
               <div className="hero-stats">
                 {stats.map((stat, index) => (
@@ -307,11 +304,9 @@ const Home = () => {
             <div className="hero-image">
               <div className="image-container">
                 <div className="image-wrapper">
-                  {/* Same image kept as requested */}
                   <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Healthcare Education" className="hero-main-image" />
                   <div className="image-shine"></div>
                 </div>
-                {/* Floating cards removed - only removed the cards, image remains */}
               </div>
             </div>
           </div>
@@ -323,7 +318,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Get Started</span>
-            <h2 className="section-title"></h2>
+            <h2 className="section-title">Simple Registration Process</h2>
             <p className="section-description">
               Join Clinigoal in just 4 simple steps and start your learning journey
             </p>
@@ -418,7 +413,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Our Programs</span>
-            <h2 className="section-title"></h2>
+            <h2 className="section-title">Featured Courses</h2>
             <p className="section-description">
               Specialized programs designed for healthcare professionals seeking career advancement
             </p>
@@ -426,13 +421,13 @@ const Home = () => {
           <div className="courses-grid">
             {courses.map((course, index) => (
               <div 
-                key={course.id} 
-                className={`course-card ${hoveredCourse === course.id ? 'hovered' : ''}`}
+                key={course._id || course.id} 
+                className={`course-card ${hoveredCourse === course._id ? 'hovered' : ''}`}
                 style={{animationDelay: `${index * 0.15}s`}}
-                onMouseEnter={() => setHoveredCourse(course.id)}
+                onMouseEnter={() => setHoveredCourse(course._id || course.id)}
                 onMouseLeave={() => setHoveredCourse(null)}
               >
-                <div className="course-badge" style={{backgroundColor: course.color}}>
+                <div className="course-badge" style={{backgroundColor: course.color || "#2563eb"}}>
                   {course.level}
                 </div>
                 <div className="course-image">
@@ -440,15 +435,10 @@ const Home = () => {
                     src={course.image} 
                     alt={course.title} 
                     onError={(e) => {
-                      // Fallback image if the original fails to load
-                      if (course.id === 2) { // Bioinformatics course
-                        e.target.src = 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
-                      }
+                      e.target.src = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
                     }}
                   />
-                  <div className="course-overlay">
-                    {/* View Details button removed as requested */}
-                  </div>
+                  <div className="course-overlay"></div>
                   <div className="course-shine"></div>
                 </div>
                 <div className="course-content">
@@ -459,19 +449,19 @@ const Home = () => {
                   <h3>{course.title}</h3>
                   <p>{course.description}</p>
                   <div className="course-actions">
-                    <button className="btn-primary course-btn" onClick={() => handleEnrollNow(course.id)}>
+                    <button className="btn-primary course-btn" onClick={() => handleEnrollNow(course._id || course.id)}>
                       Enroll Now
                       <div className="btn-particles">
                         <span></span>
                         <span></span>
                       </div>
                     </button>
-                    <button className="btn-outline" onClick={() => handleLearnMore(course.id)}>
+                    <button className="btn-outline" onClick={() => handleLearnMore(course._id || course.id)}>
                       Learn More
                     </button>
                   </div>
                 </div>
-                <div className="course-glow" style={{background: `radial-gradient(circle at center, ${course.color}20, transparent 70%)`}}></div>
+                <div className="course-glow" style={{background: `radial-gradient(circle at center, ${course.color || "#2563eb"}20, transparent 70%)`}}></div>
               </div>
             ))}
           </div>
@@ -491,7 +481,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Why Choose Us</span>
-            <h2 className="section-title"></h2>
+            <h2 className="section-title">Why Choose Clinigoal</h2>
             <p className="section-description">
               We provide the best learning experience for healthcare professionals with industry-focused curriculum
             </p>
@@ -548,7 +538,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Testimonials</span>
-            <h2 className="section-title"></h2>
+            <h2 className="section-title">What Our Students Say</h2>
             <p className="section-description">
               Hear from professionals who transformed their careers with Clinigoal
             </p>
@@ -561,7 +551,7 @@ const Home = () => {
                   <p>"{testimonial.text}"</p>
                   <div className="rating">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <span key={i} className="star"></span>
+                      <span key={i} className="star">⭐</span>
                     ))}
                   </div>
                 </div>
@@ -601,10 +591,7 @@ const Home = () => {
             <div className="cta-buttons">
               <button className="btn-primary cta-btn" onClick={handleStartLearning}>
                 Start Learning Today
-                <div className="btn-sparkle">🚀</div>
-              </button>
-              <button className="btn-outline-white" onClick={handleScheduleConsultation}>
-                Schedule a Consultation
+                <div className="btn-sparkle"></div>
               </button>
             </div>
           </div>
