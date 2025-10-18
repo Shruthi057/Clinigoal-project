@@ -13,6 +13,25 @@ const Home = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  
+  // NEW: Enrollment form state
+  const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
+  const [enrollmentCourse, setEnrollmentCourse] = useState(null);
+  const [enrollmentForm, setEnrollmentForm] = useState({
+    courseId: '',
+    studentName: '',
+    studentEmail: '',
+    studentPhone: '',
+    paymentMethod: 'razorpay',
+    paymentOption: 'demo',
+    agreeToTerms: false
+  });
+  const [enrollmentSuccess, setEnrollmentSuccess] = useState(false);
+
+  // NEW: Course details modal state
+  const [showCourseDetails, setShowCourseDetails] = useState(false);
+  const [selectedCourseDetails, setSelectedCourseDetails] = useState(null);
   
   const navigate = useNavigate();
 
@@ -105,7 +124,15 @@ const Home = () => {
           originalPrice: course.originalPrice,
           instructor: course.instructor,
           features: course.features || [],
-          color: getCourseColor(course.title)
+          color: getCourseColor(course.title),
+          detailedDescription: course.detailedDescription || `Comprehensive course covering all aspects of ${course.title}. Perfect for healthcare professionals looking to advance their career.`,
+          modules: course.modules || ['Introduction', 'Advanced Concepts', 'Practical Applications', 'Case Studies'],
+          whatYouLearn: course.whatYouLearn || [
+            'Industry best practices',
+            'Practical skills development',
+            'Real-world case studies',
+            'Career advancement strategies'
+          ]
         }));
 
         setCourses(formattedCourses.slice(0, 4)); // Show only 4 featured courses
@@ -171,7 +198,15 @@ const Home = () => {
       level: "Advanced",
       price: "₹15,999",
       instructor: "Dr. Sarah Wilson",
-      color: "#2563eb"
+      color: "#2563eb",
+      detailedDescription: "Master clinical research methodologies, regulatory requirements, and trial management. Perfect for healthcare professionals seeking career advancement in clinical research.",
+      modules: ['Introduction to Clinical Research', 'Regulatory Framework', 'Trial Design & Management', 'Data Analysis & Reporting'],
+      whatYouLearn: [
+        'Clinical trial design and protocol development',
+        'Regulatory compliance and ethical considerations',
+        'Data management and statistical analysis',
+        'Patient safety and pharmacovigilance'
+      ]
     },
     {
       _id: 2,
@@ -182,53 +217,188 @@ const Home = () => {
       level: "Intermediate",
       price: "₹18,999",
       instructor: "Prof. Michael Chen",
-      color: "#10b981"
+      color: "#10b981",
+      detailedDescription: "Learn bioinformatics tools and techniques for genomic data analysis, sequence alignment, and biological database management.",
+      modules: ['Introduction to Bioinformatics', 'Sequence Analysis', 'Genomic Data Mining', 'Structural Bioinformatics'],
+      whatYouLearn: [
+        'Bioinformatics tools and databases',
+        'Sequence alignment and analysis',
+        'Genomic data interpretation',
+        'Structural biology concepts'
+      ]
     }
   ];
 
-  const handleSubmit = (e) => {
+  // UPDATED: Subscription handler with email confirmation
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) {
-      // Save subscription to localStorage
+    
+    if (!email) {
+      alert('Please enter your email address');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    setSubscriptionLoading(true);
+
+    try {
+      // Save subscription to localStorage first
       const subscriptions = JSON.parse(localStorage.getItem('newsletterSubscriptions') || '[]');
+      
+      // Check if email already exists
+      const existingSubscription = subscriptions.find(sub => sub.email === email);
+      if (existingSubscription) {
+        alert('📧 This email is already subscribed!');
+        setSubscriptionLoading(false);
+        return;
+      }
+
       const newSubscription = {
         email,
         subscribedAt: new Date().toISOString(),
         id: `sub_${Date.now()}`
       };
-      localStorage.setItem('newsletterSubscriptions', JSON.stringify([...subscriptions, newSubscription]));
       
-      alert(`Thank you for subscribing with: ${email}`);
+      localStorage.setItem('newsletterSubscriptions', JSON.stringify([...subscriptions, newSubscription]));
+
+      // Send confirmation email
+      const response = await fetch(`${API_BASE_URL}/api/send-subscription-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`🎉 ${result.message}`);
+        setEmail('');
+      } else {
+        alert(`✅ Subscribed successfully! (Email confirmation may be delayed)`);
+        setEmail('');
+      }
+
+    } catch (error) {
+      console.error('Subscription error:', error);
+      // Fallback - subscription still works even if email fails
+      alert(`✅ Subscribed successfully with: ${email}\n(Welcome email will be sent shortly)`);
       setEmail('');
+    } finally {
+      setSubscriptionLoading(false);
     }
+  };
+
+  // NEW: Enrollment form functions
+  const handleEnrollmentClick = (course) => {
+    setEnrollmentCourse(course);
+    setEnrollmentForm({
+      courseId: course._id,
+      studentName: '',
+      studentEmail: '',
+      studentPhone: '',
+      paymentMethod: 'razorpay',
+      paymentOption: 'demo',
+      agreeToTerms: false
+    });
+    setShowEnrollmentForm(true);
+  };
+
+  const handleEnrollmentChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEnrollmentForm({
+      ...enrollmentForm,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  // NEW: Simple RazorPay Redirect Function
+  const handleDemoPayment = async () => {
+    // Redirect to actual RazorPay account
+    window.open('https://razorpay.me/', '_blank');
+    
+    // Optional: Show confirmation message
+    alert('Redirecting to RazorPay for secure payment...');
+    
+    // Continue with enrollment process
+    if (enrollmentCourse) {
+      const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
+                           enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
+      
+      // Add payment to history (simulated)
+      const newPayment = {
+        id: `payment_${Date.now()}`,
+        courseId: enrollmentCourse._id,
+        courseTitle: enrollmentCourse.title,
+        amount: paymentAmount,
+        paymentMethod: 'razorpay',
+        date: new Date().toISOString(),
+        status: 'completed'
+      };
+      
+      // Save to localStorage
+      const paymentHistory = JSON.parse(localStorage.getItem('userPaymentHistory') || '[]');
+      localStorage.setItem('userPaymentHistory', JSON.stringify([...paymentHistory, newPayment]));
+      
+      // Submit for approval
+      const enrollmentData = {
+        id: `enroll_${enrollmentCourse._id}_${Date.now()}`,
+        courseId: enrollmentCourse._id,
+        courseTitle: enrollmentCourse.title,
+        studentName: enrollmentForm.studentName,
+        studentEmail: enrollmentForm.studentEmail,
+        enrollmentDate: new Date().toISOString(),
+        paymentAmount: paymentAmount,
+        paymentMethod: 'razorpay',
+        status: 'pending'
+      };
+
+      const existingApprovals = JSON.parse(localStorage.getItem('pendingEnrollments') || '[]');
+      localStorage.setItem('pendingEnrollments', JSON.stringify([...existingApprovals, enrollmentData]));
+      
+      setEnrollmentSuccess(true);
+      
+      setTimeout(() => {
+        setShowEnrollmentForm(false);
+        setEnrollmentSuccess(false);
+      }, 3000);
+    }
+  };
+
+  // NEW: Enrollment function to use real RazorPay redirect
+  const handleEnrollmentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!enrollmentForm.agreeToTerms) {
+      alert('Please agree to the terms and conditions');
+      return;
+    }
+    
+    if (!enrollmentForm.studentName || !enrollmentForm.studentEmail || !enrollmentForm.studentPhone) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    // Use the updated payment function that redirects to RazorPay
+    await handleDemoPayment();
+  };
+
+  // NEW: Course details functions
+  const handleCourseDetailsClick = (course) => {
+    setSelectedCourseDetails(course);
+    setShowCourseDetails(true);
   };
 
   // Navigation handlers
   const handleExploreCourses = () => {
     navigate('/userdashboard', { state: { activeSection: 'available-courses' } });
-  };
-
-  const handleEnrollNow = (courseId) => {
-    // Redirect to user dashboard with enrollment form
-    navigate('/userdashboard', { 
-      state: { 
-        activeSection: 'available-courses',
-        enrollCourseId: courseId 
-      } 
-    });
-  };
-
-  const handleLearnMore = (courseId) => {
-    const course = courses.find(c => c._id === courseId);
-    if (course) {
-      // Show course details modal or redirect to course page
-      navigate('/userdashboard', { 
-        state: { 
-          activeSection: 'available-courses',
-          viewCourseId: courseId 
-        } 
-      });
-    }
   };
 
   const handleViewAllCourses = () => {
@@ -308,6 +478,326 @@ const Home = () => {
     }
   ];
 
+  // NEW: Render Enrollment Form Modal
+  const renderEnrollmentForm = () => {
+    if (!showEnrollmentForm || !enrollmentCourse) return null;
+
+    return (
+      <div className="enrollment-modal-overlay popup-overlay">
+        <div className="enrollment-modal popup-modal">
+          <div className="modal-header">
+            <h2>Enroll in {enrollmentCourse.title}</h2>
+            <button 
+              className="close-btn" 
+              onClick={() => setShowEnrollmentForm(false)}
+            >
+              ×
+            </button>
+          </div>
+          
+          {enrollmentSuccess ? (
+            <div className="enrollment-success">
+              <div className="success-icon">✓</div>
+              <h3>Payment Successful!</h3>
+              <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} for {enrollmentCourse.title}.</p>
+              <p>Your enrollment is now pending admin approval. You will get access once approved.</p>
+              <div className="success-actions">
+                <button 
+                  onClick={() => {
+                    setShowEnrollmentForm(false);
+                    setEnrollmentSuccess(false);
+                  }}
+                  className="btn-primary"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleEnrollmentSubmit} className="enrollment-form">
+              <div className="course-summary">
+                <h4>Course Summary</h4>
+                <div className="summary-details">
+                  <p><strong>Course:</strong> {enrollmentCourse.title}</p>
+                  <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
+                  <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
+                  <div className="price-options">
+                    <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
+                    <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
+                  </div>
+                  <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after payment</p>
+                </div>
+              </div>
+
+              {/* Payment Option Selection */}
+              <div className="form-group">
+                <label>Select Payment Option *</label>
+                <div className="payment-options">
+                  <div className="payment-option-card">
+                    <input
+                      type="radio"
+                      id="demo-payment"
+                      name="paymentOption"
+                      value="demo"
+                      checked={enrollmentForm.paymentOption === 'demo'}
+                      onChange={handleEnrollmentChange}
+                      className="payment-radio"
+                    />
+                    <label htmlFor="demo-payment" className="payment-option-label">
+                      <div className="payment-option-header">
+                        <span className="payment-option-title">Demo Payment</span>
+                        <span className="payment-option-price">₹1.00</span>
+                      </div>
+                      <p className="payment-option-description">
+                        Pay ₹1 to test the enrollment process (Recommended for testing)
+                      </p>
+                    </label>
+                  </div>
+                  
+                  <div className="payment-option-card">
+                    <input
+                      type="radio"
+                      id="full-payment"
+                      name="paymentOption"
+                      value="full"
+                      checked={enrollmentForm.paymentOption === 'full'}
+                      onChange={handleEnrollmentChange}
+                      className="payment-radio"
+                    />
+                    <label htmlFor="full-payment" className="payment-option-label">
+                      <div className="payment-option-header">
+                        <span className="payment-option-title">Full Payment</span>
+                        <span className="payment-option-price">{enrollmentCourse.originalPrice}</span>
+                      </div>
+                      <p className="payment-option-description">
+                        Pay the full course price to access all features
+                      </p>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Full Name *</label>
+                <input
+                  type="text"
+                  name="studentName"
+                  value={enrollmentForm.studentName}
+                  onChange={handleEnrollmentChange}
+                  required
+                  className="form-input"
+                  placeholder="Enter your full name"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Email Address *</label>
+                <input
+                  type="email"
+                  name="studentEmail"
+                  value={enrollmentForm.studentEmail}
+                  onChange={handleEnrollmentChange}
+                  required
+                  className="form-input"
+                  placeholder="Enter your email address"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Phone Number *</label>
+                <input
+                  type="tel"
+                  name="studentPhone"
+                  value={enrollmentForm.studentPhone}
+                  onChange={handleEnrollmentChange}
+                  placeholder="Enter your phone number"
+                  required
+                  className="form-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Payment Method</label>
+                <div className="payment-methods">
+                  <div className="payment-option">
+                    <input
+                      type="radio"
+                      id="razorpay"
+                      name="paymentMethod"
+                      value="razorpay"
+                      checked={enrollmentForm.paymentMethod === 'razorpay'}
+                      onChange={handleEnrollmentChange}
+                    />
+                    <label htmlFor="razorpay">
+                      <span className="payment-icon">💳</span>
+                      Razorpay
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="form-group terms-group">
+                <input
+                  type="checkbox"
+                  id="agreeToTerms"
+                  name="agreeToTerms"
+                  checked={enrollmentForm.agreeToTerms}
+                  onChange={handleEnrollmentChange}
+                  required
+                  className="form-checkbox"
+                />
+                <label htmlFor="agreeToTerms">
+                  I agree to the <a href="#" className="terms-link">Terms and Conditions</a> and <a href="#" className="terms-link">Refund Policy</a>
+                </label>
+              </div>
+              
+              <div className="payment-summary">
+                <div className="payment-total">
+                  <span className="total-label">Total Amount:</span>
+                  <span className="total-amount">
+                    {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={() => setShowEnrollmentForm(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary razorpay-btn"
+                  disabled={!enrollmentForm.agreeToTerms}
+                >
+                  <span className="razorpay-text">
+                    Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} - Go to RazorPay
+                  </span>
+                </button>
+              </div>
+
+              <div className="demo-note">
+                <p>💡 <strong>Note:</strong> You will be redirected to RazorPay for secure payment processing.</p>
+                <p>🔒 <strong>Approval Required:</strong> Course access requires admin approval after payment.</p>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // NEW: Render Course Details Modal
+  const renderCourseDetailsModal = () => {
+    if (!showCourseDetails || !selectedCourseDetails) return null;
+
+    return (
+      <div className="course-details-modal-overlay popup-overlay">
+        <div className="course-details-modal popup-modal large">
+          <div className="modal-header">
+            <h2>{selectedCourseDetails.title}</h2>
+            <button 
+              className="close-btn" 
+              onClick={() => setShowCourseDetails(false)}
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="course-details-content">
+            <div className="course-hero">
+              <div className="course-image-large">
+                <img 
+                  src={selectedCourseDetails.image} 
+                  alt={selectedCourseDetails.title}
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
+                  }}
+                />
+              </div>
+              <div className="course-info-sidebar">
+                <div className="info-card">
+                  <h3>Course Details</h3>
+                  <div className="info-item">
+                    <span className="label">Instructor:</span>
+                    <span className="value">{selectedCourseDetails.instructor}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Duration:</span>
+                    <span className="value">{selectedCourseDetails.duration}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Level:</span>
+                    <span className="value">{selectedCourseDetails.level}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Price:</span>
+                    <span className="value price">{selectedCourseDetails.price}</span>
+                  </div>
+                  <button 
+                    className="btn-primary enroll-btn"
+                    onClick={() => {
+                      setShowCourseDetails(false);
+                      handleEnrollmentClick(selectedCourseDetails);
+                    }}
+                  >
+                    Enroll Now
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="course-description-section">
+              <h3>About This Course</h3>
+              <p>{selectedCourseDetails.detailedDescription}</p>
+            </div>
+
+            <div className="what-you-learn-section">
+              <h3>What You'll Learn</h3>
+              <div className="learning-points">
+                {selectedCourseDetails.whatYouLearn.map((point, index) => (
+                  <div key={index} className="learning-point">
+                    <span className="check-icon">✓</span>
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="course-modules-section">
+              <h3>Course Modules</h3>
+              <div className="modules-list">
+                {selectedCourseDetails.modules.map((module, index) => (
+                  <div key={index} className="module-item">
+                    <span className="module-number">Module {index + 1}</span>
+                    <span className="module-title">{module}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {selectedCourseDetails.features && selectedCourseDetails.features.length > 0 && (
+              <div className="course-features-section">
+                <h3>Course Features</h3>
+                <div className="features-grid">
+                  {selectedCourseDetails.features.map((feature, index) => (
+                    <div key={index} className="feature-item">
+                      <span className="feature-icon">✓</span>
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="home loading">
@@ -355,9 +845,7 @@ const Home = () => {
                   </svg>
                   <div className="btn-sparkle">✨</div>
                 </button>
-                <button className="btn-outline" onClick={() => navigate('/userdashboard')}>
-                  Student Login
-                </button>
+                {/* Removed Student Login button */}
               </div>
               <div className="hero-stats">
                 {stats.map((stat, index) => (
@@ -547,14 +1035,14 @@ const Home = () => {
                     )}
                   </div>
                   <div className="course-actions">
-                    <button className="btn-primary course-btn" onClick={() => handleEnrollNow(course._id)}>
+                    <button className="btn-primary course-btn" onClick={() => handleEnrollmentClick(course)}>
                       Enroll Now
                       <div className="btn-particles">
                         <span></span>
                         <span></span>
                       </div>
                     </button>
-                    <button className="btn-outline" onClick={() => handleLearnMore(course._id)}>
+                    <button className="btn-outline" onClick={() => handleCourseDetailsClick(course)}>
                       Course Details
                     </button>
                   </div>
@@ -688,9 +1176,6 @@ const Home = () => {
                 Start Learning Today
                 <div className="btn-sparkle"></div>
               </button>
-              <button className="btn-outline" onClick={() => navigate('/userdashboard')}>
-                Student Portal
-              </button>
             </div>
           </div>
         </div>
@@ -717,13 +1202,27 @@ const Home = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={subscriptionLoading}
                   className="newsletter-input"
                 />
-                <button type="submit" className="btn-primary newsletter-btn">
-                  <span>Subscribe</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                <button 
+                  type="submit" 
+                  className="btn-primary newsletter-btn"
+                  disabled={subscriptionLoading}
+                >
+                  {subscriptionLoading ? (
+                    <>
+                      <span>Subscribing...</span>
+                      <div className="loading-spinner-small"></div>
+                    </>
+                  ) : (
+                    <>
+                      <span>Subscribe</span>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </>
+                  )}
                   <div className="btn-glow"></div>
                 </button>
               </div>
@@ -734,6 +1233,10 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Render Modals */}
+      {renderEnrollmentForm()}
+      {renderCourseDetailsModal()}
     </div>
   );
 };

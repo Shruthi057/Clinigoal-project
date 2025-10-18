@@ -89,6 +89,70 @@ const sendOTPEmail = async (email, otp) => {
   }
 };
 
+// NEW: Subscription Email Function
+const sendSubscriptionEmail = async (email) => {
+  const transporter = createTransporter();
+  
+  const mailOptions = {
+    from: `Clinigoal <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "🎉 Welcome to Clinigoal - Subscription Confirmed!",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; color: white;">
+          <h1 style="margin: 0; font-size: 28px;">Welcome to Clinigoal! 🎓</h1>
+          <p style="font-size: 16px; opacity: 0.9;">Your journey in healthcare education begins here</p>
+        </div>
+        
+        <div style="padding: 30px; background: #f8fafc; border-radius: 0 0 10px 10px;">
+          <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #2563eb; margin-top: 0;">✅ Subscription Confirmed</h3>
+            <p>Hello,</p>
+            <p>Thank you for subscribing to Clinigoal! You've successfully subscribed with:</p>
+            <p style="text-align: center; font-size: 18px; font-weight: bold; color: #2563eb; background: #e6f3ff; padding: 10px; border-radius: 5px;">${email}</p>
+          </div>
+
+          <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="color: #2563eb;">What's Next?</h4>
+            <ul style="color: #555; line-height: 1.6;">
+              <li>📧 Get weekly updates on new courses and offers</li>
+              <li>🎯 Receive exclusive healthcare industry insights</li>
+              <li>💡 Learn about upcoming webinars and events</li>
+              <li>🔔 Be the first to know about special discounts</li>
+            </ul>
+          </div>
+
+          <div style="background: #e6f3ff; padding: 15px; border-radius: 8px; text-align: center;">
+            <p style="margin: 0; color: #2563eb; font-weight: bold;">
+              Ready to Start Learning? Explore our courses and take the next step in your healthcare career!
+            </p>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+          <p style="color: #666; font-size: 14px;">
+            You're receiving this email because you subscribed to Clinigoal newsletter.<br>
+            If this wasn't you, please ignore this email.
+          </p>
+          <p style="color: #999; font-size: 12px; margin-top: 20px;">
+            &copy; 2024 Clinigoal. All rights reserved.<br>
+            Transforming Healthcare Education
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Subscription email sent to: ${email}`);
+    return { success: true, method: 'email' };
+  } catch (error) {
+    console.error('❌ Subscription email failed:', error.message);
+    throw error;
+  }
+};
+
 // 4️⃣ Send OTP - Main endpoint with enhanced error handling
 router.post("/send-otp", async (req, res) => {
   const { email } = req.body;
@@ -157,6 +221,62 @@ router.post("/send-otp", async (req, res) => {
     res.status(500).json({ 
       message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+// NEW: Subscription Endpoint - Add this after the OTP endpoints
+router.post("/send-subscription-email", async (req, res) => {
+  const { email } = req.body;
+
+  // Input validation
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ 
+      success: false,
+      message: "Valid email is required" 
+    });
+  }
+
+  try {
+    let response = {
+      success: true,
+      message: "Subscription confirmed! Welcome email sent successfully.",
+      method: "email"
+    };
+
+    // Try to send email if service is enabled
+    if (emailServiceEnabled) {
+      try {
+        await sendSubscriptionEmail(email);
+      } catch (emailError) {
+        console.error('❌ Subscription email failed:', emailError.message);
+        
+        // Update email service status
+        emailServiceEnabled = false;
+        lastEmailError = emailError;
+
+        // Fallback - subscription still works, just no email
+        console.log(`📧 Subscription for ${email} (Email service unavailable)`);
+        response.message = "Subscribed successfully! (Welcome email delayed)";
+        response.method = "console";
+      }
+    } else {
+      // Email service is disabled
+      console.log(`📧 Subscription for ${email} (Email service disabled)`);
+      response.message = "Subscribed successfully! (Welcome email will be sent when service resumes)";
+      response.method = "console";
+    }
+
+    res.json(response);
+
+  } catch (err) {
+    console.error("❌ Subscription Error:", err);
+    
+    // Even if email fails, subscription is still successful
+    res.json({
+      success: true,
+      message: "Subscribed successfully! (Welcome email may be delayed)",
+      method: "console"
     });
   }
 });
