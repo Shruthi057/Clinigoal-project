@@ -1106,122 +1106,83 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Career Guidance Section (Replaces Newsletter) */}
-      <section className="career-guidance">
-        <div className="container">
-          <div className="career-content">
-            <div className="career-text">
-              <h2>Free Career Consultation</h2>
-              <p>Not sure which course is right for you? Get personalized career guidance from our industry experts.</p>
-              <div className="career-benefits">
-                <div className="benefit-item">
-                  <span className="benefit-icon">🎯</span>
-                  <div>
-                    <h4>Career Assessment</h4>
-                    <p>Identify the best career path based on your background and goals</p>
-                  </div>
-                </div>
-                <div className="benefit-item">
-                  <span className="benefit-icon">📊</span>
-                  <div>
-                    <h4>Industry Insights</h4>
-                    <p>Get current market trends and salary expectations for each field</p>
-                  </div>
-                </div>
-                <div className="benefit-item">
-                  <span className="benefit-icon">💼</span>
-                  <div>
-                    <h4>Job Placement Support</h4>
-                    <p>Connect with our 50+ hiring partners in healthcare industry</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="career-form">
-              <h3>Book Free Career Session</h3>
-              <form onSubmit={handleCareerSubmit} className="consultation-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <input 
-                      type="text" 
-                      name="fullName"
-                      value={careerForm.fullName}
-                      onChange={handleCareerChange}
-                      placeholder="Full Name" 
-                      className="form-input"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <input 
-                      type="email" 
-                      name="email"
-                      value={careerForm.email}
-                      onChange={handleCareerChange}
-                      placeholder="Email Address" 
-                      className="form-input"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <input 
-                      type="tel" 
-                      name="phone"
-                      value={careerForm.phone}
-                      onChange={handleCareerChange}
-                      placeholder="Phone Number" 
-                      className="form-input"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <select 
-                      name="background"
-                      value={careerForm.background}
-                      onChange={handleCareerChange}
-                      className="form-input"
-                    >
-                      <option value="">Select Your Background</option>
-                      <option value="medical">Medical Professional</option>
-                      <option value="pharmacy">Pharmacy</option>
-                      <option value="life-science">Life Sciences</option>
-                      <option value="other">Other Healthcare</option>
-                      <option value="fresh">Fresh Graduate</option>
-                      <option value="career-switch">Career Switching</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <select 
-                    name="interest"
-                    value={careerForm.interest}
-                    onChange={handleCareerChange}
-                    className="form-input"
-                  >
-                    <option value="">Interested Course</option>
-                    <option value="clinical-research">Clinical Research</option>
-                    <option value="bioinformatics">Bioinformatics</option>
-                    <option value="medical-coding">Medical Coding</option>
-                    <option value="pharmacovigilance">Pharmacovigilance</option>
-                    <option value="not-sure">Not Sure - Need Guidance</option>
-                  </select>
-                </div>
-                <button type="submit" className="btn-primary career-btn">
-                  Get Free Career Consultation
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-                <p className="form-note">
-                  ✅ 15-minute free session with industry expert • No commitment required
-                </p>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Healthcare Industry Info Section */}
+<section className="industry-info">
+  <div className="container">
+    <div className="section-header">
+      <span className="section-subtitle">Industry Insights</span>
+      <h2 className="section-title">Why Healthcare Sciences?</h2>
+      <p className="section-description">
+        The healthcare and life sciences industry is rapidly evolving with tremendous growth opportunities
+      </p>
+    </div>
+    
+    <div className="industry-stats">
+      <div className="stat-card">
+        <div className="stat-icon">📈</div>
+        <div className="stat-number">18%</div>
+        <div className="stat-label">Projected Growth in Clinical Research</div>
+        <div className="stat-description">By 2026, creating 50,000+ new jobs in India</div>
+      </div>
+      
+      <div className="stat-card">
+        <div className="stat-icon">💰</div>
+        <div className="stat-number">₹6-12 LPA</div>
+        <div className="stat-label">Average Starting Salary</div>
+        <div className="stat-description">For trained professionals in healthcare sciences</div>
+      </div>
+      
+      <div className="stat-card">
+        <div className="stat-icon">🏥</div>
+        <div className="stat-number">1000+</div>
+        <div className="stat-label">New Healthcare Companies</div>
+        <div className="stat-description">Established in India in the last 3 years</div>
+      </div>
+      
+      <div className="stat-card">
+        <div className="stat-icon">🌍</div>
+        <div className="stat-number">Global</div>
+        <div className="stat-label">Career Opportunities</div>
+        <div className="stat-description">Work with international pharmaceutical companies</div>
+      </div>
+    </div>
+
+    <div className="industry-features">
+      <div className="feature-column">
+        <h3>📊 High-Demand Skills</h3>
+        <ul>
+          <li>Clinical Trial Management</li>
+          <li>Regulatory Affairs</li>
+          <li>Medical Coding & Billing</li>
+          <li>Drug Safety Monitoring</li>
+          <li>Bioinformatics Analysis</li>
+        </ul>
+      </div>
+      
+      <div className="feature-column">
+        <h3>🎯 Career Paths</h3>
+        <ul>
+          <li>Clinical Research Coordinator</li>
+          <li>Medical Coder</li>
+          <li>Pharmacovigilance Officer</li>
+          <li>Bioinformatics Specialist</li>
+          <li>Regulatory Affairs Manager</li>
+        </ul>
+      </div>
+      
+      <div className="feature-column">
+        <h3>💼 Top Recruiters</h3>
+        <ul>
+          <li>Pharmaceutical Companies</li>
+          <li>Research Organizations</li>
+          <li>Hospitals & Healthcare</li>
+          <li>IT Healthcare Firms</li>
+          <li>Medical Device Companies</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Render Enrollment Modal */}
       {renderEnrollmentForm()}
