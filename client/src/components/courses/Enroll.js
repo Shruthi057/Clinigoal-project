@@ -6,30 +6,73 @@ const EnrollPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const courses = {
-    1: {
-      id: 1,
-      title: "Clinical Research",
-      price: "₹89,999"
-    },
-    2: {
-      id: 2,
-      title: "Bioinformatics",
-      price: "₹1,19,999"
-    },
-    3: {
-      id: 3,
-      title: "Medical Coding",
-      price: "₹74,999"
-    },
-    4: {
-      id: 4,
-      title: "Pharmacovigilance",
-      price: "₹94,999"
+  // Get course data from localStorage or use fallback
+  const getCourseData = () => {
+    try {
+      const savedCourses = localStorage.getItem('clinigoalCourses');
+      if (savedCourses) {
+        const parsedCourses = JSON.parse(savedCourses);
+        const course = parsedCourses.find(c => c._id == id);
+        if (course) {
+          return {
+            id: course._id,
+            title: course.title,
+            price: course.price || '₹15,999',
+            originalPrice: course.originalPrice,
+            instructor: course.instructor,
+            duration: course.duration,
+            description: course.description
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching course data:', error);
     }
+
+    // Fallback courses if not found in localStorage
+    const fallbackCourses = {
+      1: {
+        id: 1,
+        title: "Clinical Research",
+        price: "₹15,999",
+        originalPrice: "₹19,999",
+        instructor: "Dr. Sarah Wilson",
+        duration: "6 Months",
+        description: "Comprehensive training in clinical trial design, management, and regulatory compliance"
+      },
+      2: {
+        id: 2,
+        title: "Bioinformatics",
+        price: "₹18,999",
+        originalPrice: "₹22,999",
+        instructor: "Prof. Michael Chen",
+        duration: "8 Months",
+        description: "Master computational methods for analyzing biological data and genomic research"
+      },
+      3: {
+        id: 3,
+        title: "Medical Coding",
+        price: "₹12,999",
+        originalPrice: "₹15,999",
+        instructor: "Ms. Anjali Patel",
+        duration: "5 Months",
+        description: "Learn accurate medical coding practices and healthcare documentation"
+      },
+      4: {
+        id: 4,
+        title: "Pharmacovigilance",
+        price: "₹16,999",
+        originalPrice: "₹20,999",
+        instructor: "Dr. Robert Kim",
+        duration: "7 Months",
+        description: "Master drug safety monitoring and adverse event reporting"
+      }
+    };
+
+    return fallbackCourses[id] || null;
   };
 
-  const course = courses[id];
+  const course = getCourseData();
 
   const [formData, setFormData] = React.useState({
     name: '',
@@ -48,6 +91,11 @@ const EnrollPage = () => {
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => {
@@ -61,21 +109,19 @@ const EnrollPage = () => {
   };
 
   const createOrder = async () => {
-    // In a real app, this would be an API call to your backend
-    const coursePrices = {
-      1: 89999,
-      2: 119999,
-      3: 74999,
-      4: 94999
+    // Convert price to amount in paise (Razorpay expects amount in paise)
+    const priceToAmount = (price) => {
+      const numericPrice = parseInt(price.replace(/[^0-9]/g, ''));
+      return numericPrice * 100;
     };
     
     return {
       id: `order_${Date.now()}`,
-      amount: coursePrices[id] * 100, // Razorpay expects amount in paise
+      amount: priceToAmount(course.price),
       currency: "INR",
       name: "Clinigoal",
       description: `Enrollment for ${course.title}`,
-      image: "https://example.com/your_logo",
+      image: "/logo.png", // Replace with your logo
       prefill: {
         name: formData.name,
         email: formData.email,
@@ -85,10 +131,7 @@ const EnrollPage = () => {
   };
 
   const enrollUser = async (paymentDetails) => {
-    // In a real app, this would be an API call to your backend
-    // to store the enrollment information in the user's dashboard
-    
-    // Store enrollment data in localStorage for demo purposes
+    // Store enrollment data in localStorage
     const existingEnrollments = JSON.parse(localStorage.getItem('userEnrollments') || '[]');
     
     const newEnrollment = {
@@ -102,7 +145,8 @@ const EnrollPage = () => {
       studentName: formData.name,
       studentEmail: formData.email,
       studentPhone: formData.phone,
-      progress: 0
+      progress: 0,
+      status: 'active'
     };
     
     existingEnrollments.push(newEnrollment);
@@ -122,87 +166,114 @@ const EnrollPage = () => {
       return;
     }
 
-    // Load Razorpay if not already loaded
-    const isLoaded = await loadRazorpayScript();
-    if (!isLoaded) {
-      alert('Failed to load payment gateway. Please try again.');
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address');
       setIsProcessing(false);
       return;
     }
 
-    // Create order
-    const order = await createOrder();
+    // Phone validation
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.phone.replace(/[^0-9]/g, ''))) {
+      alert('Please enter a valid 10-digit phone number');
+      setIsProcessing(false);
+      return;
+    }
 
-    const options = {
-      key: 'rzp_test_1DP5mmOlF5G5ag', // Replace with your Razorpay key
-      amount: order.amount,
-      currency: order.currency,
-      name: order.name,
-      description: order.description,
-      image: order.image,
-      order_id: order.id,
-      prefill: {
-        name: order.prefill.name,
-        email: order.prefill.email,
-        contact: order.prefill.contact
-      },
-      notes: {
-        address: "Clinigoal Office",
-        merchant_order_id: order.id
-      },
-      theme: {
-        color: "#3399cc"
-      },
-      handler: async function (response) {
-        // Payment successful
-        try {
-          // Enroll the user
-          const enrollmentResult = await enrollUser(response);
-          if (enrollmentResult.success) {
-            alert('Enrollment successful! You can now access your course from the dashboard.');
-            navigate('/dashboard'); // Redirect to dashboard
-          } else {
-            alert('Enrollment failed. Please contact support.');
-          }
-        } catch (error) {
-          alert('Enrollment failed. Please try again.');
-        }
+    try {
+      // Load Razorpay if not already loaded
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        alert('Failed to load payment gateway. Please try again.');
         setIsProcessing(false);
-      },
-      modal: {
-        ondismiss: function () {
+        return;
+      }
+
+      // Create order
+      const order = await createOrder();
+
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag', // Use environment variable
+        amount: order.amount,
+        currency: order.currency,
+        name: order.name,
+        description: order.description,
+        image: order.image,
+        order_id: order.id,
+        prefill: {
+          name: order.prefill.name,
+          email: order.prefill.email,
+          contact: order.prefill.contact
+        },
+        notes: {
+          address: "Clinigoal Office",
+          merchant_order_id: order.id
+        },
+        theme: {
+          color: "#0077B6"
+        },
+        handler: async function (response) {
+          // Payment successful
+          try {
+            // Enroll the user
+            const enrollmentResult = await enrollUser(response);
+            if (enrollmentResult.success) {
+              alert('🎉 Enrollment successful! You can now access your course from the dashboard.');
+              navigate('/userdashboard', { state: { activeSection: 'my-courses' } });
+            } else {
+              alert('Enrollment failed. Please contact support.');
+            }
+          } catch (error) {
+            console.error('Enrollment error:', error);
+            alert('Enrollment failed. Please try again.');
+          }
           setIsProcessing(false);
         },
-        escape: false,
-        confirm_close: true
-      },
-      checkout: {
-        method: {
-          netbanking: true,
-          card: true,
-          upi: true,
-          wallet: true,
-          emi: true,
-          paylater: true
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+          },
+          escape: false,
+          confirm_close: true
+        },
+        checkout: {
+          method: {
+            netbanking: true,
+            card: true,
+            upi: true,
+            wallet: true,
+            emi: true,
+            paylater: true
+          }
         }
-      }
-    };
+      };
 
-    const rzp = new window.Razorpay(options);
-    rzp.on('payment.failed', function (response) {
-      alert('Payment failed. Please try again.');
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        alert('Payment failed. Please try again.');
+        setIsProcessing(false);
+      });
+      
+      rzp.open();
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('An error occurred during payment. Please try again.');
       setIsProcessing(false);
-    });
-    
-    rzp.open();
+    }
   };
 
   if (!course) {
     return (
-      <div className="not-found">
-        <h1>Course Not Found</h1>
-        <p>The course you're trying to enroll in doesn't exist.</p>
-        <button onClick={() => navigate('/courses')} className="home-link">Back to Courses</button>
+      <div className="enroll-page">
+        <div className="enroll-container">
+          <div className="not-found">
+            <h1>Course Not Found</h1>
+            <p>The course you're trying to enroll in doesn't exist.</p>
+            <button onClick={() => navigate('/')} className="btn-primary">Back to Home</button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -226,7 +297,7 @@ const EnrollPage = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Full Name"
+                    placeholder="Full Name *"
                     required
                   />
                 </div>
@@ -237,7 +308,7 @@ const EnrollPage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Email Address"
+                    placeholder="Email Address *"
                     required
                   />
                 </div>
@@ -248,7 +319,7 @@ const EnrollPage = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="Phone Number"
+                    placeholder="Phone Number *"
                     required
                   />
                 </div>
@@ -280,6 +351,20 @@ const EnrollPage = () => {
                   <span>{course.title}</span>
                   <span>{course.price}</span>
                 </div>
+                {course.originalPrice && (
+                  <div className="summary-discount">
+                    <span>Original Price</span>
+                    <span className="original-price">{course.originalPrice}</span>
+                  </div>
+                )}
+                <div className="summary-item">
+                  <span>Instructor</span>
+                  <span>{course.instructor}</span>
+                </div>
+                <div className="summary-item">
+                  <span>Duration</span>
+                  <span>{course.duration}</span>
+                </div>
                 
                 <div className="summary-total">
                   <span>Amount to Pay</span>
@@ -292,20 +377,45 @@ const EnrollPage = () => {
                 className="enroll-btn"
                 disabled={isProcessing}
               >
-                {isProcessing ? 'Processing...' : `Pay with Razorpay - ${course.price}`}
+                {isProcessing ? (
+                  <>
+                    <div className="loading-spinner-small"></div>
+                    Processing...
+                  </>
+                ) : (
+                  `Pay with Razorpay - ${course.price}`
+                )}
               </button>
+
+              <div className="security-note">
+                <p>🔒 Your payment information is secure and encrypted</p>
+              </div>
             </form>
           </div>
 
           <div className="enroll-info">
+            <div className="course-preview">
+              <h2>Course Overview</h2>
+              <div className="course-details">
+                <h3>{course.title}</h3>
+                <p>{course.description}</p>
+                <div className="course-meta">
+                  <span>👨‍🏫 {course.instructor}</span>
+                  <span>⏱️ {course.duration}</span>
+                </div>
+              </div>
+            </div>
+
             <h2>What You'll Get</h2>
             <ul className="benefits-list">
-              <li>Lifetime access to course materials</li>
-              <li>Certificate of completion</li>
-              <li>1-on-1 instructor support</li>
-              <li>Course assignments and projects</li>
-              <li>Access to our community forum</li>
-              <li>30-day money-back guarantee</li>
+              <li>✅ Lifetime access to course materials</li>
+              <li>✅ Certificate of completion</li>
+              <li>✅ 1-on-1 instructor support</li>
+              <li>✅ Course assignments and projects</li>
+              <li>✅ Access to our community forum</li>
+              <li>✅ 30-day money-back guarantee</li>
+              <li>✅ Industry-recognized certification</li>
+              <li>✅ Career placement assistance</li>
             </ul>
             
             <div className="additional-info">
@@ -316,23 +426,11 @@ const EnrollPage = () => {
               <p>✅ Payment details are encrypted and secure</p>
             </div>
 
-            <div className="security-info">
-              <h3>🔒 Secure Payment</h3>
-              <p>Your payment information is encrypted and secure</p>
-              <p>We support SSL encryption for all transactions</p>
-            </div>
-            
-            <div className="razorpay-links">
-              <h3>Razorpay</h3>
-              <p>We use Razorpay, India's most popular payment gateway, to process your payments securely.</p>
-              <div className="razorpay-badges">
-                <a href="https://razorpay.com/" target="_blank" rel="noopener noreferrer" className="razorpay-link">
-                  <img src="https://razorpay.com/badge/razorpay-logo.png" alt="Razorpay" height="40" />
-                </a>
-                <a href="https://razorpay.com/security" target="_blank" rel="noopener noreferrer" className="razorpay-link">
-                  <img src="https://razorpay.com/badge/security-badge.png" alt="Secure" height="40" />
-                </a>
-              </div>
+            <div className="support-info">
+              <h3>Need Help?</h3>
+              <p>Contact our support team:</p>
+              <p>📧 support@clinigoal.com</p>
+              <p>📞 +91-9876543210</p>
             </div>
           </div>
         </div>
