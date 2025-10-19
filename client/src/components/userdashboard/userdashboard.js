@@ -116,7 +116,7 @@ export default function UserDashboard() {
     dateRange: 'all'
   });
 
-  // NEW: Enhanced course loading with better mapping
+  // NEW: Enhanced course loading with better mapping and FIXED price handling
   const loadCourses = () => {
     try {
       const savedCourses = localStorage.getItem('clinigoalCourses');
@@ -125,10 +125,13 @@ export default function UserDashboard() {
         const parsedCourses = JSON.parse(savedCourses);
         console.log("📚 Loaded courses from admin dashboard:", parsedCourses.length);
         
-        // Enhanced course mapping with proper defaults
+        // Enhanced course mapping with proper defaults and FIXED price handling
         const formattedCourses = parsedCourses.map((course, index) => {
           // Ensure course has proper ID
           const courseId = course._id || course.id || `course_${Date.now()}_${index}`;
+          
+          // FIXED: Proper price handling - use only the price field from admin
+          const coursePrice = course.price || '₹9,999';
           
           // Get course image based on title if not provided
           const getCourseImage = (title) => {
@@ -160,8 +163,7 @@ export default function UserDashboard() {
             image: course.image || getCourseImage(course.title),
             duration: course.duration || '6 Months',
             level: course.level || 'Intermediate',
-            price: course.price || '₹9,999',
-            originalPrice: course.originalPrice || course.price || '₹9,999',
+            price: coursePrice, // FIXED: Use only the price field
             instructor: course.instructor || 'Industry Expert',
             features: course.features || ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
             color: getCourseColor(course.title),
@@ -172,7 +174,7 @@ export default function UserDashboard() {
           };
         });
         
-        console.log("✅ Formatted courses:", formattedCourses);
+        console.log("✅ Formatted courses with proper prices:", formattedCourses);
         setAvailableCourses(formattedCourses);
         return formattedCourses;
       } else {
@@ -190,7 +192,7 @@ export default function UserDashboard() {
     }
   };
 
-  // Demo courses fallback
+  // Demo courses fallback with FIXED price display
   const getDemoCourses = () => [
     {
       _id: 'demo_1',
@@ -200,8 +202,7 @@ export default function UserDashboard() {
       image: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "6 Months",
       level: "Advanced",
-      price: "₹15,999",
-      originalPrice: "₹15,999",
+      price: "₹15,999", // FIXED: Single price only
       instructor: "Dr. Sarah Wilson",
       features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
       color: "#2563eb",
@@ -215,8 +216,7 @@ export default function UserDashboard() {
       image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "8 Months",
       level: "Intermediate",
-      price: "₹18,999",
-      originalPrice: "₹18,999",
+      price: "₹18,999", // FIXED: Single price only
       instructor: "Prof. Michael Chen",
       features: ['Real-world projects', 'Expert mentorship', 'Career guidance'],
       color: "#10b981",
@@ -1776,7 +1776,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     // Get the payment amount based on selection - USING REAL COURSE PRICE
     const paymentAmount = enrollmentForm.paymentOption === 'demo' 
       ? "₹1.00" 
-      : enrollmentCourse.price || "₹9,999"; // Use actual course price from admin
+      : enrollmentCourse.price; // Use actual course price from admin
     
     // Show payment confirmation
     alert(`🎉 Payment Successful!\n\nYou have successfully paid ${paymentAmount} for ${enrollmentCourse.title}.\n\nYour enrollment is now pending admin approval. You will get access once approved.`);
@@ -2001,7 +2001,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     return paidCourses.has(courseId);
   };
 
-  // UPDATED: Render Course Card with Real Admin Prices
+  // UPDATED: Render Course Card with FIXED Price Display and "Enroll Now" button
   const renderCourseCard = (course) => {
     const status = getEnrollmentStatus(course._id);
     const isAccessible = isCourseAccessible(course._id);
@@ -2054,11 +2054,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           <div className="course-meta">
             <span className="duration">⏱️ {course.duration}</span>
             <div className="price-section">
-              {/* UPDATED: Show actual admin price */}
-              <span className="price">💰 {course.price}</span>
-              {course.originalPrice && course.originalPrice !== course.price && (
-                <span className="original-price">{course.originalPrice}</span>
-              )}
+              {/* FIXED: Show only the actual admin price */}
+              <span className="price">{course.price}</span>
             </div>
           </div>
           
@@ -2083,12 +2080,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <button className="btn-secondary">
                   Course Details
                 </button>
-                {/* UPDATED: Show actual course price in enroll button */}
+                {/* FIXED: Show "Enroll Now" without price */}
                 <button 
                   onClick={() => handleEnrollmentClick(course)}
                   className="btn-primary"
                 >
-                  Enroll Now - {course.price}
+                  Enroll Now
                 </button>
               </>
             )}
@@ -2609,7 +2606,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // UPDATED: Available Courses Section with Real Admin Prices
+  // UPDATED: Available Courses Section with FIXED Price Display and "Enroll Now" button
   const renderAvailableCourses = () => (
     <div className="available-courses-content">
       <div className="section-header">
@@ -2663,7 +2660,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         </div>
       )}
       
-      {/* UPDATED: Enrollment Form Modal with Real Course Prices */}
+      {/* UPDATED: Enrollment Form Modal with FIXED Course Price Display */}
       {showEnrollmentForm && enrollmentCourse && (
         <div className="enrollment-modal-overlay popup-overlay">
           <div className="enrollment-modal popup-modal">
@@ -2704,11 +2701,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
                     <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
                     <div className="price-options">
-                      {/* UPDATED: Show actual admin course price */}
+                      {/* FIXED: Show only the actual course price */}
                       <p><strong>Course Price:</strong> <span className="course-price">{enrollmentCourse.price}</span></p>
-                      {enrollmentCourse.originalPrice && enrollmentCourse.originalPrice !== enrollmentCourse.price && (
-                        <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
-                      )}
                       <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
                     </div>
                     <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after payment</p>
@@ -2753,7 +2747,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                       <label htmlFor="full-payment" className="payment-option-label">
                         <div className="payment-option-header">
                           <span className="payment-option-title">Full Payment</span>
-                          {/* UPDATED: Show actual course price */}
+                          {/* FIXED: Show only the actual course price */}
                           <span className="payment-option-price">{enrollmentCourse.price}</span>
                         </div>
                         <p className="payment-option-description">
@@ -2839,7 +2833,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <div className="payment-summary">
                   <div className="payment-total">
                     <span className="total-label">Total Amount:</span>
-                    {/* UPDATED: Show actual course price */}
+                    {/* FIXED: Show only the selected price */}
                     <span className="total-amount">
                       {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price}
                     </span>
@@ -2860,7 +2854,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     disabled={!enrollmentForm.agreeToTerms}
                   >
                     <span className="razorpay-text">
-                      {/* UPDATED: Show actual course price */}
+                      {/* FIXED: Show only the selected price without "fee" */}
                       Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price} - Go to RazorPay
                     </span>
                   </button>
