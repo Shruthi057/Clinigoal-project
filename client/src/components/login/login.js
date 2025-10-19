@@ -115,7 +115,7 @@ export default function Login() {
       <div className="login-card">
         <div className="login-header">
           <div className="logo">
-            <h2>Clinigoal</h2>
+            <h2></h2>
           </div>
           <h1>Welcome Back</h1>
           <p>Sign in to your account to continue</p>
