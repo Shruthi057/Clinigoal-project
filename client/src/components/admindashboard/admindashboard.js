@@ -195,7 +195,7 @@ function AdminDashboard() {
     total: 0
   });
 
-  // ========== PROGRESS TRACKING STATE ==========
+  // ========== NEW PROGRESS TRACKING STATE ==========
   const [studentProgress, setStudentProgress] = useState([]);
   const [selectedStudentProgress, setSelectedStudentProgress] = useState(null);
   const [progressStats, setProgressStats] = useState({
@@ -204,6 +204,689 @@ function AdminDashboard() {
     totalCompletedCourses: 0,
     averageProgress: 0
   });
+
+  // ========== MISSING FUNCTIONS ==========
+
+  const calculateReviewStats = (reviews) => {
+    if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
+      setReviewStats({
+        totalReviews: 0,
+        averageRating: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      });
+      return;
+    }
+
+    const validReviews = reviews.filter(review => review && typeof review.rating === 'number');
+    const total = validReviews.length;
+    const sum = validReviews.reduce((acc, review) => acc + (review.rating || 0), 0);
+    const average = total > 0 ? (sum / total).toFixed(1) : 0;
+
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    validReviews.forEach(review => {
+      const rating = review.rating || 0;
+      if (rating >= 1 && rating <= 5) {
+        distribution[rating]++;
+      }
+    });
+
+    setReviewStats({
+      totalReviews: total,
+      averageRating: parseFloat(average),
+      ratingDistribution: distribution
+    });
+  };
+
+  const getFilteredReviews = () => {
+    return studentReviews.filter(review => {
+      if (!review) return false;
+      
+      const matchesCourse = reviewFilters.course === 'all' || review.courseId === reviewFilters.course || review.courseTitle === reviewFilters.course;
+      const matchesRating = reviewFilters.rating === 'all' || review.rating === parseInt(reviewFilters.rating);
+      const matchesSearch = reviewFilters.search === '' || 
+        (review.userName && review.userName.toLowerCase().includes(reviewFilters.search.toLowerCase())) ||
+        (review.reviewText && review.reviewText.toLowerCase().includes(reviewFilters.search.toLowerCase())) ||
+        (review.courseTitle && review.courseTitle.toLowerCase().includes(reviewFilters.search.toLowerCase()));
+      const matchesReply = reviewFilters.hasReply === 'all' || 
+        (reviewFilters.hasReply === 'replied' && review.adminReply) ||
+        (reviewFilters.hasReply === 'not-replied' && !review.adminReply);
+      
+      return matchesCourse && matchesRating && matchesSearch && matchesReply;
+    });
+  };
+
+  const handleReviewFilterChange = (filterType, value) => {
+    setReviewFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const getUniqueCoursesFromReviews = () => {
+    const courses = studentReviews
+      .map(review => review && review.courseTitle)
+      .filter(Boolean);
+    return [...new Set(courses)];
+  };
+
+  const getRecentReviews = () => {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return studentReviews.filter(review => {
+      if (!review) return false;
+      const reviewDate = new Date(review.createdAt || review.date || review.timestamp);
+      return reviewDate > twentyFourHoursAgo;
+    });
+  };
+
+  const handleRefreshReviews = () => {
+    fetchStudentReviews();
+    setLastUpdate(Date.now());
+    alert("🔄 Reviews refreshed successfully!");
+  };
+
+  const simulateUserReview = () => {
+    const testUsers = [
+      { name: "John Doe", email: "john@example.com" },
+      { name: "Jane Smith", email: "jane@example.com" },
+      { name: "Mike Johnson", email: "mike@example.com" },
+      { name: "Sarah Wilson", email: "sarah@example.com" }
+    ];
+    
+    const reviews = [
+      "Excellent course! The content was very comprehensive and well-structured. I learned so much about clinical research methodologies.",
+      "Great learning experience. The instructor was very knowledgeable and provided practical insights that I can apply in my work.",
+      "Loved the practical examples and real-world applications. The course material was engaging and easy to follow.",
+      "The course material was up-to-date and relevant to current industry standards. Highly recommended for professionals.",
+      "Very informative and engaging. Would recommend to others looking to advance their career in healthcare.",
+      "The quizzes helped reinforce the learning concepts effectively. The assessments were challenging but fair.",
+      "Excellent support from the instructors. They were always available to answer questions and provide guidance.",
+      "The course exceeded my expectations. The depth of content and quality of instruction were outstanding.",
+      "Well-structured curriculum with a good balance of theory and practical applications.",
+      "The online platform was easy to use and the course materials were well-organized."
+    ];
+    
+    const randomUser = testUsers[Math.floor(Math.random() * testUsers.length)];
+    const randomCourse = courses[Math.floor(Math.random() * courses.length)];
+    const randomReview = reviews[Math.floor(Math.random() * reviews.length)];
+    const randomRating = Math.floor(Math.random() * 5) + 1;
+    
+    const newReview = {
+      _id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userName: randomUser.name,
+      userEmail: randomUser.email,
+      courseId: randomCourse._id,
+      courseTitle: randomCourse.title,
+      rating: randomRating,
+      reviewText: randomReview,
+      createdAt: new Date().toISOString(),
+      anonymous: Math.random() > 0.8,
+      timestamp: Date.now()
+    };
+    
+    const userKey = `userReviews_${randomUser.email.replace(/[@.]/g, '_')}`;
+    const userExistingReviews = JSON.parse(localStorage.getItem(userKey) || '[]');
+    userExistingReviews.push(newReview);
+    localStorage.setItem(userKey, JSON.stringify(userExistingReviews));
+    
+    const centralizedReviews = JSON.parse(localStorage.getItem('allStudentReviews') || '[]');
+    centralizedReviews.unshift(newReview);
+    localStorage.setItem('allStudentReviews', JSON.stringify(centralizedReviews));
+    
+    setStudentReviews(prev => [newReview, ...prev]);
+    calculateReviewStats([newReview, ...studentReviews]);
+    
+    alert(`✅ Test review submitted by ${randomUser.name} for ${randomCourse.title}`);
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (window.confirm("Are you sure you want to delete this review?")) {
+      try {
+        const centralizedReviews = JSON.parse(localStorage.getItem('allStudentReviews') || '[]');
+        const updatedCentralized = centralizedReviews.filter(review => review && review._id !== reviewId);
+        localStorage.setItem('allStudentReviews', JSON.stringify(updatedCentralized));
+        
+        const reviewToDelete = studentReviews.find(review => review && review._id === reviewId);
+        if (reviewToDelete && reviewToDelete.userEmail) {
+          const userKey = `userReviews_${reviewToDelete.userEmail.replace(/[@.]/g, '_')}`;
+          const userReviews = JSON.parse(localStorage.getItem(userKey) || '[]');
+          const updatedUserReviews = userReviews.filter(review => review && review._id !== reviewId);
+          localStorage.setItem(userKey, JSON.stringify(updatedUserReviews));
+        }
+        
+        const updatedReviews = studentReviews.filter(review => review && review._id !== reviewId);
+        setStudentReviews(updatedReviews);
+        calculateReviewStats(updatedReviews);
+        
+        alert("✅ Review deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting review:", error);
+        alert("❌ Failed to delete review. Please try again.");
+      }
+    }
+  };
+
+  const handleReplyToReview = (reviewId, studentName) => {
+    const review = studentReviews.find(r => r && r._id === reviewId);
+    if (!review) return;
+    
+    const currentReply = review?.adminReply || '';
+    
+    const reply = prompt(`Enter your reply to ${studentName}'s review:`, currentReply);
+    if (reply !== null) {
+      const updatedReviews = studentReviews.map(review => 
+        review && review._id === reviewId 
+          ? { 
+              ...review, 
+              adminReply: reply, 
+              replyDate: new Date().toISOString(),
+              repliedBy: 'Admin',
+              replyTimestamp: Date.now()
+            }
+          : review
+      );
+      
+      localStorage.setItem('allStudentReviews', JSON.stringify(updatedReviews));
+      
+      const reviewToUpdate = studentReviews.find(review => review && review._id === reviewId);
+      if (reviewToUpdate && reviewToUpdate.userEmail) {
+        const userKey = `userReviews_${reviewToUpdate.userEmail.replace(/[@.]/g, '_')}`;
+        const userReviews = JSON.parse(localStorage.getItem(userKey) || '[]');
+        const updatedUserReviews = userReviews.map(review => 
+          review && review._id === reviewId 
+            ? { ...review, adminReply: reply, replyDate: new Date().toISOString() }
+            : review
+        );
+        localStorage.setItem(userKey, JSON.stringify(updatedUserReviews));
+      }
+      
+      setStudentReviews(updatedReviews);
+      alert("✅ Reply added successfully!");
+    }
+  };
+
+  const handleToggleFeatured = (reviewId) => {
+    const updatedReviews = studentReviews.map(review => {
+      if (review && review._id === reviewId) {
+        return { 
+          ...review, 
+          isFeatured: !review.isFeatured,
+          featuredDate: !review.isFeatured ? new Date().toISOString() : null
+        };
+      }
+      return review;
+    });
+    
+    localStorage.setItem('allStudentReviews', JSON.stringify(updatedReviews));
+    
+    setStudentReviews(updatedReviews);
+    
+    const review = studentReviews.find(r => r && r._id === reviewId);
+    if (review) {
+      alert(`✅ Review ${review.isFeatured ? 'unfeatured' : 'featured'} successfully!`);
+    }
+  };
+
+  const handleClearAllReviews = () => {
+    if (window.confirm("Are you sure you want to delete ALL reviews? This action cannot be undone.")) {
+      try {
+        localStorage.removeItem('allStudentReviews');
+        
+        const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+        uniqueUsers.forEach(user => {
+          if (user) {
+            const userKey = `userReviews_${user.replace(/[@.]/g, '_')}`;
+            localStorage.removeItem(userKey);
+          }
+        });
+        
+        localStorage.removeItem('studentReviews');
+        
+        setStudentReviews([]);
+        calculateReviewStats([]);
+        
+        alert("✅ All reviews have been cleared!");
+      } catch (error) {
+        console.error("Error clearing reviews:", error);
+        alert("❌ Failed to clear reviews. Please try again.");
+      }
+    }
+  };
+
+  const getFilteredPayments = () => {
+    return paymentHistory.filter(payment => {
+      if (!payment) return false;
+      
+      const matchesMethod = paymentFilters.paymentMethod === 'all' || payment.paymentMethod === paymentFilters.paymentMethod;
+      const matchesSearch = paymentFilters.search === '' || 
+        (payment.userName && payment.userName.toLowerCase().includes(paymentFilters.search.toLowerCase())) ||
+        (payment.courseTitle && payment.courseTitle.toLowerCase().includes(paymentFilters.search.toLowerCase())) ||
+        (payment.transactionId && payment.transactionId.toLowerCase().includes(paymentFilters.search.toLowerCase()));
+      
+      return matchesMethod && matchesSearch;
+    });
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setPaymentFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const calculatePaymentStats = () => {
+    const totalRevenue = paymentHistory.reduce((sum, payment) => {
+      if (!payment || !payment.amount) return sum;
+      const amount = parseInt(payment.amount.replace(/[^0-9]/g, ''));
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    const completedPayments = paymentHistory.length;
+    const uniqueStudents = new Set(paymentHistory.map(p => p && p.userId).filter(Boolean)).size;
+    const paymentMethods = new Set(paymentHistory.map(p => p && p.paymentMethod).filter(Boolean)).size;
+
+    return {
+      totalRevenue,
+      completedPayments,
+      uniqueStudents,
+      paymentMethods
+    };
+  };
+
+  const viewPaymentDetails = (payment) => {
+    if (payment) {
+      setSelectedPayment(payment);
+      setShowPaymentModal(true);
+    }
+  };
+
+  const downloadReceipt = (payment) => {
+    if (!payment) return;
+    
+    const receiptWindow = window.open('', '_blank');
+    receiptWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Receipt - ${payment.courseTitle}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 40px; 
+            background: #f5f5f5;
+          }
+          .receipt-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+          }
+          .receipt-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+          }
+          .receipt-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+          }
+          .receipt-subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+          }
+          .receipt-details {
+            margin: 30px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+          }
+          .detail-label {
+            font-weight: bold;
+            color: #2c3e50;
+          }
+          .detail-value {
+            color: #34495e;
+          }
+          .amount-row {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .receipt-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #bdc3c7;
+            color: #7f8c8d;
+            font-size: 14px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+          }
+          @media print {
+            body { background: white; }
+            .receipt-container { box-shadow: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-container">
+          <div class="receipt-header">
+            <div class="logo">CLINIGOAL</div>
+            <div class="receipt-title">PAYMENT RECEIPT</div>
+            <div class="receipt-subtitle">Thank you for your payment</div>
+          </div>
+          
+          <div class="receipt-details">
+            <div class="detail-row">
+              <span class="detail-label">Transaction ID:</span>
+              <span class="detail-value">${payment.transactionId || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">${payment.date ? new Date(payment.date).toLocaleDateString() : 'Unknown date'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Course:</span>
+              <span class="detail-value">${payment.courseTitle || 'Unknown Course'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Student Name:</span>
+              <span class="detail-value">${payment.userName || 'Unknown Student'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Student Email:</span>
+              <span class="detail-value">${payment.userEmail || 'No email'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Payment Method:</span>
+              <span class="detail-value">${payment.paymentMethod || 'N/A'}</span>
+            </div>
+            
+            <div class="amount-row">
+              <div class="detail-row">
+                <span class="detail-label">Amount Paid:</span>
+                <span class="detail-value" style="font-size: 24px; font-weight: bold; color: #27ae60;">
+                  ${payment.amount || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="receipt-footer">
+            <p>This is an computer-generated receipt. No signature is required.</p>
+            <p>For any queries, contact support@clinigoal.com</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+    
+    receiptWindow.document.close();
+    
+    setTimeout(() => {
+      receiptWindow.print();
+    }, 500);
+  };
+
+  const renderPaymentModal = () => {
+    if (!showPaymentModal || !selectedPayment) return null;
+
+    return (
+      <div className="admin-modal-overlay">
+        <div className="admin-modal">
+          <div className="admin-modal-header">
+            <h2>Payment Details</h2>
+            <button 
+              className="admin-modal-close" 
+              onClick={() => setShowPaymentModal(false)}
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="admin-modal-content">
+            <div className="admin-detail-section">
+              <h3>Transaction Information</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Transaction ID:</span>
+                  <span className="admin-detail-value">{selectedPayment.transactionId || 'N/A'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Date & Time:</span>
+                  <span className="admin-detail-value">
+                    {selectedPayment.date ? new Date(selectedPayment.date).toLocaleString() : 'Unknown date'}
+                  </span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Payment Method:</span>
+                  <span className="admin-detail-value">{selectedPayment.paymentMethod || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-detail-section">
+              <h3>Course Information</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Course:</span>
+                  <span className="admin-detail-value">{selectedPayment.courseTitle || 'Unknown Course'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Course ID:</span>
+                  <span className="admin-detail-value">{selectedPayment.courseId || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-detail-section">
+              <h3>Student Information</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Student Name:</span>
+                  <span className="admin-detail-value">{selectedPayment.userName || 'Unknown Student'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="detail-label">Student Email:</span>
+                  <span className="detail-value">{selectedPayment.userEmail || 'No email'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Student ID:</span>
+                  <span className="admin-detail-value">{selectedPayment.userId || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-detail-section">
+              <h3>Payment Amount</h3>
+              <div className="admin-amount-display">
+                <span className="admin-amount-label">Total Paid:</span>
+                <span className="admin-amount-value">{selectedPayment.amount || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="admin-modal-actions">
+            <button 
+              onClick={() => downloadReceipt(selectedPayment)}
+              className="admin-btn primary"
+            >
+              📥 Download Receipt
+            </button>
+            <button 
+              onClick={() => setShowPaymentModal(false)}
+              className="admin-btn secondary"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPaymentDetails = () => {
+    const filteredPayments = getFilteredPayments();
+    const paymentStats = calculatePaymentStats();
+
+    return (
+      <div className="admin-payment-details">
+        <div className="admin-page-header">
+          <h1 className="admin-page-title">Payment Details & Receipts</h1>
+          <p>Manage and view all payment transactions</p>
+        </div>
+
+        <div className="admin-stats-grid">
+          <div className="admin-stat-card primary">
+            <div className="admin-stat-icon">💰</div>
+            <div className="admin-stat-content">
+              <h3>₹{formatNumber(paymentStats.totalRevenue)}</h3>
+              <p>Total Revenue</p>
+              <span className="admin-stat-change positive">All payments</span>
+            </div>
+          </div>
+          <div className="admin-stat-card success">
+            <div className="admin-stat-icon">📊</div>
+            <div className="admin-stat-content">
+              <h3>{paymentHistory.length}</h3>
+              <p>Total Payments</p>
+              <span className="admin-stat-change positive">Transactions</span>
+            </div>
+          </div>
+          <div className="admin-stat-card warning">
+            <div className="admin-stat-icon">✅</div>
+            <div className="admin-stat-content">
+              <h3>{paymentStats.completedPayments}</h3>
+              <p>Completed</p>
+              <span className="admin-stat-change positive">Successful</span>
+            </div>
+          </div>
+          <div className="admin-stat-card info">
+            <div className="admin-stat-icon">👥</div>
+            <div className="admin-stat-content">
+              <h3>{paymentStats.uniqueStudents}</h3>
+              <p>Paid Students</p>
+              <span className="admin-stat-change positive">Unique</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-payment-filters">
+          <div className="admin-search-box">
+            <span className="admin-search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by student, course, or transaction ID..."
+              className="admin-search-input"
+              value={paymentFilters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+            />
+          </div>
+          
+          <div className="admin-filter-group">
+            <label>Payment Method</label>
+            <select 
+              className="admin-filter-select"
+              value={paymentFilters.paymentMethod}
+              onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
+            >
+              <option value="all">All Methods</option>
+              <option value="razorpay">Razorpay</option>
+              <option value="card">Card</option>
+              <option value="upi">UPI</option>
+            </select>
+          </div>
+        </div>
+
+        {filteredPayments.length > 0 ? (
+          <div className="admin-table-card">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Student</th>
+                  <th>Course</th>
+                  <th>Amount</th>
+                  <th>Payment Method</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPayments.map((payment, index) => (
+                  payment && (
+                    <tr key={payment.id || index} className="admin-payment-row">
+                      <td className="admin-payment-date">
+                        {payment.date ? new Date(payment.date).toLocaleDateString() : 'Unknown date'}
+                      </td>
+                      <td className="admin-payment-student">
+                        <div>
+                          <strong>{payment.userName || 'Unknown Student'}</strong>
+                          <div style={{fontSize: '12px', color: '#666'}}>
+                            {payment.userEmail || 'No email'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="admin-payment-course">
+                        <strong>{payment.courseTitle || 'Unknown Course'}</strong>
+                      </td>
+                      <td className="admin-payment-amount">
+                        <span className="admin-amount-badge">{payment.amount || 'N/A'}</span>
+                      </td>
+                      <td className="admin-payment-method">
+                        <span className={`admin-method-badge ${payment.paymentMethod}`}>
+                          {payment.paymentMethod === 'razorpay' ? '💳 Razorpay' : payment.paymentMethod || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="admin-payment-actions">
+                        <button 
+                          onClick={() => viewPaymentDetails(payment)}
+                          className="admin-btn action view"
+                        >
+                          View Details
+                        </button>
+                        <button 
+                          onClick={() => downloadReceipt(payment)}
+                          className="admin-btn action primary"
+                        >
+                          Download
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="admin-empty-message">
+            <div className="admin-empty-icon">💳</div>
+            <h3>No Payments Found</h3>
+            <p>No payment records match your current filters.</p>
+            <button 
+              onClick={() => setPaymentFilters({ paymentMethod: 'all', search: '' })}
+              className="admin-btn primary"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ========== COURSE MANAGEMENT FUNCTIONS ==========
 
@@ -675,7 +1358,7 @@ function AdminDashboard() {
     );
   };
 
-  // ========== PROGRESS TRACKING FUNCTIONS ==========
+  // ========== NEW PROGRESS TRACKING FUNCTIONS ==========
 
   const fetchStudentProgress = () => {
     try {
@@ -975,7 +1658,7 @@ function AdminDashboard() {
     }
   };
 
-  // ========== PROGRESS TRACKING COMPONENT ==========
+  // ========== NEW PROGRESS TRACKING COMPONENT ==========
 
   const renderProgressTracking = () => {
     return (
@@ -2190,59 +2873,350 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     );
   };
 
-  // Other existing functions (fetchStats, fetchAllData, fetchChartData, etc.)
-  const fetchStats = () => {
-    // Your existing stats fetching logic
-    setStats({
-      totalStudents: 150,
-      totalFees: 1250000,
-      totalCertificates: 45,
-      totalNotes: 23,
-      totalQuizzes: 15,
-      totalVideos: 67,
-      activeStudents: 89,
-      completionRate: 65
-    });
+  // ========== OTHER EXISTING FUNCTIONS ==========
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/stats`);
+      setStats(res.data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      setStats({
+        totalStudents: 0,
+        totalFees: 0,
+        totalCertificates: 0,
+        totalNotes: 0,
+        totalQuizzes: 0,
+        totalVideos: 0,
+        activeStudents: 0,
+        completionRate: 0
+      });
+    }
   };
 
-  const fetchAllData = () => {
-    // Your existing data fetching logic
+  const fetchAllData = async () => {
+    try {
+      const [videoRes, noteRes, quizRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/admin/videos`),
+        axios.get(`${API_BASE_URL}/api/admin/notes`),
+        axios.get(`${API_BASE_URL}/api/admin/quizzes`),
+      ]);
+      setVideos(videoRes.data);
+      setNotes(noteRes.data);
+      setQuizzes(quizRes.data);
+      
+      setStats(prevStats => ({
+        ...prevStats,
+        totalVideos: videoRes.data.length,
+        totalNotes: noteRes.data.length,
+        totalQuizzes: quizRes.data.length
+      }));
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setVideos([]);
+      setNotes([]);
+      setQuizzes([]);
+    }
   };
 
-  const fetchChartData = () => {
-    // Your existing chart data fetching logic
+  const fetchChartData = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/chart-data`);
+      setChartData(res.data);
+    } catch (error) {
+      console.error("Error fetching chart data:", error);
+      setChartData({
+        courses: [],
+        studentsPerCourse: [],
+        notesPerCourse: [],
+        quizzesPerCourse: [],
+        monthlyRevenue: [],
+        monthlyStudents: [],
+        engagementRate: []
+      });
+    }
   };
 
-  const fetchStudents = () => {
-    // Your existing students fetching logic
+  const fetchStudents = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/students`);
+      setStudents(res.data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setStudents([]);
+    }
   };
 
-  const fetchFeedbacks = () => {
-    // Your existing feedbacks fetching logic
+  const fetchFeedbacks = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/feedbacks`);
+      setFeedbacks(res.data);
+    } catch (error) {
+      console.error("Error fetching feedbacks:", error);
+      setFeedbacks([]);
+    }
   };
 
   const fetchUserData = () => {
-    // Your existing user data fetching logic
+    try {
+      const logs = getUserLoginLogs();
+      const uniqueUsersData = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+      const stats = getUserStatistics();
+      
+      setUserLogs(Array.isArray(logs) ? logs : []);
+      setUniqueUsers(Array.isArray(uniqueUsersData) ? uniqueUsersData : []);
+      setUserStats(stats);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
   };
 
-  const fetchStudentReviews = () => {
-    // Your existing student reviews fetching logic
+  const fetchStudentReviews = async () => {
+    try {
+      console.log("🔄 Fetching student reviews from user dashboard...");
+      
+      let allReviews = [];
+      
+      const centralizedReviews = localStorage.getItem('allStudentReviews');
+      if (centralizedReviews) {
+        try {
+          const parsedReviews = JSON.parse(centralizedReviews);
+          console.log("📊 Found centralized reviews:", parsedReviews.length);
+          allReviews = Array.isArray(parsedReviews) ? parsedReviews : [];
+        } catch (parseError) {
+          console.error("Error parsing centralized reviews:", parseError);
+          allReviews = [];
+        }
+      }
+      
+      const sortedReviews = allReviews.sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      
+      console.log("🎯 Final reviews to display:", sortedReviews.length);
+      setStudentReviews(sortedReviews);
+      calculateReviewStats(sortedReviews);
+      
+    } catch (error) {
+      console.error("❌ Error fetching student reviews:", error);
+      setStudentReviews([]);
+      calculateReviewStats([]);
+    }
   };
 
-  const fetchPaymentHistory = () => {
-    // Your existing payment history fetching logic
+  const fetchPaymentHistory = async () => {
+    try {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/admin/payments`);
+        if (response.data && response.data.length > 0) {
+          console.log("💰 Payments from API:", response.data);
+          setPaymentHistory(response.data);
+          return;
+        }
+      } catch (apiError) {
+        console.log("Payment API not available, checking localStorage");
+      }
+
+      const userPaymentHistory = localStorage.getItem('userPaymentHistory');
+      if (userPaymentHistory) {
+        try {
+          const payments = JSON.parse(userPaymentHistory);
+          console.log("💰 Payments from localStorage:", payments);
+          setPaymentHistory(Array.isArray(payments) ? payments : []);
+        } catch (parseError) {
+          console.error("Error parsing payment history:", parseError);
+          setPaymentHistory([]);
+        }
+      } else {
+        const samplePayments = [
+          {
+            id: 'payment_1',
+            userId: 'user_1',
+            userName: 'John Doe',
+            userEmail: 'john@example.com',
+            courseId: '1',
+            courseTitle: 'Clinical Research',
+            amount: '₹1.00',
+            paymentMethod: 'razorpay',
+            date: new Date('2024-01-15').toISOString(),
+            transactionId: 'TXN_0012345678',
+            receiptUrl: '#'
+          }
+        ];
+        setPaymentHistory(samplePayments);
+        console.log("💰 Using sample payment data");
+      }
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+      setPaymentHistory([]);
+    }
   };
 
   const fetchCertificateStats = () => {
-    // Your existing certificate stats fetching logic
+    try {
+      let totalIssued = 0;
+      const byCourse = {};
+      const recentCertificates = [];
+
+      studentProgress.forEach(student => {
+        if (student.certificates && student.certificates === '✅ Certificate Generated') {
+          totalIssued++;
+          byCourse[student.courseId] = (byCourse[student.courseId] || 0) + 1;
+          
+          recentCertificates.push({
+            courseId: student.courseId,
+            courseTitle: student.enrolledCourse,
+            userName: student.userName,
+            userEmail: student.userEmail,
+            issueDate: new Date().toISOString()
+          });
+        }
+      });
+
+      setCertificateStats({
+        totalIssued,
+        byCourse,
+        recentCertificates: recentCertificates.slice(0, 10)
+      });
+
+    } catch (error) {
+      console.error("Error fetching certificate stats:", error);
+      setCertificateStats({
+        totalIssued: 0,
+        byCourse: {},
+        recentCertificates: []
+      });
+    }
   };
 
-  const renderPaymentModal = () => {
-    // Your existing payment modal rendering logic
-    return null;
+  // ========== DASHBOARD CHARTS ==========
+
+  const renderDashboardCharts = () => {
+    const courseEnrollmentsData = {
+      labels: courses.map(course => course.title),
+      datasets: [
+        {
+          label: 'Enrollments',
+          data: courses.map(course => 
+            studentProgress.filter(student => student.courseId === course._id).length
+          ),
+          backgroundColor: 'rgba(79, 70, 229, 0.7)',
+          borderColor: 'rgba(79, 70, 229, 1)',
+          borderWidth: 1,
+        }
+      ]
+    };
+
+    const progressDistributionData = {
+      labels: ['Completed', 'In Progress', 'Not Started'],
+      datasets: [
+        {
+          data: [
+            progressStats.totalCompletedCourses,
+            progressStats.totalEnrollments - progressStats.totalCompletedCourses,
+            progressStats.totalStudents - progressStats.totalEnrollments
+          ],
+          backgroundColor: [
+            'rgba(34, 197, 94, 0.7)',
+            'rgba(234, 179, 8, 0.7)',
+            'rgba(239, 68, 68, 0.7)'
+          ],
+          borderColor: [
+            'rgba(34, 197, 94, 1)',
+            'rgba(234, 179, 8, 1)',
+            'rgba(239, 68, 68, 1)'
+          ],
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    return (
+      <div className="admin-charts-section">
+        <div className="admin-chart-card">
+          <h3>Course Enrollment</h3>
+          <div className="admin-chart-container">
+            <Bar 
+              data={courseEnrollmentsData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      precision: 0
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="admin-chart-card">
+          <h3>Student Progress Overview</h3>
+          <div className="admin-chart-container">
+            <Doughnut 
+              data={progressDistributionData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'right',
+                  },
+                },
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="admin-chart-card">
+          <h3>Monthly Activity</h3>
+          <div className="admin-chart-container">
+            <Line 
+              data={{
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [
+                  {
+                    label: 'Learning Progress',
+                    data: [65, 59, 80, 81, 56, 72],
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                  }
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  // Update the useEffect to include progress tracking
+  // ========== MAIN COMPONENT RENDER ==========
+
   useEffect(() => {
     // Load courses first
     loadCourses();
@@ -2271,170 +3245,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     return () => clearInterval(interval);
   }, []);
 
-  // Add progress tracking to the sidebar menu
-  const renderSidebar = () => (
-    <aside className="admin-sidebar">
-      <div className="admin-sidebar-header">
-        <h3>Navigation</h3>
-      </div>
-      <ul className="admin-menu">
-        <li className={`admin-menu-item ${activeTab === 'dashboard' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('dashboard'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">📊</span>
-            <span>Dashboard</span>
-          </button>
-        </li>
-        
-        {/* Course Management Menu Item */}
-        <li className={`admin-menu-item ${activeTab === 'courses' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('courses'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">📚</span>
-            <span>Course Management</span>
-            <span className="admin-menu-count">{courses.length}</span>
-          </button>
-        </li>
-
-        {/* Approval Menu Item */}
-        <li className={`admin-menu-item ${activeTab === 'approvals' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('approvals'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">✅</span>
-            <span>Enrollment Approvals</span>
-            {approvalStats.pending > 0 && (
-              <span className="admin-menu-count alert">{approvalStats.pending}</span>
-            )}
-          </button>
-        </li>
-
-        {/* Progress Tracking Menu Item */}
-        <li className={`admin-menu-item ${activeTab === 'progress' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('progress'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">📈</span>
-            <span>Progress Tracking</span>
-            <span className="admin-menu-count">{progressStats.totalStudents}</span>
-          </button>
-        </li>
-
-        <li className={`admin-menu-item ${activeTab === 'students' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('students'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">👥</span>
-            <span>Students</span>
-          </button>
-        </li>
-        <li className={`admin-menu-item ${activeTab === 'feedbacks' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('feedbacks'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">💬</span>
-            <span>Student Feedback</span>
-            <span className="admin-menu-count">{reviewStats.totalReviews}</span>
-          </button>
-        </li>
-        <li className={`admin-menu-item ${activeTab === 'payment-details' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('payment-details'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">💳</span>
-            <span>Payment Details</span>
-            <span className="admin-menu-count">{paymentHistory.length}</span>
-          </button>
-        </li>
-        <li className={`admin-menu-item ${activeTab === 'videos' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('videos'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">🎬</span>
-            <span>Videos</span>
-            <span className="admin-menu-count">{stats.totalVideos}</span>
-          </button>
-        </li>
-        <li className={`admin-menu-item ${activeTab === 'notes' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('notes'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">📝</span>
-            <span>Notes</span>
-            <span className="admin-menu-count">{stats.totalNotes}</span>
-          </button>
-        </li>
-        <li className={`admin-menu-item ${activeTab === 'quizzes' && !viewingQuiz ? 'active' : ''}`}>
-          <button onClick={() => { setActiveTab('quizzes'); setViewingQuiz(null); }}>
-            <span className="admin-menu-icon">❓</span>
-            <span>Quizzes</span>
-            <span className="admin-menu-count">{stats.totalQuizzes}</span>
-          </button>
-        </li>
-      </ul>
-    </aside>
-  );
-
-  // Update the main content to include progress tracking
-  const renderMainContent = () => (
-    <main className="admin-content">
-      {/* Quiz View Full Page */}
-      {viewingQuiz ? (
-        <div className="admin-quiz-view">
-          {/* Your existing quiz view code */}
-        </div>
-      ) : (
-        <>
-          {/* Dashboard Overview */}
-          {activeTab === 'dashboard' && (
-            <div className="admin-dashboard-overview">
-              {/* Your existing dashboard code */}
-              <h1>Dashboard Overview</h1>
-              <p>Welcome to Admin Dashboard</p>
-            </div>
-          )}
-
-          {/* Course Management Section */}
-          {activeTab === 'courses' && renderCourseManagement()}
-
-          {/* Approval Dashboard Section */}
-          {activeTab === 'approvals' && renderApprovalDashboard()}
-
-          {/* Progress Tracking Section */}
-          {activeTab === 'progress' && renderProgressTracking()}
-
-          {/* Student Management */}
-          {activeTab === 'students' && (
-            <div className="admin-students-management">
-              <h1>Student Management</h1>
-              {/* Your existing student management code */}
-            </div>
-          )}
-
-          {/* Other sections */}
-          {activeTab === 'feedbacks' && (
-            <div className="admin-feedbacks">
-              <h1>Student Feedback</h1>
-              {/* Your existing feedback code */}
-            </div>
-          )}
-
-          {activeTab === 'payment-details' && (
-            <div className="admin-payment-details">
-              <h1>Payment Details</h1>
-              {/* Your existing payment details code */}
-            </div>
-          )}
-
-          {activeTab === 'videos' && (
-            <div className="admin-videos">
-              <h1>Video Management</h1>
-              {/* Your existing videos code */}
-            </div>
-          )}
-
-          {activeTab === 'notes' && (
-            <div className="admin-notes">
-              <h1>Notes Management</h1>
-              {/* Your existing notes code */}
-            </div>
-          )}
-
-          {activeTab === 'quizzes' && (
-            <div className="admin-quizzes">
-              <h1>Quiz Management</h1>
-              {/* Your existing quizzes code */}
-            </div>
-          )}
-        </>
-      )}
-    </main>
-  );
-
   return (
     <div className="admin-dashboard">
       {/* Navigation */}
@@ -2462,8 +3272,281 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       </nav>
 
       <div className="admin-container">
-        {renderSidebar()}
-        {renderMainContent()}
+        {/* Sidebar */}
+        <aside className="admin-sidebar">
+          <div className="admin-sidebar-header">
+            <h3>Navigation</h3>
+          </div>
+          <ul className="admin-menu">
+            <li className={`admin-menu-item ${activeTab === 'dashboard' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('dashboard'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📊</span>
+                <span>Dashboard</span>
+              </button>
+            </li>
+            
+            {/* Course Management Menu Item */}
+            <li className={`admin-menu-item ${activeTab === 'courses' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('courses'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📚</span>
+                <span>Course Management</span>
+                <span className="admin-menu-count">{courses.length}</span>
+              </button>
+            </li>
+
+            {/* Approval Menu Item */}
+            <li className={`admin-menu-item ${activeTab === 'approvals' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('approvals'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">✅</span>
+                <span>Enrollment Approvals</span>
+                {approvalStats.pending > 0 && (
+                  <span className="admin-menu-count alert">{approvalStats.pending}</span>
+                )}
+              </button>
+            </li>
+
+            {/* Progress Tracking Menu Item */}
+            <li className={`admin-menu-item ${activeTab === 'progress' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('progress'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📈</span>
+                <span>Progress Tracking</span>
+                <span className="admin-menu-count">{progressStats.totalStudents}</span>
+              </button>
+            </li>
+
+            <li className={`admin-menu-item ${activeTab === 'students' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('students'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">👥</span>
+                <span>Students</span>
+              </button>
+            </li>
+            <li className={`admin-menu-item ${activeTab === 'feedbacks' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('feedbacks'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">💬</span>
+                <span>Student Feedback</span>
+                <span className="admin-menu-count">{reviewStats.totalReviews}</span>
+              </button>
+            </li>
+            <li className={`admin-menu-item ${activeTab === 'payment-details' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('payment-details'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">💳</span>
+                <span>Payment Details</span>
+                <span className="admin-menu-count">{paymentHistory.length}</span>
+              </button>
+            </li>
+            <li className={`admin-menu-item ${activeTab === 'videos' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('videos'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">🎬</span>
+                <span>Videos</span>
+                <span className="admin-menu-count">{stats.totalVideos}</span>
+              </button>
+            </li>
+            <li className={`admin-menu-item ${activeTab === 'notes' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('notes'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📝</span>
+                <span>Notes</span>
+                <span className="admin-menu-count">{stats.totalNotes}</span>
+              </button>
+            </li>
+            <li className={`admin-menu-item ${activeTab === 'quizzes' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('quizzes'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">❓</span>
+                <span>Quizzes</span>
+                <span className="admin-menu-count">{stats.totalQuizzes}</span>
+              </button>
+            </li>
+          </ul>
+        </aside>
+
+        {/* Main Content */}
+        <main className="admin-content">
+          {/* Quiz View Full Page */}
+          {viewingQuiz ? (
+            <div className="admin-quiz-view">
+              {/* Your existing quiz view code */}
+              <div className="admin-page-header">
+                <div className="admin-page-header-left">
+                  <button 
+                    className="admin-btn secondary back-btn"
+                    onClick={() => setViewingQuiz(null)}
+                  >
+                    ← Back to Quizzes
+                  </button>
+                  <h1 className="admin-page-title">{viewingQuiz.title || 'Unknown Quiz'}</h1>
+                </div>
+              </div>
+              <div className="quiz-view-content">
+                <p>Quiz details view - implement as needed</p>
+              </div>
+            </div>
+          ) : (
+            /* Regular Dashboard Content when not viewing a quiz */
+            <>
+              {/* Dashboard Overview */}
+              {activeTab === 'dashboard' && (
+                <div className="admin-dashboard-overview">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Dashboard Overview</h1>
+                    <div className="admin-date-filter">
+                      <span>Last updated: {new Date(lastUpdate).toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Approval Alert Banner */}
+                  {approvalStats.pending > 0 && (
+                    <div className="approval-alert-banner">
+                      <div className="alert-content">
+                        <span className="alert-icon">⏳</span>
+                        <div className="alert-text">
+                          <strong>{approvalStats.pending} enrollments pending approval</strong>
+                          <span>Click here to review and approve student enrollments</span>
+                        </div>
+                      </div>
+                      <button 
+                        className="admin-btn primary"
+                        onClick={() => setActiveTab('approvals')}
+                      >
+                        Review Now
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Stats Cards */}
+                  <div className="admin-stats-grid">
+                    <div className="admin-stat-card primary">
+                      <div className="admin-stat-icon">👥</div>
+                      <div className="admin-stat-content">
+                        <h3>Total Students</h3>
+                        <p className="admin-stat-number">{userStats.uniqueUsers}</p>
+                        <span className="admin-stat-change positive">Real users registered</span>
+                      </div>
+                    </div>
+                    <div className="admin-stat-card success">
+                      <div className="admin-stat-icon">💰</div>
+                      <div className="admin-stat-content">
+                        <h3>Total Revenue</h3>
+                        <p className="admin-stat-number">₹{formatNumber(stats.totalFees)}</p>
+                        <span className="admin-stat-change positive">+8% from last month</span>
+                      </div>
+                    </div>
+                    <div className="admin-stat-card warning">
+                      <div className="admin-stat-icon">📜</div>
+                      <div className="admin-stat-content">
+                        <h3>Certificates Issued</h3>
+                        <p className="admin-stat-number">{certificateStats.totalIssued}</p>
+                        <span className="admin-stat-change positive">Real certificates</span>
+                      </div>
+                    </div>
+                    <div className="admin-stat-card info">
+                      <div className="admin-stat-icon">📊</div>
+                      <div className="admin-stat-content">
+                        <h3>Active Today</h3>
+                        <p className="admin-stat-number">{userStats.todayLogins}</p>
+                        <span className="admin-stat-change positive">Today's logins</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Charts Section */}
+                  {renderDashboardCharts()}
+
+                  {/* Recent Activity */}
+                  <div className="admin-recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div className="admin-activity-list">
+                      {userLogs.slice(0, 5).map((log, index) => (
+                        log && (
+                          <div key={index} className="admin-activity-item">
+                            <div className="activity-icon">👤</div>
+                            <div className="activity-details">
+                              <strong>{log.name || log.email || 'Unknown User'}</strong>
+                              <span>Logged in</span>
+                            </div>
+                            <div className="activity-time">
+                              {getTimeAgo(log.timestamp)}
+                            </div>
+                          </div>
+                        )
+                      ))}
+                      {userLogs.length === 0 && (
+                        <div className="admin-empty-message">
+                          <p>No recent activity</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Course Management Section */}
+              {activeTab === 'courses' && renderCourseManagement()}
+
+              {/* Approval Dashboard Section */}
+              {activeTab === 'approvals' && renderApprovalDashboard()}
+
+              {/* Progress Tracking Section */}
+              {activeTab === 'progress' && renderProgressTracking()}
+
+              {/* Student Management Section */}
+              {activeTab === 'students' && (
+                <div className="admin-students-management">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Student Management</h1>
+                    <p>Manage student accounts and information</p>
+                  </div>
+                  {/* Add your student management content here */}
+                </div>
+              )}
+
+              {/* Student Feedback Section */}
+              {activeTab === 'feedbacks' && (
+                <div className="admin-feedbacks">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Student Feedback</h1>
+                    <p>View and manage student reviews and feedback</p>
+                  </div>
+                  {/* Add your feedback content here */}
+                </div>
+              )}
+
+              {/* Payment Details Section */}
+              {activeTab === 'payment-details' && renderPaymentDetails()}
+
+              {/* Video Management Section */}
+              {activeTab === 'videos' && (
+                <div className="admin-videos">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Video Management</h1>
+                    <p>Upload and manage course videos</p>
+                  </div>
+                  {/* Add your videos content here */}
+                </div>
+              )}
+
+              {/* Notes Management Section */}
+              {activeTab === 'notes' && (
+                <div className="admin-notes">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Notes Management</h1>
+                    <p>Upload and manage course notes</p>
+                  </div>
+                  {/* Add your notes content here */}
+                </div>
+              )}
+
+              {/* Quiz Management Section */}
+              {activeTab === 'quizzes' && (
+                <div className="admin-quizzes">
+                  <div className="admin-page-header">
+                    <h1 className="admin-page-title">Quiz Management</h1>
+                    <p>Create and manage course quizzes</p>
+                  </div>
+                  {/* Add your quizzes content here */}
+                </div>
+              )}
+            </>
+          )}
+        </main>
       </div>
 
       {/* Course Sidebar */}

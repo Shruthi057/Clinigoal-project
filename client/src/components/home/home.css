@@ -503,57 +503,44 @@ body {
   background: rgba(0, 119, 182, 0.1);
 }
 
-/* Course Action Buttons - IMPROVED ALIGNMENT */
+/* UPDATED: Course Action Buttons - SINGLE CENTERED BUTTON */
 .course-actions {
   display: flex;
-  gap: 12px;
+  justify-content: center; /* Center the single button */
   margin-top: auto;
   padding-top: 20px;
   align-items: stretch;
   min-height: 50px;
+  width: 100%;
 }
 
-.course-btn {
-  padding: 12px 20px;
+.course-details-btn {
+  padding: 12px 24px;
   font-size: 14px;
   font-weight: 600;
   border-radius: 8px;
-  border: none;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
   min-height: 44px;
   text-align: center;
   white-space: nowrap;
-}
-
-/* Enroll Now Button */
-.course-btn:first-child {
-  background: linear-gradient(135deg, #0077B6, #005A8D);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
-}
-
-.course-btn:first-child:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 119, 182, 0.4);
-}
-
-/* Course Details Button */
-.course-btn:last-child {
   background: #ffffff;
   color: #1a202c;
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 200px; /* Limit maximum width */
 }
 
-.course-btn:last-child:hover {
+.course-details-btn:hover {
   background: #f7fafc;
-  border-color: #cbd5e0;
+  border-color: #0077B6;
+  color: #0077B6;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 119, 182, 0.1);
 }
 
 /* Step Navigation Buttons */

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
 
@@ -265,13 +265,6 @@ const Home = () => {
     navigate('/courses');
   };
 
-  // Handle Register button click - navigates to register page with course info
-  const handleRegisterForCourse = (course) => {
-    // Store the selected course in localStorage for the register page
-    localStorage.setItem('selectedCourse', JSON.stringify(course));
-    navigate('/register');
-  };
-
   // Course details function - Navigate to full page
   const handleCourseDetailsClick = (course) => {
     console.log('Course details clicked:', course);
@@ -395,7 +388,6 @@ const Home = () => {
                   </svg>
                   <div className="btn-sparkle">✨</div>
                 </button>
-                {/* REMOVED Register button from hero section */}
               </div>
               <div className="hero-stats">
                 {stats.map((stat, index) => (
@@ -568,15 +560,8 @@ const Home = () => {
                     <span className="price">{course.price}</span>
                   </div>
                   <div className="course-actions">
-                    {/* REGISTER BUTTON - Only in course cards */}
-                    <button className="btn-primary course-btn" onClick={() => handleRegisterForCourse(course)}>
-                      Register Now
-                      <div className="btn-particles">
-                        <span></span>
-                        <span></span>
-                      </div>
-                    </button>
-                    <button className="btn-outline" onClick={() => handleCourseDetailsClick(course)}>
+                    {/* REMOVED Register button and centered Course Details button */}
+                    <button className="btn-outline course-details-btn" onClick={() => handleCourseDetailsClick(course)}>
                       Course Details
                     </button>
                   </div>
@@ -710,7 +695,6 @@ const Home = () => {
                 Start Learning Today
                 <div className="btn-sparkle"></div>
               </button>
-              {/* REMOVED Register button from CTA section */}
             </div>
           </div>
         </div>
