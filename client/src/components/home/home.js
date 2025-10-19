@@ -79,64 +79,34 @@ const Home = () => {
     }
   };
 
-  // Fetch courses from admin dashboard storage - UPDATED
+  // Fetch courses from admin dashboard storage
   const fetchCourses = () => {
     try {
       const savedCourses = localStorage.getItem('clinigoalCourses');
       if (savedCourses) {
         const parsedCourses = JSON.parse(savedCourses);
         
-        // Format courses with proper pricing and details from admin
-        const formattedCourses = parsedCourses.map(course => {
-          // Extract price information - handle both string and object formats
-          let price = '₹9,999'; // Default price
-          let originalPrice = null;
-          
-          if (course.price) {
-            if (typeof course.price === 'string') {
-              price = course.price;
-              // Check if there's an original price in the description or features
-              if (course.originalPrice) {
-                originalPrice = course.originalPrice;
-              } else if (course.features && course.features.some(f => f.includes('₹'))) {
-                // Try to extract original price from features
-                const priceFeature = course.features.find(f => f.includes('₹'));
-                if (priceFeature) {
-                  const priceMatch = priceFeature.match(/₹(\d+,\d+)/);
-                  if (priceMatch) {
-                    originalPrice = priceMatch[0];
-                  }
-                }
-              }
-            } else if (typeof course.price === 'object') {
-              price = course.price.current || '₹9,999';
-              originalPrice = course.price.original || null;
-            }
-          }
-
-          return {
-            _id: course._id,
-            title: course.title,
-            description: course.description,
-            image: course.image || getCourseImage(course.title),
-            duration: course.duration || '6 Months',
-            level: course.level || 'Intermediate',
-            price: price,
-            originalPrice: originalPrice,
-            instructor: course.instructor,
-            features: course.features || [],
-            color: getCourseColor(course.title),
-            detailedDescription: course.detailedDescription || `Comprehensive course covering all aspects of ${course.title}. Perfect for healthcare professionals looking to advance their career.`,
-            modules: course.modules || ['Introduction', 'Advanced Concepts', 'Practical Applications', 'Case Studies'],
-            whatYouLearn: course.whatYouLearn || [
-              'Industry best practices',
-              'Practical skills development',
-              'Real-world case studies',
-              'Career advancement strategies'
-            ],
-            category: course.category || 'General'
-          };
-        });
+        const formattedCourses = parsedCourses.map(course => ({
+          _id: course._id,
+          title: course.title,
+          description: course.description,
+          image: course.image || getCourseImage(course.title),
+          duration: course.duration || '6 Months',
+          level: course.level || 'Intermediate',
+          price: course.price || '₹15,999',
+          originalPrice: course.originalPrice,
+          instructor: course.instructor,
+          features: course.features || [],
+          color: getCourseColor(course.title),
+          detailedDescription: course.detailedDescription || `Comprehensive course covering all aspects of ${course.title}. Perfect for healthcare professionals looking to advance their career.`,
+          modules: course.modules || ['Introduction', 'Advanced Concepts', 'Practical Applications', 'Case Studies'],
+          whatYouLearn: course.whatYouLearn || [
+            'Industry best practices',
+            'Practical skills development',
+            'Real-world case studies',
+            'Career advancement strategies'
+          ]
+        }));
 
         setCourses(formattedCourses.slice(0, 4));
       } else {
@@ -220,8 +190,7 @@ const Home = () => {
         'Data management and statistical analysis',
         'Patient safety and pharmacovigilance'
       ],
-      features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
-      category: "Clinical Research"
+      features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access']
     },
     {
       _id: 2,
@@ -242,8 +211,7 @@ const Home = () => {
         'Genomic data interpretation',
         'Structural biology concepts'
       ],
-      features: ['Real-world projects', 'Expert mentorship', 'Career guidance'],
-      category: "Bioinformatics"
+      features: ['Real-world projects', 'Expert mentorship', 'Career guidance']
     },
     {
       _id: 3,
@@ -264,8 +232,7 @@ const Home = () => {
         'Insurance billing procedures',
         'Compliance and regulatory requirements'
       ],
-      features: ['Certification preparation', 'Practical assignments', 'Job support'],
-      category: "Medical Coding"
+      features: ['Certification preparation', 'Practical assignments', 'Job support']
     },
     {
       _id: 4,
@@ -286,8 +253,7 @@ const Home = () => {
         'Risk management strategies',
         'Regulatory compliance requirements'
       ],
-      features: ['Industry case studies', 'Regulatory training', 'Career placement'],
-      category: "Pharmacovigilance"
+      features: ['Industry case studies', 'Regulatory training', 'Career placement']
     }
   ];
 
@@ -306,13 +272,6 @@ const Home = () => {
 
   // Handle Register button click - navigates to register page
   const handleRegisterClick = () => {
-    navigate('/register');
-  };
-
-  // Handle course registration - navigates to register page with course info
-  const handleRegisterForCourse = (course) => {
-    // Store the selected course in localStorage for the register page
-    localStorage.setItem('selectedCourse', JSON.stringify(course));
     navigate('/register');
   };
 
@@ -439,7 +398,7 @@ const Home = () => {
                   </svg>
                   <div className="btn-sparkle">✨</div>
                 </button>
-                {/* UPDATED: Register button in hero section */}
+                {/* REGISTER BUTTON - Only in hero section */}
                 <button className="btn-secondary hero-btn" onClick={handleRegisterClick}>
                   <span>Register Now</span>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -576,7 +535,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Courses - UPDATED with real pricing */}
+      {/* Featured Courses */}
       <section id="courses" className="courses">
         <div className="container">
           <div className="section-header">
@@ -616,38 +575,14 @@ const Home = () => {
                   </div>
                   <h3>{course.title}</h3>
                   <p>{course.description}</p>
-                  
-                  {/* UPDATED: Course pricing with real data from admin */}
                   <div className="course-price">
                     <span className="price">{course.price}</span>
                     {course.originalPrice && (
                       <span className="original-price">{course.originalPrice}</span>
                     )}
-                    {course.originalPrice && (
-                      <span className="discount-badge">
-                        Save {Math.round((1 - parseInt(course.price.replace(/[^0-9]/g, '')) / parseInt(course.originalPrice.replace(/[^0-9]/g, ''))) * 100)}%
-                      </span>
-                    )}
                   </div>
-                  
-                  <div className="course-features-preview">
-                    {course.features && course.features.slice(0, 2).map((feature, idx) => (
-                      <span key={idx} className="feature-tag">✓ {feature}</span>
-                    ))}
-                    {course.features && course.features.length > 2 && (
-                      <span className="feature-tag">+{course.features.length - 2} more</span>
-                    )}
-                  </div>
-                  
                   <div className="course-actions">
-                    {/* UPDATED: Register button for courses */}
-                    <button className="btn-primary course-btn" onClick={() => handleRegisterForCourse(course)}>
-                      Register Now
-                      <div className="btn-particles">
-                        <span></span>
-                        <span></span>
-                      </div>
-                    </button>
+                    {/* REMOVED Register button from course cards - Only Course Details button remains */}
                     <button className="btn-outline" onClick={() => handleCourseDetailsClick(course)}>
                       Course Details
                     </button>
@@ -782,7 +717,7 @@ const Home = () => {
                 Start Learning Today
                 <div className="btn-sparkle"></div>
               </button>
-              {/* UPDATED: Register button in CTA section */}
+              {/* REGISTER BUTTON - Only in CTA section */}
               <button className="btn-secondary cta-btn" onClick={handleRegisterClick}>
                 Register Now
                 <div className="btn-sparkle"></div>
