@@ -271,7 +271,7 @@ const Home = () => {
     }
   ];
 
-  // Navigation handlers - FIXED VERSION
+  // Navigation handlers - UPDATED WITH REGISTER NAVIGATION
   const handleExploreCourses = () => {
     navigate('/courses');
   };
@@ -284,98 +284,16 @@ const Home = () => {
     navigate('/courses');
   };
 
-  // Enrollment form functions
-  const handleEnrollmentClick = (course) => {
-    setEnrollmentCourse(course);
-    setEnrollmentForm({
-      courseId: course._id,
-      studentName: '',
-      studentEmail: '',
-      studentPhone: '',
-      paymentMethod: 'razorpay',
-      paymentOption: 'demo',
-      agreeToTerms: false
-    });
-    setShowEnrollmentForm(true);
+  // NEW: Handle Register button click
+  const handleRegisterClick = () => {
+    navigate('/register');
   };
 
-  const handleEnrollmentChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setEnrollmentForm({
-      ...enrollmentForm,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-
-  // Simple RazorPay Redirect Function
-  const handleDemoPayment = async () => {
-    // Redirect to actual RazorPay account
-    window.open('https://razorpay.me/', '_blank');
-    
-    // Optional: Show confirmation message
-    alert('Redirecting to RazorPay for secure payment...');
-    
-    // Continue with enrollment process
-    if (enrollmentCourse) {
-      const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
-                           enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
-      
-      // Add payment to history (simulated)
-      const newPayment = {
-        id: `payment_${Date.now()}`,
-        courseId: enrollmentCourse._id,
-        courseTitle: enrollmentCourse.title,
-        amount: paymentAmount,
-        paymentMethod: 'razorpay',
-        date: new Date().toISOString(),
-        status: 'completed'
-      };
-      
-      // Save to localStorage
-      const paymentHistory = JSON.parse(localStorage.getItem('userPaymentHistory') || '[]');
-      localStorage.setItem('userPaymentHistory', JSON.stringify([...paymentHistory, newPayment]));
-      
-      // Submit for approval
-      const enrollmentData = {
-        id: `enroll_${enrollmentCourse._id}_${Date.now()}`,
-        courseId: enrollmentCourse._id,
-        courseTitle: enrollmentCourse.title,
-        studentName: enrollmentForm.studentName,
-        studentEmail: enrollmentForm.studentEmail,
-        enrollmentDate: new Date().toISOString(),
-        paymentAmount: paymentAmount,
-        paymentMethod: 'razorpay',
-        status: 'pending'
-      };
-
-      const existingApprovals = JSON.parse(localStorage.getItem('pendingEnrollments') || '[]');
-      localStorage.setItem('pendingEnrollments', JSON.stringify([...existingApprovals, enrollmentData]));
-      
-      setEnrollmentSuccess(true);
-      
-      setTimeout(() => {
-        setShowEnrollmentForm(false);
-        setEnrollmentSuccess(false);
-      }, 3000);
-    }
-  };
-
-  // Enrollment function to use real RazorPay redirect
-  const handleEnrollmentSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!enrollmentForm.agreeToTerms) {
-      alert('Please agree to the terms and conditions');
-      return;
-    }
-    
-    if (!enrollmentForm.studentName || !enrollmentForm.studentEmail || !enrollmentForm.studentPhone) {
-      alert('Please fill in all required fields');
-      return;
-    }
-    
-    // Use the updated payment function that redirects to RazorPay
-    await handleDemoPayment();
+  // UPDATED: Remove enrollment form functions since we're redirecting to register page
+  const handleRegisterForCourse = (course) => {
+    // Store the selected course in localStorage or context for the register page
+    localStorage.setItem('selectedCourse', JSON.stringify(course));
+    navigate('/register');
   };
 
   // Course details function - Navigate to full page
@@ -440,7 +358,7 @@ const Home = () => {
     },
     {
       step: 3,
-      title: "Enroll & Pay",
+      title: "Register & Pay",
       description: "Select your course and complete the secure payment process",
       icon: "💳",
       color: "#0d9488"
@@ -453,218 +371,6 @@ const Home = () => {
       color: "#7e22ce"
     }
   ];
-
-  // Render Enrollment Form Modal
-  const renderEnrollmentForm = () => {
-    if (!showEnrollmentForm || !enrollmentCourse) return null;
-
-    return (
-      <div className="enrollment-modal-overlay popup-overlay">
-        <div className="enrollment-modal popup-modal">
-          <div className="modal-header">
-            <h2>Enroll in {enrollmentCourse.title}</h2>
-            <button 
-              className="close-btn" 
-              onClick={() => setShowEnrollmentForm(false)}
-            >
-              ×
-            </button>
-          </div>
-          
-          {enrollmentSuccess ? (
-            <div className="enrollment-success">
-              <div className="success-icon">✓</div>
-              <h3>Payment Successful!</h3>
-              <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} for {enrollmentCourse.title}.</p>
-              <p>Your enrollment is now pending admin approval. You will get access once approved.</p>
-              <div className="success-actions">
-                <button 
-                  onClick={() => {
-                    setShowEnrollmentForm(false);
-                    setEnrollmentSuccess(false);
-                  }}
-                  className="btn-primary"
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleEnrollmentSubmit} className="enrollment-form">
-              <div className="course-summary">
-                <h4>Course Summary</h4>
-                <div className="summary-details">
-                  <p><strong>Course:</strong> {enrollmentCourse.title}</p>
-                  <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
-                  <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
-                  <div className="price-options">
-                    <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
-                    <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
-                  </div>
-                  <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after payment</p>
-                </div>
-              </div>
-
-              {/* Payment Option Selection */}
-              <div className="form-group">
-                <label>Select Payment Option *</label>
-                <div className="payment-options">
-                  <div className="payment-option-card">
-                    <input
-                      type="radio"
-                      id="demo-payment"
-                      name="paymentOption"
-                      value="demo"
-                      checked={enrollmentForm.paymentOption === 'demo'}
-                      onChange={handleEnrollmentChange}
-                      className="payment-radio"
-                    />
-                    <label htmlFor="demo-payment" className="payment-option-label">
-                      <div className="payment-option-header">
-                        <span className="payment-option-title">Demo Payment</span>
-                        <span className="payment-option-price">₹1.00</span>
-                      </div>
-                      <p className="payment-option-description">
-                        Pay ₹1 to test the enrollment process (Recommended for testing)
-                      </p>
-                    </label>
-                  </div>
-                  
-                  <div className="payment-option-card">
-                    <input
-                      type="radio"
-                      id="full-payment"
-                      name="paymentOption"
-                      value="full"
-                      checked={enrollmentForm.paymentOption === 'full'}
-                      onChange={handleEnrollmentChange}
-                      className="payment-radio"
-                    />
-                    <label htmlFor="full-payment" className="payment-option-label">
-                      <div className="payment-option-header">
-                        <span className="payment-option-title">Full Payment</span>
-                        <span className="payment-option-price">{enrollmentCourse.originalPrice}</span>
-                      </div>
-                      <p className="payment-option-description">
-                        Pay the full course price to access all features
-                      </p>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Full Name *</label>
-                <input
-                  type="text"
-                  name="studentName"
-                  value={enrollmentForm.studentName}
-                  onChange={handleEnrollmentChange}
-                  required
-                  className="form-input"
-                  placeholder="Enter your full name"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Email Address *</label>
-                <input
-                  type="email"
-                  name="studentEmail"
-                  value={enrollmentForm.studentEmail}
-                  onChange={handleEnrollmentChange}
-                  required
-                  className="form-input"
-                  placeholder="Enter your email address"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Phone Number *</label>
-                <input
-                  type="tel"
-                  name="studentPhone"
-                  value={enrollmentForm.studentPhone}
-                  onChange={handleEnrollmentChange}
-                  placeholder="Enter your phone number"
-                  required
-                  className="form-input"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Payment Method</label>
-                <div className="payment-methods">
-                  <div className="payment-option">
-                    <input
-                      type="radio"
-                      id="razorpay"
-                      name="paymentMethod"
-                      value="razorpay"
-                      checked={enrollmentForm.paymentMethod === 'razorpay'}
-                      onChange={handleEnrollmentChange}
-                    />
-                    <label htmlFor="razorpay">
-                      <span className="payment-icon">💳</span>
-                      Razorpay
-                    </label>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="form-group terms-group">
-                <input
-                  type="checkbox"
-                  id="agreeToTerms"
-                  name="agreeToTerms"
-                  checked={enrollmentForm.agreeToTerms}
-                  onChange={handleEnrollmentChange}
-                  required
-                  className="form-checkbox"
-                />
-                <label htmlFor="agreeToTerms">
-                  I agree to the <a href="#" className="terms-link">Terms and Conditions</a> and <a href="#" className="terms-link">Refund Policy</a>
-                </label>
-              </div>
-              
-              <div className="payment-summary">
-                <div className="payment-total">
-                  <span className="total-label">Total Amount:</span>
-                  <span className="total-amount">
-                    {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="btn-secondary"
-                  onClick={() => setShowEnrollmentForm(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary razorpay-btn"
-                  disabled={!enrollmentForm.agreeToTerms}
-                >
-                  <span className="razorpay-text">
-                    Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} - Go to RazorPay
-                  </span>
-                </button>
-              </div>
-
-              <div className="demo-note">
-                <p>💡 <strong>Note:</strong> You will be redirected to RazorPay for secure payment processing.</p>
-                <p>🔒 <strong>Approval Required:</strong> Course access requires admin approval after payment.</p>
-              </div>
-            </form>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -712,6 +418,15 @@ const Home = () => {
                     <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <div className="btn-sparkle">✨</div>
+                </button>
+                <button className="btn-secondary hero-btn" onClick={handleRegisterClick}>
+                  <span>Register Now</span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </button>
               </div>
               <div className="hero-stats">
@@ -887,8 +602,9 @@ const Home = () => {
                     )}
                   </div>
                   <div className="course-actions">
-                    <button className="btn-primary course-btn" onClick={() => handleEnrollmentClick(course)}>
-                      Enroll Now
+                    {/* UPDATED: Changed from Enroll Now to Register */}
+                    <button className="btn-primary course-btn" onClick={() => handleRegisterForCourse(course)}>
+                      Register Now
                       <div className="btn-particles">
                         <span></span>
                         <span></span>
@@ -1028,6 +744,10 @@ const Home = () => {
                 Start Learning Today
                 <div className="btn-sparkle"></div>
               </button>
+              <button className="btn-secondary cta-btn" onClick={handleRegisterClick}>
+                Register Now
+                <div className="btn-sparkle"></div>
+              </button>
             </div>
           </div>
         </div>
@@ -1110,9 +830,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Render Enrollment Modal */}
-      {renderEnrollmentForm()}
     </div>
   );
 };

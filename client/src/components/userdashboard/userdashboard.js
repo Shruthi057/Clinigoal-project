@@ -56,7 +56,7 @@ export default function UserDashboard() {
     studentEmail: '',
     studentPhone: '',
     paymentMethod: 'razorpay',
-    paymentOption: 'demo',
+    paymentOption: 'full', // Changed default to full payment
     agreeToTerms: false
   });
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
@@ -124,8 +124,16 @@ export default function UserDashboard() {
       if (savedCourses) {
         const parsedCourses = JSON.parse(savedCourses);
         console.log("📚 Loaded courses from admin dashboard:", parsedCourses.length);
-        setAvailableCourses(parsedCourses);
-        return parsedCourses;
+        
+        // Ensure all courses have proper price formatting
+        const formattedCourses = parsedCourses.map(course => ({
+          ...course,
+          price: course.price || '₹9,999', // Default price if not set
+          originalPrice: course.originalPrice || course.price || '₹9,999'
+        }));
+        
+        setAvailableCourses(formattedCourses);
+        return formattedCourses;
       } else {
         // If no courses found in localStorage, use empty array
         console.log("📚 No courses found in admin dashboard, starting with empty list");
@@ -297,7 +305,7 @@ export default function UserDashboard() {
   };
 
   // NEW: Function to submit enrollment for approval
-  const submitEnrollmentForApproval = (course, paymentAmount = "₹1.00") => {
+  const submitEnrollmentForApproval = (course, paymentAmount) => {
     const enrollmentData = {
       id: `enroll_${course._id}_${Date.now()}`,
       courseId: course._id,
@@ -705,7 +713,7 @@ export default function UserDashboard() {
   };
 
   // Payment History Functions
-  const addPaymentToHistory = (course, amount = "₹1.00", paymentMethod = 'razorpay') => {
+  const addPaymentToHistory = (course, amount, paymentMethod = 'razorpay') => {
     const newPayment = {
       id: `payment_${Date.now()}`,
       courseId: course._id,
@@ -1667,7 +1675,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       studentEmail: userData.userEmail,
       studentPhone: '',
       paymentMethod: 'razorpay',
-      paymentOption: 'demo',
+      paymentOption: 'full', // Default to full payment
       agreeToTerms: false
     });
     setShowEnrollmentForm(true);
@@ -1681,14 +1689,14 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     });
   };
 
-  // FIXED: Updated RazorPay Payment Function with proper redirect
+  // UPDATED: RazorPay Payment Function with real course prices
   const handleRazorPayPayment = async () => {
     if (!enrollmentCourse) return;
     
-    // Get the payment amount based on selection
+    // Get the payment amount based on selection - USING REAL COURSE PRICE
     const paymentAmount = enrollmentForm.paymentOption === 'demo' 
       ? "₹1.00" 
-      : enrollmentCourse.originalPrice || enrollmentCourse.price || "₹1.00";
+      : enrollmentCourse.price || "₹9,999"; // Use actual course price from admin
     
     // Show payment confirmation
     alert(`Redirecting to RazorPay for payment of ${paymentAmount}...`);
@@ -1709,7 +1717,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       setPaidCourses(updatedPaidCourses);
       localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
       
-      // Add to payment history
+      // Add to payment history with actual course price
       const payment = addPaymentToHistory(enrollmentCourse, paymentAmount, 'razorpay');
       
       // Submit for approval
@@ -1725,7 +1733,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     }, 2000);
   };
 
-  // UPDATED: Enrollment function to use real RazorPay redirect
+  // UPDATED: Enrollment function to use real course prices
   const handleEnrollmentSubmit = async (e) => {
     e.preventDefault();
     
@@ -1922,7 +1930,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     return paidCourses.has(courseId);
   };
 
-  // Render Course Card with Approval Status
+  // UPDATED: Render Course Card with Real Admin Prices
   const renderCourseCard = (course) => {
     const status = getEnrollmentStatus(course._id);
     const isAccessible = isCourseAccessible(course._id);
@@ -1975,8 +1983,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           <div className="course-meta">
             <span className="duration">⏱️ {course.duration}</span>
             <div className="price-section">
+              {/* UPDATED: Show actual admin price */}
               <span className="price">💰 {course.price}</span>
-              {course.originalPrice && (
+              {course.originalPrice && course.originalPrice !== course.price && (
                 <span className="original-price">{course.originalPrice}</span>
               )}
             </div>
@@ -2003,6 +2012,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <button className="btn-secondary">
                   Course Details
                 </button>
+                {/* UPDATED: Show actual course price in enroll button */}
                 <button 
                   onClick={() => handleEnrollmentClick(course)}
                   className="btn-primary"
@@ -2528,7 +2538,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Available Courses Section - UPDATED to show admin courses
+  // UPDATED: Available Courses Section with Real Admin Prices
   const renderAvailableCourses = () => (
     <div className="available-courses-content">
       <div className="section-header">
@@ -2582,7 +2592,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         </div>
       )}
       
-      {/* Enrollment Form Modal - IMPROVED: Popup with background blur */}
+      {/* UPDATED: Enrollment Form Modal with Real Course Prices */}
       {showEnrollmentForm && enrollmentCourse && (
         <div className="enrollment-modal-overlay popup-overlay">
           <div className="enrollment-modal popup-modal">
@@ -2600,7 +2610,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               <div className="enrollment-success">
                 <div className="success-icon">✓</div>
                 <h3>Payment Successful!</h3>
-                <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice || enrollmentCourse.price} for {enrollmentCourse.title}.</p>
+                <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price} for {enrollmentCourse.title}.</p>
                 <p>Your enrollment is now pending admin approval. You will get access once approved.</p>
                 <div className="success-actions">
                   <button 
@@ -2623,8 +2633,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
                     <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
                     <div className="price-options">
+                      {/* UPDATED: Show actual admin course price */}
                       <p><strong>Course Price:</strong> <span className="course-price">{enrollmentCourse.price}</span></p>
-                      {enrollmentCourse.originalPrice && (
+                      {enrollmentCourse.originalPrice && enrollmentCourse.originalPrice !== enrollmentCourse.price && (
                         <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
                       )}
                       <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
@@ -2671,7 +2682,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                       <label htmlFor="full-payment" className="payment-option-label">
                         <div className="payment-option-header">
                           <span className="payment-option-title">Full Payment</span>
-                          <span className="payment-option-price">{enrollmentCourse.originalPrice || enrollmentCourse.price}</span>
+                          {/* UPDATED: Show actual course price */}
+                          <span className="payment-option-price">{enrollmentCourse.price}</span>
                         </div>
                         <p className="payment-option-description">
                           Pay the full course price to access all features
@@ -2756,8 +2768,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <div className="payment-summary">
                   <div className="payment-total">
                     <span className="total-label">Total Amount:</span>
+                    {/* UPDATED: Show actual course price */}
                     <span className="total-amount">
-                      {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice || enrollmentCourse.price}
+                      {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price}
                     </span>
                   </div>
                 </div>
@@ -2776,7 +2789,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     disabled={!enrollmentForm.agreeToTerms}
                   >
                     <span className="razorpay-text">
-                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice || enrollmentCourse.price} - Go to RazorPay
+                      {/* UPDATED: Show actual course price */}
+                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price} - Go to RazorPay
                     </span>
                   </button>
                 </div>
