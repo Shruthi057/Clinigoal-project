@@ -95,8 +95,7 @@ function AdminDashboard() {
     instructor: "",
     duration: "",
     level: "Beginner",
-    price: "₹1.00",
-    originalPrice: "₹9,999",
+    price: "₹9,999",
     image: "",
     features: [""],
     category: "General"
@@ -322,8 +321,7 @@ function AdminDashboard() {
         instructor: "",
         duration: "",
         level: "Beginner",
-        price: "₹1.00",
-        originalPrice: "₹9,999",
+        price: "₹9,999",
         image: "",
         features: [""],
         category: "General"
@@ -344,8 +342,7 @@ function AdminDashboard() {
       instructor: course.instructor || "",
       duration: course.duration || "",
       level: course.level || "Beginner",
-      price: course.price || "₹1.00",
-      originalPrice: course.originalPrice || "₹9,999",
+      price: course.price || "₹9,999",
       image: course.image || "",
       features: course.features && course.features.length > 0 ? course.features : [""],
       category: course.category || "General"
@@ -369,8 +366,7 @@ function AdminDashboard() {
       instructor: "",
       duration: "",
       level: "Beginner",
-      price: "₹1.00",
-      originalPrice: "₹9,999",
+      price: "₹9,999",
       image: "",
       features: [""],
       category: "General"
@@ -462,26 +458,14 @@ function AdminDashboard() {
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Demo Price</label>
-                <input
-                  type="text"
-                  value={courseForm.price}
-                  onChange={(e) => handleCourseFormChange('price', e.target.value)}
-                  placeholder="e.g., ₹1.00"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Original Price</label>
-                <input
-                  type="text"
-                  value={courseForm.originalPrice}
-                  onChange={(e) => handleCourseFormChange('originalPrice', e.target.value)}
-                  placeholder="e.g., ₹15,999"
-                />
-              </div>
+            <div className="form-group">
+              <label>Course Price</label>
+              <input
+                type="text"
+                value={courseForm.price}
+                onChange={(e) => handleCourseFormChange('price', e.target.value)}
+                placeholder="e.g., ₹9,999"
+              />
             </div>
 
             <div className="form-group">
@@ -659,12 +643,8 @@ function AdminDashboard() {
 
               <div className="course-price-section">
                 <div className="price-row">
-                  <span className="price-label">Demo Price:</span>
-                  <span className="price demo-price">{course.price}</span>
-                </div>
-                <div className="price-row">
-                  <span className="price-label">Original Price:</span>
-                  <span className="price original-price">{course.originalPrice}</span>
+                  <span className="price-label">Course Price:</span>
+                  <span className="price original-price">{course.price}</span>
                 </div>
               </div>
 
@@ -791,6 +771,26 @@ function AdminDashboard() {
               
               // Check if course is completed (100%)
               const isCompleted = completionPercentage === 100;
+              
+              // Track completion date when course is completed
+              let completionDate = null;
+              if (isCompleted && !courseUserProgress.completionDate) {
+                completionDate = new Date().toISOString();
+                // Update user progress with completion date
+                const updatedUserProgress = {
+                  ...userProgress,
+                  [courseId]: {
+                    ...courseUserProgress,
+                    completionDate: completionDate,
+                    isCompleted: true,
+                    completionPercentage: 100
+                  }
+                };
+                localStorage.setItem(userProgressKey, JSON.stringify(updatedUserProgress));
+              } else if (courseUserProgress.completionDate) {
+                completionDate = courseUserProgress.completionDate;
+              }
+              
               if (isCompleted) totalCompletedCourses++;
 
               courseProgress[courseId] = {
@@ -801,6 +801,7 @@ function AdminDashboard() {
                 totalItems,
                 lastActivity: courseUserProgress.lastActivity || new Date().toISOString(),
                 enrolledDate: userAccessData[courseId]?.updatedAt || new Date().toISOString(),
+                completionDate: completionDate,
                 modules: courseUserProgress.modules || {
                   'Module 1': '⏳ In Progress',
                   'Module 2': '❌ Not Started',
@@ -1064,7 +1065,7 @@ function AdminDashboard() {
                     <th>Enrolled Courses</th>
                     <th>Course Progress</th>
                     <th>Completion Status</th>
-                    <th>Last Activity</th>
+                    <th>Completion Date</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1142,10 +1143,26 @@ function AdminDashboard() {
                           </div>
                         </td>
                         <td>
-                          <div className="last-activity">
-                            <span className="activity-date">
-                              {student.lastActive ? new Date(student.lastActive).toLocaleDateString() : 'Never'}
-                            </span>
+                          <div className="completion-dates">
+                            {student.enrolledCourses && student.enrolledCourses.map(courseId => {
+                              const progress = student.progress?.[courseId];
+                              if (progress && progress.completionDate) {
+                                return (
+                                  <div key={courseId} className="completion-date-item">
+                                    <span className="course-name-small">{progress.courseTitle}</span>
+                                    <span className="completion-date">
+                                      {new Date(progress.completionDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }).filter(Boolean)}
+                            {!student.enrolledCourses || student.enrolledCourses.every(courseId => 
+                              !student.progress?.[courseId]?.completionDate
+                            ) && (
+                              <span className="no-completion">Not completed</span>
+                            )}
                           </div>
                         </td>
                         <td>
@@ -1221,14 +1238,22 @@ function AdminDashboard() {
                     {adminProgress
                       .filter(student => student.enrolledCourses && student.enrolledCourses.includes(course._id))
                       .slice(0, 3)
-                      .map(student => (
-                        <div key={student.id} className="student-progress-mini">
-                          <span className="student-name">{student.userName}</span>
-                          <span className="student-progress">
-                            {student.progress?.[course._id]?.completionPercentage || 0}%
-                          </span>
-                        </div>
-                      ))
+                      .map(student => {
+                        const progress = student.progress?.[course._id];
+                        return (
+                          <div key={student.id} className="student-progress-mini">
+                            <span className="student-name">{student.userName}</span>
+                            <span className="student-progress">
+                              {progress?.completionPercentage || 0}%
+                              {progress?.completionDate && (
+                                <span className="completed-date">
+                                  ✓ {new Date(progress.completionDate).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })
                     }
                     {enrollments > 3 && (
                       <div className="more-students">+{enrollments - 3} more students</div>
@@ -1752,6 +1777,11 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                           <span className={`progress-badge ${progress.isCompleted ? 'completed' : 'in-progress'}`}>
                             {progress.isCompleted ? '✅ Completed' : `${progress.completionPercentage}% Complete`}
                           </span>
+                          {progress.completionDate && (
+                            <span className="completion-date-badge">
+                              Completed on: {new Date(progress.completionDate).toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
                         
                         <div className="progress-bar-container">
@@ -1771,6 +1801,9 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                         <div className="course-meta">
                           <span>Enrolled: {progress.enrolledDate ? new Date(progress.enrolledDate).toLocaleDateString() : 'Unknown date'}</span>
                           <span>Last Activity: {progress.lastActivity ? new Date(progress.lastActivity).toLocaleDateString() : 'No activity'}</span>
+                          {progress.completionDate && (
+                            <span>Completed: {new Date(progress.completionDate).toLocaleDateString()}</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -2118,8 +2151,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       </div>
     );
   };
-
-  // ========== EXISTING FUNCTIONS CONTINUED ==========
 
   const fetchCertificateStats = () => {
     try {

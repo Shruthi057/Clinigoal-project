@@ -1681,39 +1681,48 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     });
   };
 
-  // UPDATED: Simple RazorPay Redirect Function
-  const handleDemoPayment = async () => {
+  // FIXED: Updated RazorPay Payment Function with proper redirect
+  const handleRazorPayPayment = async () => {
+    if (!enrollmentCourse) return;
+    
+    // Get the payment amount based on selection
+    const paymentAmount = enrollmentForm.paymentOption === 'demo' 
+      ? "₹1.00" 
+      : enrollmentCourse.originalPrice || enrollmentCourse.price || "₹1.00";
+    
+    // Show payment confirmation
+    alert(`Redirecting to RazorPay for payment of ${paymentAmount}...`);
+    
     // Redirect to actual RazorPay account
-    window.open('https://razorpay.me/', '_blank');
+    window.location.href = 'https://razorpay.me/';
     
-    // Optional: Show confirmation message
-    alert('Redirecting to RazorPay for secure payment...');
+    // Note: In a real implementation, you would:
+    // 1. Create an order on your backend
+    // 2. Get RazorPay order ID
+    // 3. Initialize RazorPay checkout
+    // 4. Handle success callback
     
-    // Continue with enrollment process
-    if (enrollmentCourse) {
-      const paymentAmount = enrollmentForm.paymentOption === 'demo' ? "₹1.00" : 
-                           enrollmentForm.paymentOption === 'full' ? enrollmentCourse.originalPrice : "₹1.00";
-      
+    // For demo purposes, we'll simulate successful payment after a delay
+    setTimeout(() => {
+      // Update paid courses
       const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
       setPaidCourses(updatedPaidCourses);
-      
       localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
       
-      const payment = addPaymentToHistory(
-        enrollmentCourse, 
-        paymentAmount,
-        'razorpay'
-      );
+      // Add to payment history
+      const payment = addPaymentToHistory(enrollmentCourse, paymentAmount, 'razorpay');
       
+      // Submit for approval
       submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
       
+      // Show success
       setEnrollmentSuccess(true);
       
       setTimeout(() => {
         setShowEnrollmentForm(false);
         setEnrollmentSuccess(false);
       }, 3000);
-    }
+    }, 2000);
   };
 
   // UPDATED: Enrollment function to use real RazorPay redirect
@@ -1725,8 +1734,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       return;
     }
     
-    // Use the updated payment function that redirects to RazorPay
-    await handleDemoPayment();
+    // Use the updated RazorPay payment function
+    await handleRazorPayPayment();
   };
 
   const handleWatchVideo = async (video) => {
@@ -2591,7 +2600,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               <div className="enrollment-success">
                 <div className="success-icon">✓</div>
                 <h3>Payment Successful!</h3>
-                <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} for {enrollmentCourse.title}.</p>
+                <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice || enrollmentCourse.price} for {enrollmentCourse.title}.</p>
                 <p>Your enrollment is now pending admin approval. You will get access once approved.</p>
                 <div className="success-actions">
                   <button 
@@ -2614,7 +2623,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
                     <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
                     <div className="price-options">
-                      <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
+                      <p><strong>Course Price:</strong> <span className="course-price">{enrollmentCourse.price}</span></p>
+                      {enrollmentCourse.originalPrice && (
+                        <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
+                      )}
                       <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
                     </div>
                     <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after payment</p>
@@ -2659,7 +2671,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                       <label htmlFor="full-payment" className="payment-option-label">
                         <div className="payment-option-header">
                           <span className="payment-option-title">Full Payment</span>
-                          <span className="payment-option-price">{enrollmentCourse.originalPrice}</span>
+                          <span className="payment-option-price">{enrollmentCourse.originalPrice || enrollmentCourse.price}</span>
                         </div>
                         <p className="payment-option-description">
                           Pay the full course price to access all features
@@ -2745,7 +2757,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   <div className="payment-total">
                     <span className="total-label">Total Amount:</span>
                     <span className="total-amount">
-                      {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice}
+                      {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice || enrollmentCourse.price}
                     </span>
                   </div>
                 </div>
@@ -2764,7 +2776,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     disabled={!enrollmentForm.agreeToTerms}
                   >
                     <span className="razorpay-text">
-                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice} - Go to RazorPay
+                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.originalPrice || enrollmentCourse.price} - Go to RazorPay
                     </span>
                   </button>
                 </div>
