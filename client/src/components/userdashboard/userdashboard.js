@@ -116,7 +116,7 @@ export default function UserDashboard() {
     dateRange: 'all'
   });
 
-  // NEW: Load courses from localStorage (where admin saves courses)
+  // NEW: Enhanced course loading with better mapping
   const loadCourses = () => {
     try {
       const savedCourses = localStorage.getItem('clinigoalCourses');
@@ -125,27 +125,104 @@ export default function UserDashboard() {
         const parsedCourses = JSON.parse(savedCourses);
         console.log("📚 Loaded courses from admin dashboard:", parsedCourses.length);
         
-        // Ensure all courses have proper price formatting
-        const formattedCourses = parsedCourses.map(course => ({
-          ...course,
-          price: course.price || '₹9,999', // Default price if not set
-          originalPrice: course.originalPrice || course.price || '₹9,999'
-        }));
+        // Enhanced course mapping with proper defaults
+        const formattedCourses = parsedCourses.map((course, index) => {
+          // Ensure course has proper ID
+          const courseId = course._id || course.id || `course_${Date.now()}_${index}`;
+          
+          // Get course image based on title if not provided
+          const getCourseImage = (title) => {
+            const courseImages = {
+              'Clinical Research': 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+              'Bioinformatics': 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+              'Medical Coding': 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+              'Pharmacovigilance': 'https://images.unsplash.com/photo-1585435557343-3b1b5fa4c4be?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
+            };
+            return courseImages[title] || 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
+          };
+
+          // Get course color based on title
+          const getCourseColor = (title) => {
+            const courseColors = {
+              'Clinical Research': '#2563eb',
+              'Bioinformatics': '#10b981',
+              'Medical Coding': '#8b5cf6',
+              'Pharmacovigilance': '#f59e0b'
+            };
+            return courseColors[title] || '#2563eb';
+          };
+
+          return {
+            _id: courseId,
+            id: courseId, // Add id for compatibility
+            title: course.title || 'Untitled Course',
+            description: course.description || 'Comprehensive course covering essential topics.',
+            image: course.image || getCourseImage(course.title),
+            duration: course.duration || '6 Months',
+            level: course.level || 'Intermediate',
+            price: course.price || '₹9,999',
+            originalPrice: course.originalPrice || course.price || '₹9,999',
+            instructor: course.instructor || 'Industry Expert',
+            features: course.features || ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
+            color: getCourseColor(course.title),
+            category: course.category || 'Healthcare',
+            createdAt: course.createdAt || new Date().toISOString(),
+            // Add any additional fields from admin
+            ...course
+          };
+        });
         
+        console.log("✅ Formatted courses:", formattedCourses);
         setAvailableCourses(formattedCourses);
         return formattedCourses;
       } else {
-        // If no courses found in localStorage, use empty array
-        console.log("📚 No courses found in admin dashboard, starting with empty list");
-        setAvailableCourses([]);
-        return [];
+        // If no courses found in localStorage, use demo courses
+        console.log("📚 No courses found in admin dashboard, using demo courses");
+        const demoCourses = getDemoCourses();
+        setAvailableCourses(demoCourses);
+        return demoCourses;
       }
     } catch (error) {
-      console.error('Error loading courses:', error);
-      setAvailableCourses([]);
-      return [];
+      console.error('❌ Error loading courses:', error);
+      const demoCourses = getDemoCourses();
+      setAvailableCourses(demoCourses);
+      return demoCourses;
     }
   };
+
+  // Demo courses fallback
+  const getDemoCourses = () => [
+    {
+      _id: 'demo_1',
+      id: 'demo_1',
+      title: "Clinical Research",
+      description: "Comprehensive training in clinical trial design, management, and regulatory compliance for healthcare professionals.",
+      image: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+      duration: "6 Months",
+      level: "Advanced",
+      price: "₹15,999",
+      originalPrice: "₹15,999",
+      instructor: "Dr. Sarah Wilson",
+      features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
+      color: "#2563eb",
+      category: "Healthcare"
+    },
+    {
+      _id: 'demo_2',
+      id: 'demo_2',
+      title: "Bioinformatics",
+      description: "Master computational methods for analyzing biological data and genomic research with hands-on projects.",
+      image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+      duration: "8 Months",
+      level: "Intermediate",
+      price: "₹18,999",
+      originalPrice: "₹18,999",
+      instructor: "Prof. Michael Chen",
+      features: ['Real-world projects', 'Expert mentorship', 'Career guidance'],
+      color: "#10b981",
+      category: "Healthcare"
+    }
+  ];
 
   // NEW: Toggle navbar function
   const toggleNavbar = () => {
@@ -218,14 +295,19 @@ export default function UserDashboard() {
     
     // Also check for changes periodically
     const interval = setInterval(() => {
-      loadCourses();
-    }, 5000); // Check every 5 seconds
+      const currentCourses = JSON.stringify(availableCourses);
+      const savedCourses = localStorage.getItem('clinigoalCourses');
+      if (savedCourses && JSON.stringify(JSON.parse(savedCourses)) !== currentCourses) {
+        console.log("🔄 Courses updated, refreshing...");
+        loadCourses();
+      }
+    }, 3000); // Check every 3 seconds
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
-  }, []);
+  }, [availableCourses]);
 
   // NEW: Load RazorPay script
   useEffect(() => {
