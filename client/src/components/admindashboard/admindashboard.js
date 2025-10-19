@@ -641,10 +641,11 @@ function AdminDashboard() {
                 </div>
               )}
 
+              {/* FIXED COURSE PRICE SECTION */}
               <div className="course-price-section">
-                <div className="price-row">
+                <div className="course-price-display">
                   <span className="price-label">Course Price:</span>
-                  <span className="price original-price">{course.price}</span>
+                  <span className="course-price">{course.price}</span>
                 </div>
               </div>
 
