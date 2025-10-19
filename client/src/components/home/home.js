@@ -13,20 +13,6 @@ const Home = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Enrollment form state
-  const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
-  const [enrollmentCourse, setEnrollmentCourse] = useState(null);
-  const [enrollmentForm, setEnrollmentForm] = useState({
-    courseId: '',
-    studentName: '',
-    studentEmail: '',
-    studentPhone: '',
-    paymentMethod: 'razorpay',
-    paymentOption: 'demo',
-    agreeToTerms: false
-  });
-  const [enrollmentSuccess, setEnrollmentSuccess] = useState(false);
 
   const navigate = useNavigate();
 
@@ -93,34 +79,64 @@ const Home = () => {
     }
   };
 
-  // Fetch courses from admin dashboard storage
+  // Fetch courses from admin dashboard storage - UPDATED
   const fetchCourses = () => {
     try {
       const savedCourses = localStorage.getItem('clinigoalCourses');
       if (savedCourses) {
         const parsedCourses = JSON.parse(savedCourses);
         
-        const formattedCourses = parsedCourses.map(course => ({
-          _id: course._id,
-          title: course.title,
-          description: course.description,
-          image: course.image || getCourseImage(course.title),
-          duration: course.duration || '6 Months',
-          level: course.level || 'Intermediate',
-          price: course.price || '₹15,999',
-          originalPrice: course.originalPrice,
-          instructor: course.instructor,
-          features: course.features || [],
-          color: getCourseColor(course.title),
-          detailedDescription: course.detailedDescription || `Comprehensive course covering all aspects of ${course.title}. Perfect for healthcare professionals looking to advance their career.`,
-          modules: course.modules || ['Introduction', 'Advanced Concepts', 'Practical Applications', 'Case Studies'],
-          whatYouLearn: course.whatYouLearn || [
-            'Industry best practices',
-            'Practical skills development',
-            'Real-world case studies',
-            'Career advancement strategies'
-          ]
-        }));
+        // Format courses with proper pricing and details from admin
+        const formattedCourses = parsedCourses.map(course => {
+          // Extract price information - handle both string and object formats
+          let price = '₹9,999'; // Default price
+          let originalPrice = null;
+          
+          if (course.price) {
+            if (typeof course.price === 'string') {
+              price = course.price;
+              // Check if there's an original price in the description or features
+              if (course.originalPrice) {
+                originalPrice = course.originalPrice;
+              } else if (course.features && course.features.some(f => f.includes('₹'))) {
+                // Try to extract original price from features
+                const priceFeature = course.features.find(f => f.includes('₹'));
+                if (priceFeature) {
+                  const priceMatch = priceFeature.match(/₹(\d+,\d+)/);
+                  if (priceMatch) {
+                    originalPrice = priceMatch[0];
+                  }
+                }
+              }
+            } else if (typeof course.price === 'object') {
+              price = course.price.current || '₹9,999';
+              originalPrice = course.price.original || null;
+            }
+          }
+
+          return {
+            _id: course._id,
+            title: course.title,
+            description: course.description,
+            image: course.image || getCourseImage(course.title),
+            duration: course.duration || '6 Months',
+            level: course.level || 'Intermediate',
+            price: price,
+            originalPrice: originalPrice,
+            instructor: course.instructor,
+            features: course.features || [],
+            color: getCourseColor(course.title),
+            detailedDescription: course.detailedDescription || `Comprehensive course covering all aspects of ${course.title}. Perfect for healthcare professionals looking to advance their career.`,
+            modules: course.modules || ['Introduction', 'Advanced Concepts', 'Practical Applications', 'Case Studies'],
+            whatYouLearn: course.whatYouLearn || [
+              'Industry best practices',
+              'Practical skills development',
+              'Real-world case studies',
+              'Career advancement strategies'
+            ],
+            category: course.category || 'General'
+          };
+        });
 
         setCourses(formattedCourses.slice(0, 4));
       } else {
@@ -204,7 +220,8 @@ const Home = () => {
         'Data management and statistical analysis',
         'Patient safety and pharmacovigilance'
       ],
-      features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access']
+      features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
+      category: "Clinical Research"
     },
     {
       _id: 2,
@@ -225,7 +242,8 @@ const Home = () => {
         'Genomic data interpretation',
         'Structural biology concepts'
       ],
-      features: ['Real-world projects', 'Expert mentorship', 'Career guidance']
+      features: ['Real-world projects', 'Expert mentorship', 'Career guidance'],
+      category: "Bioinformatics"
     },
     {
       _id: 3,
@@ -246,7 +264,8 @@ const Home = () => {
         'Insurance billing procedures',
         'Compliance and regulatory requirements'
       ],
-      features: ['Certification preparation', 'Practical assignments', 'Job support']
+      features: ['Certification preparation', 'Practical assignments', 'Job support'],
+      category: "Medical Coding"
     },
     {
       _id: 4,
@@ -267,11 +286,12 @@ const Home = () => {
         'Risk management strategies',
         'Regulatory compliance requirements'
       ],
-      features: ['Industry case studies', 'Regulatory training', 'Career placement']
+      features: ['Industry case studies', 'Regulatory training', 'Career placement'],
+      category: "Pharmacovigilance"
     }
   ];
 
-  // Navigation handlers - UPDATED WITH REGISTER NAVIGATION
+  // Navigation handlers
   const handleExploreCourses = () => {
     navigate('/courses');
   };
@@ -284,14 +304,14 @@ const Home = () => {
     navigate('/courses');
   };
 
-  // NEW: Handle Register button click
+  // Handle Register button click - navigates to register page
   const handleRegisterClick = () => {
     navigate('/register');
   };
 
-  // UPDATED: Remove enrollment form functions since we're redirecting to register page
+  // Handle course registration - navigates to register page with course info
   const handleRegisterForCourse = (course) => {
-    // Store the selected course in localStorage or context for the register page
+    // Store the selected course in localStorage for the register page
     localStorage.setItem('selectedCourse', JSON.stringify(course));
     navigate('/register');
   };
@@ -419,6 +439,7 @@ const Home = () => {
                   </svg>
                   <div className="btn-sparkle">✨</div>
                 </button>
+                {/* UPDATED: Register button in hero section */}
                 <button className="btn-secondary hero-btn" onClick={handleRegisterClick}>
                   <span>Register Now</span>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -555,7 +576,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Courses */}
+      {/* Featured Courses - UPDATED with real pricing */}
       <section id="courses" className="courses">
         <div className="container">
           <div className="section-header">
@@ -595,14 +616,31 @@ const Home = () => {
                   </div>
                   <h3>{course.title}</h3>
                   <p>{course.description}</p>
+                  
+                  {/* UPDATED: Course pricing with real data from admin */}
                   <div className="course-price">
                     <span className="price">{course.price}</span>
                     {course.originalPrice && (
                       <span className="original-price">{course.originalPrice}</span>
                     )}
+                    {course.originalPrice && (
+                      <span className="discount-badge">
+                        Save {Math.round((1 - parseInt(course.price.replace(/[^0-9]/g, '')) / parseInt(course.originalPrice.replace(/[^0-9]/g, ''))) * 100)}%
+                      </span>
+                    )}
                   </div>
+                  
+                  <div className="course-features-preview">
+                    {course.features && course.features.slice(0, 2).map((feature, idx) => (
+                      <span key={idx} className="feature-tag">✓ {feature}</span>
+                    ))}
+                    {course.features && course.features.length > 2 && (
+                      <span className="feature-tag">+{course.features.length - 2} more</span>
+                    )}
+                  </div>
+                  
                   <div className="course-actions">
-                    {/* UPDATED: Changed from Enroll Now to Register */}
+                    {/* UPDATED: Register button for courses */}
                     <button className="btn-primary course-btn" onClick={() => handleRegisterForCourse(course)}>
                       Register Now
                       <div className="btn-particles">
@@ -744,6 +782,7 @@ const Home = () => {
                 Start Learning Today
                 <div className="btn-sparkle"></div>
               </button>
+              {/* UPDATED: Register button in CTA section */}
               <button className="btn-secondary cta-btn" onClick={handleRegisterClick}>
                 Register Now
                 <div className="btn-sparkle"></div>
