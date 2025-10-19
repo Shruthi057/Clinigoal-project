@@ -79,7 +79,7 @@ const Home = () => {
     }
   };
 
-  // Fetch courses from admin dashboard storage
+  // Fetch courses from admin dashboard storage - FIXED PRICE DISPLAY
   const fetchCourses = () => {
     try {
       const savedCourses = localStorage.getItem('clinigoalCourses');
@@ -93,8 +93,7 @@ const Home = () => {
           image: course.image || getCourseImage(course.title),
           duration: course.duration || '6 Months',
           level: course.level || 'Intermediate',
-          price: course.price || '₹15,999',
-          originalPrice: course.originalPrice,
+          price: course.price || '₹15,999', // Only show this price
           instructor: course.instructor,
           features: course.features || [],
           color: getCourseColor(course.title),
@@ -178,8 +177,7 @@ const Home = () => {
       image: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "6 Months",
       level: "Advanced",
-      price: "₹15,999",
-      originalPrice: "₹19,999",
+      price: "₹15,999", // Only one price
       instructor: "Dr. Sarah Wilson",
       color: "#2563eb",
       detailedDescription: "Master clinical research methodologies, regulatory requirements, and trial management. Perfect for healthcare professionals seeking career advancement in clinical research.",
@@ -199,8 +197,7 @@ const Home = () => {
       image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "8 Months",
       level: "Intermediate",
-      price: "₹18,999",
-      originalPrice: "₹22,999",
+      price: "₹18,999", // Only one price
       instructor: "Prof. Michael Chen",
       color: "#10b981",
       detailedDescription: "Learn bioinformatics tools and techniques for genomic data analysis, sequence alignment, and biological database management.",
@@ -220,8 +217,7 @@ const Home = () => {
       image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "5 Months",
       level: "Beginner",
-      price: "₹12,999",
-      originalPrice: "₹15,999",
+      price: "₹12,999", // Only one price
       instructor: "Ms. Anjali Patel",
       color: "#8b5cf6",
       detailedDescription: "Comprehensive training in medical coding systems, healthcare documentation, and insurance billing procedures.",
@@ -241,8 +237,7 @@ const Home = () => {
       image: "https://images.unsplash.com/photo-1585435557343-3b1b5fa4c4be?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "7 Months",
       level: "Intermediate",
-      price: "₹16,999",
-      originalPrice: "₹20,999",
+      price: "₹16,999", // Only one price
       instructor: "Dr. Robert Kim",
       color: "#f59e0b",
       detailedDescription: "Learn pharmacovigilance principles, drug safety monitoring, adverse event reporting, and regulatory requirements.",
@@ -270,8 +265,10 @@ const Home = () => {
     navigate('/courses');
   };
 
-  // Handle Register button click - navigates to register page
-  const handleRegisterClick = () => {
+  // Handle Register button click - navigates to register page with course info
+  const handleRegisterForCourse = (course) => {
+    // Store the selected course in localStorage for the register page
+    localStorage.setItem('selectedCourse', JSON.stringify(course));
     navigate('/register');
   };
 
@@ -398,16 +395,7 @@ const Home = () => {
                   </svg>
                   <div className="btn-sparkle">✨</div>
                 </button>
-                {/* REGISTER BUTTON - Only in hero section */}
-                <button className="btn-secondary hero-btn" onClick={handleRegisterClick}>
-                  <span>Register Now</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
+                {/* REMOVED Register button from hero section */}
               </div>
               <div className="hero-stats">
                 {stats.map((stat, index) => (
@@ -575,14 +563,19 @@ const Home = () => {
                   </div>
                   <h3>{course.title}</h3>
                   <p>{course.description}</p>
+                  {/* FIXED: Only show single price */}
                   <div className="course-price">
                     <span className="price">{course.price}</span>
-                    {course.originalPrice && (
-                      <span className="original-price">{course.originalPrice}</span>
-                    )}
                   </div>
                   <div className="course-actions">
-                    {/* REMOVED Register button from course cards - Only Course Details button remains */}
+                    {/* REGISTER BUTTON - Only in course cards */}
+                    <button className="btn-primary course-btn" onClick={() => handleRegisterForCourse(course)}>
+                      Register Now
+                      <div className="btn-particles">
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </button>
                     <button className="btn-outline" onClick={() => handleCourseDetailsClick(course)}>
                       Course Details
                     </button>
@@ -717,11 +710,7 @@ const Home = () => {
                 Start Learning Today
                 <div className="btn-sparkle"></div>
               </button>
-              {/* REGISTER BUTTON - Only in CTA section */}
-              <button className="btn-secondary cta-btn" onClick={handleRegisterClick}>
-                Register Now
-                <div className="btn-sparkle"></div>
-              </button>
+              {/* REMOVED Register button from CTA section */}
             </div>
           </div>
         </div>

@@ -49,14 +49,12 @@ export default function UserDashboard() {
   const [reviews, setReviews] = useState([]);
   const [hoverRating, setHoverRating] = useState(0);
   
-  // Enrollment form state
+  // Enrollment form state - UPDATED: Removed payment options
   const [enrollmentForm, setEnrollmentForm] = useState({
     courseId: '',
     studentName: '',
     studentEmail: '',
     studentPhone: '',
-    paymentMethod: 'razorpay',
-    paymentOption: 'full', // Changed default to full payment
     agreeToTerms: false
   });
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
@@ -305,7 +303,7 @@ export default function UserDashboard() {
   };
 
   // NEW: Function to submit enrollment for approval
-  const submitEnrollmentForApproval = (course, paymentAmount) => {
+  const submitEnrollmentForApproval = (course) => {
     const enrollmentData = {
       id: `enroll_${course._id}_${Date.now()}`,
       courseId: course._id,
@@ -313,8 +311,8 @@ export default function UserDashboard() {
       studentName: userData.userName,
       studentEmail: userData.userEmail,
       enrollmentDate: new Date().toISOString(),
-      paymentAmount: paymentAmount,
-      paymentMethod: 'razorpay',
+      paymentAmount: 'Pending',
+      paymentMethod: 'pending',
       status: 'pending',
       timestamp: Date.now()
     };
@@ -343,7 +341,8 @@ export default function UserDashboard() {
     
     localStorage.setItem(userAccessKey, JSON.stringify(userAccessData));
     
-    alert(`✅ Enrollment submitted for admin approval! You will get access once approved.`);
+    // Show success message
+    setEnrollmentSuccess(true);
     
     // Update local state
     setPendingApprovals(updatedApprovals);
@@ -713,7 +712,7 @@ export default function UserDashboard() {
   };
 
   // Payment History Functions
-  const addPaymentToHistory = (course, amount, paymentMethod = 'razorpay') => {
+  const addPaymentToHistory = (course, amount, paymentMethod = 'pending') => {
     const newPayment = {
       id: `payment_${Date.now()}`,
       courseId: course._id,
@@ -721,7 +720,7 @@ export default function UserDashboard() {
       amount: amount,
       paymentMethod: paymentMethod,
       date: new Date().toISOString(),
-      status: 'completed',
+      status: 'pending',
       transactionId: `TXN_${Date.now().toString(36).toUpperCase()}`,
       receiptUrl: `#receipt-${Date.now()}`
     };
@@ -800,8 +799,8 @@ export default function UserDashboard() {
             border-radius: 5px;
             margin: 20px 0;
           }
-          .status-completed {
-            color: #27ae60;
+          .status-pending {
+            color: #f39c12;
             font-weight: bold;
           }
           .receipt-footer {
@@ -828,13 +827,13 @@ export default function UserDashboard() {
         <div class="receipt-container">
           <div class="receipt-header">
             <div class="logo">CLINIGOAL</div>
-            <div class="receipt-title">PAYMENT RECEIPT</div>
-            <div class="receipt-subtitle">Thank you for your payment</div>
+            <div class="receipt-title">ENROLLMENT REQUEST</div>
+            <div class="receipt-subtitle">Your enrollment is pending admin approval</div>
           </div>
           
           <div class="receipt-details">
             <div class="detail-row">
-              <span class="detail-label">Transaction ID:</span>
+              <span class="detail-label">Request ID:</span>
               <span class="detail-value">${payment.transactionId}</span>
             </div>
             <div class="detail-row">
@@ -847,18 +846,18 @@ export default function UserDashboard() {
             </div>
             <div class="detail-row">
               <span class="detail-label">Payment Method:</span>
-              <span class="detail-value">${payment.paymentMethod}</span>
+              <span class="detail-value">Pending Approval</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Status:</span>
-              <span class="detail-value status-completed">${payment.status}</span>
+              <span class="detail-value status-pending">${payment.status}</span>
             </div>
             
             <div class="amount-row">
               <div class="detail-row">
-                <span class="detail-label">Amount Paid:</span>
-                <span class="detail-value" style="font-size: 24px; font-weight: bold; color: #27ae60;">
-                  ${payment.amount}
+                <span class="detail-label">Payment Status:</span>
+                <span class="detail-value" style="font-size: 24px; font-weight: bold; color: #f39c12;">
+                  Pending Approval
                 </span>
               </div>
             </div>
@@ -874,7 +873,7 @@ export default function UserDashboard() {
           </div>
           
           <div class="receipt-footer">
-            <p>This is an computer-generated receipt. No signature is required.</p>
+            <p>This is an enrollment request receipt. Payment details will be provided after admin approval.</p>
             <p>For any queries, contact support@clinigoal.com</p>
           </div>
         </div>
@@ -898,18 +897,11 @@ export default function UserDashboard() {
   };
 
   const calculatePaymentStats = () => {
-    const totalRevenue = paymentHistory.reduce((sum, payment) => {
-      if (!payment || !payment.amount) return sum;
-      const amount = parseInt(payment.amount.replace(/[^0-9]/g, ''));
-      return sum + (isNaN(amount) ? 0 : amount);
-    }, 0);
-
     const completedPayments = paymentHistory.length;
     const uniqueStudents = new Set(paymentHistory.map(p => p && p.userId).filter(Boolean)).size;
     const paymentMethods = new Set(paymentHistory.map(p => p && p.paymentMethod).filter(Boolean)).size;
 
     return {
-      totalRevenue,
       completedPayments,
       uniqueStudents,
       paymentMethods
@@ -1666,7 +1658,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     fetchCourseContent(course.courseId || course.id || course._id);
   };
 
-  // Enrollment Form Functions
+  // Enrollment Form Functions - UPDATED: Simplified without payment
   const handleEnrollmentClick = (course) => {
     setEnrollmentCourse(course);
     setEnrollmentForm({
@@ -1674,8 +1666,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       studentName: userData.userName,
       studentEmail: userData.userEmail,
       studentPhone: '',
-      paymentMethod: 'razorpay',
-      paymentOption: 'full', // Default to full payment
       agreeToTerms: false
     });
     setShowEnrollmentForm(true);
@@ -1689,51 +1679,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     });
   };
 
-  // UPDATED: RazorPay Payment Function with real course prices
-  const handleRazorPayPayment = async () => {
-    if (!enrollmentCourse) return;
-    
-    // Get the payment amount based on selection - USING REAL COURSE PRICE
-    const paymentAmount = enrollmentForm.paymentOption === 'demo' 
-      ? "₹1.00" 
-      : enrollmentCourse.price || "₹9,999"; // Use actual course price from admin
-    
-    // Show payment confirmation
-    alert(`Redirecting to RazorPay for payment of ${paymentAmount}...`);
-    
-    // Redirect to actual RazorPay account
-    window.location.href = 'https://razorpay.me/';
-    
-    // Note: In a real implementation, you would:
-    // 1. Create an order on your backend
-    // 2. Get RazorPay order ID
-    // 3. Initialize RazorPay checkout
-    // 4. Handle success callback
-    
-    // For demo purposes, we'll simulate successful payment after a delay
-    setTimeout(() => {
-      // Update paid courses
-      const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
-      setPaidCourses(updatedPaidCourses);
-      localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
-      
-      // Add to payment history with actual course price
-      const payment = addPaymentToHistory(enrollmentCourse, paymentAmount, 'razorpay');
-      
-      // Submit for approval
-      submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
-      
-      // Show success
-      setEnrollmentSuccess(true);
-      
-      setTimeout(() => {
-        setShowEnrollmentForm(false);
-        setEnrollmentSuccess(false);
-      }, 3000);
-    }, 2000);
-  };
-
-  // UPDATED: Enrollment function to use real course prices
+  // UPDATED: Simplified enrollment function without payment
   const handleEnrollmentSubmit = async (e) => {
     e.preventDefault();
     
@@ -1742,8 +1688,19 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       return;
     }
     
-    // Use the updated RazorPay payment function
-    await handleRazorPayPayment();
+    // Show enrollment confirmation message
+    alert('🎓 Enrollment request submitted! Please wait for admin approval. You will get access once approved.');
+    
+    // Submit for approval without payment
+    submitEnrollmentForApproval(enrollmentCourse);
+    
+    // Add to payment history as pending
+    addPaymentToHistory(enrollmentCourse, 'Pending', 'pending');
+    
+    // Close the form after a delay
+    setTimeout(() => {
+      setShowEnrollmentForm(false);
+    }, 2000);
   };
 
   const handleWatchVideo = async (video) => {
@@ -1930,7 +1887,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     return paidCourses.has(courseId);
   };
 
-  // UPDATED: Render Course Card with Real Admin Prices
+  // UPDATED: Render Course Card with Enroll Button Only (No Price)
   const renderCourseCard = (course) => {
     const status = getEnrollmentStatus(course._id);
     const isAccessible = isCourseAccessible(course._id);
@@ -1982,13 +1939,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           
           <div className="course-meta">
             <span className="duration">⏱️ {course.duration}</span>
-            <div className="price-section">
-              {/* UPDATED: Show actual admin price */}
-              <span className="price">💰 {course.price}</span>
-              {course.originalPrice && course.originalPrice !== course.price && (
-                <span className="original-price">{course.originalPrice}</span>
-              )}
-            </div>
+            {/* REMOVED: Price section */}
           </div>
           
           <div className="course-actions">
@@ -2012,12 +1963,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <button className="btn-secondary">
                   Course Details
                 </button>
-                {/* UPDATED: Show actual course price in enroll button */}
+                {/* UPDATED: Show only Enroll button without price */}
                 <button 
                   onClick={() => handleEnrollmentClick(course)}
                   className="btn-primary"
                 >
-                  Enroll Now - {course.price}
+                  Enroll Now
                 </button>
               </>
             )}
@@ -2034,23 +1985,23 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     return (
       <div className="payment-details-content">
         <div className="section-header">
-          <h2>Payment History & Receipts</h2>
-          <p>View your payment history and download receipts</p>
+          <h2>Enrollment History</h2>
+          <p>View your enrollment requests and status</p>
         </div>
 
         <div className="payment-stats">
           <div className="payment-stat-card">
-            <div className="stat-icon">💰</div>
+            <div className="stat-icon">📝</div>
             <div className="stat-info">
               <h3>{paymentHistory.length}</h3>
-              <p>Total Payments</p>
+              <p>Total Requests</p>
             </div>
           </div>
           <div className="payment-stat-card">
             <div className="stat-icon">📚</div>
             <div className="stat-info">
               <h3>{paidCourses.size}</h3>
-              <p>Paid Courses</p>
+              <p>Approved Courses</p>
             </div>
           </div>
           <div className="payment-stat-card">
@@ -2061,26 +2012,25 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             </div>
           </div>
           <div className="payment-stat-card">
-            <div className="stat-icon">💳</div>
+            <div className="stat-icon">⏳</div>
             <div className="stat-info">
-              <h3>{new Set(paymentHistory.map(p => p.paymentMethod)).size}</h3>
-              <p>Payment Methods</p>
+              <h3>{paymentHistory.filter(p => p.status === 'pending').length}</h3>
+              <p>Pending</p>
             </div>
           </div>
         </div>
 
         {paymentHistory.length > 0 ? (
           <div className="payment-history-section">
-            <h3>Recent Payments</h3>
+            <h3>Recent Enrollment Requests</h3>
             <div className="payments-table-container">
               <table className="payments-table">
                 <thead>
                   <tr>
                     <th>Date</th>
                     <th>Course</th>
-                    <th>Amount</th>
-                    <th>Payment Method</th>
                     <th>Status</th>
+                    <th>Payment</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -2095,17 +2045,15 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                           <strong>{payment.courseTitle}</strong>
                         </div>
                       </td>
-                      <td className="payment-amount">
-                        <span className="amount-badge">{payment.amount}</span>
+                      <td className="payment-status">
+                        <span className={`status-badge ${payment.status}`}>
+                          {payment.status === 'completed' ? '✅ Approved' : 
+                           payment.status === 'pending' ? '⏳ Pending' : payment.status}
+                        </span>
                       </td>
                       <td className="payment-method">
                         <span className={`method-badge ${payment.paymentMethod}`}>
-                          {payment.paymentMethod === 'razorpay' ? '💳 Razorpay' : payment.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="payment-status">
-                        <span className={`status-badge ${payment.status}`}>
-                          {payment.status === 'completed' ? '✅ Completed' : payment.status}
+                          {payment.paymentMethod === 'pending' ? '⏳ Pending' : payment.paymentMethod}
                         </span>
                       </td>
                       <td className="payment-actions">
@@ -2130,9 +2078,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-icon">💳</div>
-            <h3>No Payment History</h3>
-            <p>You haven't made any payments yet. Enroll in a course to see your payment history here.</p>
+            <div className="empty-icon">📝</div>
+            <h3>No Enrollment History</h3>
+            <p>You haven't enrolled in any courses yet. Enroll in a course to see your enrollment history here.</p>
             <button 
               onClick={() => setActiveSection('available-courses')}
               className="btn-primary"
@@ -2153,7 +2101,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       <div className="payment-modal-overlay">
         <div className="payment-modal">
           <div className="modal-header">
-            <h2>Payment Details</h2>
+            <h2>Enrollment Details</h2>
             <button 
               className="close-btn" 
               onClick={() => setShowPaymentModal(false)}
@@ -2164,10 +2112,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           
           <div className="payment-details">
             <div className="detail-section">
-              <h3>Transaction Information</h3>
+              <h3>Enrollment Information</h3>
               <div className="detail-grid">
                 <div className="detail-item">
-                  <span className="detail-label">Transaction ID:</span>
+                  <span className="detail-label">Request ID:</span>
                   <span className="detail-value">{selectedPayment.transactionId}</span>
                 </div>
                 <div className="detail-item">
@@ -2179,12 +2127,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <div className="detail-item">
                   <span className="detail-label">Status:</span>
                   <span className={`detail-value status-${selectedPayment.status}`}>
-                    {selectedPayment.status}
+                    {selectedPayment.status === 'pending' ? '⏳ Pending Approval' : selectedPayment.status}
                   </span>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-label">Payment Method:</span>
-                  <span className="detail-value">{selectedPayment.paymentMethod}</span>
+                  <span className="detail-label">Payment Status:</span>
+                  <span className="detail-value">Pending Admin Approval</span>
                 </div>
               </div>
             </div>
@@ -2200,14 +2148,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   <span className="detail-label">Course ID:</span>
                   <span className="detail-value">{selectedPayment.courseId}</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="detail-section">
-              <h3>Payment Amount</h3>
-              <div className="amount-display">
-                <span className="amount-label">Total Paid:</span>
-                <span className="amount-value">{selectedPayment.amount}</span>
               </div>
             </div>
 
@@ -2538,7 +2478,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // UPDATED: Available Courses Section with Real Admin Prices
+  // UPDATED: Available Courses Section with Simplified Enrollment
   const renderAvailableCourses = () => (
     <div className="available-courses-content">
       <div className="section-header">
@@ -2592,7 +2532,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         </div>
       )}
       
-      {/* UPDATED: Enrollment Form Modal with Real Course Prices */}
+      {/* UPDATED: Enrollment Form Modal - Simplified without payment */}
       {showEnrollmentForm && enrollmentCourse && (
         <div className="enrollment-modal-overlay popup-overlay">
           <div className="enrollment-modal popup-modal">
@@ -2609,9 +2549,11 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             {enrollmentSuccess ? (
               <div className="enrollment-success">
                 <div className="success-icon">✓</div>
-                <h3>Payment Successful!</h3>
-                <p>You have successfully paid {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price} for {enrollmentCourse.title}.</p>
-                <p>Your enrollment is now pending admin approval. You will get access once approved.</p>
+                <h3>Enrollment Request Submitted!</h3>
+                <p>Your enrollment request for <strong>{enrollmentCourse.title}</strong> has been submitted successfully.</p>
+                <p>📝 <strong>Status:</strong> Pending Admin Approval</p>
+                <p>⏳ <strong>Next Step:</strong> Wait for admin to approve your enrollment</p>
+                <p>✅ <strong>You will get access once approved by admin</strong></p>
                 <div className="success-actions">
                   <button 
                     onClick={() => {
@@ -2632,64 +2574,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     <p><strong>Course:</strong> {enrollmentCourse.title}</p>
                     <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
                     <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
-                    <div className="price-options">
-                      {/* UPDATED: Show actual admin course price */}
-                      <p><strong>Course Price:</strong> <span className="course-price">{enrollmentCourse.price}</span></p>
-                      {enrollmentCourse.originalPrice && enrollmentCourse.originalPrice !== enrollmentCourse.price && (
-                        <p><strong>Original Price:</strong> <span className="original-price">{enrollmentCourse.originalPrice}</span></p>
-                      )}
-                      <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
-                    </div>
-                    <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after payment</p>
-                  </div>
-                </div>
-
-                {/* Payment Option Selection */}
-                <div className="form-group">
-                  <label>Select Payment Option *</label>
-                  <div className="payment-options">
-                    <div className="payment-option-card">
-                      <input
-                        type="radio"
-                        id="demo-payment"
-                        name="paymentOption"
-                        value="demo"
-                        checked={enrollmentForm.paymentOption === 'demo'}
-                        onChange={handleEnrollmentChange}
-                        className="payment-radio"
-                      />
-                      <label htmlFor="demo-payment" className="payment-option-label">
-                        <div className="payment-option-header">
-                          <span className="payment-option-title">Demo Payment</span>
-                          <span className="payment-option-price">₹1.00</span>
-                        </div>
-                        <p className="payment-option-description">
-                          Pay ₹1 to test the enrollment process (Recommended for testing)
-                        </p>
-                      </label>
-                    </div>
-                    
-                    <div className="payment-option-card">
-                      <input
-                        type="radio"
-                        id="full-payment"
-                        name="paymentOption"
-                        value="full"
-                        checked={enrollmentForm.paymentOption === 'full'}
-                        onChange={handleEnrollmentChange}
-                        className="payment-radio"
-                      />
-                      <label htmlFor="full-payment" className="payment-option-label">
-                        <div className="payment-option-header">
-                          <span className="payment-option-title">Full Payment</span>
-                          {/* UPDATED: Show actual course price */}
-                          <span className="payment-option-price">{enrollmentCourse.price}</span>
-                        </div>
-                        <p className="payment-option-description">
-                          Pay the full course price to access all features
-                        </p>
-                      </label>
-                    </div>
+                    <p className="approval-note"><strong>Note:</strong> Course access requires admin approval after enrollment request</p>
                   </div>
                 </div>
 
@@ -2730,26 +2615,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   />
                 </div>
                 
-                <div className="form-group">
-                  <label>Payment Method</label>
-                  <div className="payment-methods">
-                    <div className="payment-option">
-                      <input
-                        type="radio"
-                        id="razorpay"
-                        name="paymentMethod"
-                        value="razorpay"
-                        checked={enrollmentForm.paymentMethod === 'razorpay'}
-                        onChange={handleEnrollmentChange}
-                      />
-                      <label htmlFor="razorpay">
-                        <span className="payment-icon">💳</span>
-                        Razorpay
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                
                 <div className="form-group terms-group">
                   <input
                     type="checkbox"
@@ -2761,16 +2626,15 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     className="form-checkbox"
                   />
                   <label htmlFor="agreeToTerms">
-                    I agree to the <a href="#" className="terms-link">Terms and Conditions</a> and <a href="#" className="terms-link">Refund Policy</a>
+                    I agree to the <a href="#" className="terms-link">Terms and Conditions</a> and understand that course access requires admin approval
                   </label>
                 </div>
                 
-                <div className="payment-summary">
-                  <div className="payment-total">
-                    <span className="total-label">Total Amount:</span>
-                    {/* UPDATED: Show actual course price */}
-                    <span className="total-amount">
-                      {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price}
+                <div className="enrollment-summary">
+                  <div className="enrollment-total">
+                    <span className="total-label">Enrollment Status:</span>
+                    <span className="total-amount pending-status">
+                      ⏳ Pending Admin Approval
                     </span>
                   </div>
                 </div>
@@ -2785,19 +2649,17 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   </button>
                   <button 
                     type="submit" 
-                    className="btn-primary razorpay-btn"
+                    className="btn-primary enroll-btn"
                     disabled={!enrollmentForm.agreeToTerms}
                   >
-                    <span className="razorpay-text">
-                      {/* UPDATED: Show actual course price */}
-                      Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price} - Go to RazorPay
-                    </span>
+                    Submit Enrollment Request
                   </button>
                 </div>
 
                 <div className="demo-note">
-                  <p>💡 <strong>Note:</strong> You will be redirected to RazorPay for secure payment processing.</p>
-                  <p>🔒 <strong>Approval Required:</strong> Course access requires admin approval after payment.</p>
+                  <p>💡 <strong>Note:</strong> This is an enrollment request. No payment is required at this stage.</p>
+                  <p>🔒 <strong>Approval Required:</strong> Course access will be granted after admin approves your enrollment.</p>
+                  <p>📧 <strong>Notification:</strong> You will be notified once your enrollment is approved.</p>
                 </div>
               </form>
             )}
@@ -2807,7 +2669,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     </div>
   );
 
-  // Certificates Section
+  // The rest of the component remains the same (certificates, progress tracking, student review, settings, etc.)
+  // ... [Previous code for certificates, progress tracking, student review, settings sections remains unchanged]
+
+  // Certificates Section (unchanged)
   const renderCertificates = () => (
     <div className="certificates-content">
       <div className="section-header">
@@ -2859,7 +2724,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     </div>
   );
 
-  // Progress Tracking Section
+  // Progress Tracking Section (unchanged)
   const renderProgressTracking = () => {
     const accessibleCourses = availableCourses.filter(course => isCourseAccessible(course._id));
     
@@ -2918,7 +2783,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Student Review Section with Enhanced Storage
+  // Student Review Section (unchanged)
   const renderStudentReview = () => {
     // Load user's own reviews
     const userReviews = loadUserReviews();
@@ -3105,7 +2970,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Settings Section
+  // Settings Section (unchanged)
   const renderSettings = () => (
     <div className="settings-content">
       <div className="section-header">
@@ -3331,6 +3196,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       </div>
     </div>
   );
+
+  // The rest of the component (course content, quiz, certificate modal, etc.) remains unchanged
+  // ... [Previous code for course content, quiz, certificate modal remains unchanged]
 
   const renderCourseContent = () => {
     if (!selectedCourse || !isCourseAccessible(selectedCourse._id)) {
@@ -3988,8 +3856,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               closeSidebar();
             }}
           >
-            <span className="icon">💳</span>
-            <span>Payment Details</span>
+            <span className="icon">📝</span>
+            <span>Enrollment History</span>
           </button>
           <button 
             className={`nav-item ${activeSection === 'settings' ? 'active' : ''}`}
