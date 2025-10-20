@@ -162,19 +162,12 @@ function AdminDashboard() {
     search: ''
   });
 
-  // Analytics State (Replaced Progress Tracking)
-  const [analyticsData, setAnalyticsData] = useState([]);
-  const [analyticsStats, setAnalyticsStats] = useState({
-    totalStudents: 0,
+  // Quick Stats State (Replaced Analytics)
+  const [quickStats, setQuickStats] = useState({
     totalEnrollments: 0,
-    totalCompletedCourses: 0,
-    averageProgress: 0,
-    courseEnrollments: {},
-    courseCompletions: {},
-    monthlyProgress: {},
-    activityData: {},
-    engagementRate: 0,
-    retentionRate: 0,
+    activeUsers: 0,
+    courseCompletionRate: 0,
+    revenueThisMonth: 0,
     popularCourses: []
   });
 
@@ -681,673 +674,220 @@ function AdminDashboard() {
     );
   };
 
-  // ========== ANALYTICS FUNCTIONS ==========
+  // ========== QUICK STATS FUNCTIONS (REPLACED ANALYTICS) ==========
 
-  const fetchAnalyticsData = () => {
+  const fetchQuickStats = () => {
     try {
-      console.log("📊 Fetching analytics data...");
-      
-      const analyticsData = [];
+      console.log("📊 Fetching quick stats...");
       
       // Get all unique users
       const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
-      console.log("👥 Found unique users:", uniqueUsers.length);
       
-      // Get user login logs for user names
-      const userLoginLogs = JSON.parse(localStorage.getItem('userLoginLogs') || '[]');
-      
-      // Load courses from admin
-      const courses = JSON.parse(localStorage.getItem('clinigoalCourses') || '[]');
-      console.log("📚 Available courses:", courses.length);
-
+      // Calculate total enrollments from user access data
+      let totalEnrollments = 0;
       uniqueUsers.forEach(userEmail => {
-        try {
-          if (!userEmail || typeof userEmail !== 'string') {
-            console.warn("⚠️ Invalid user email:", userEmail);
-            return;
-          }
-
-          // Get user's course access data
+        if (userEmail && typeof userEmail === 'string') {
           const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
           const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
-          
-          // Get user's progress data
-          const userProgressKey = `userProgress_${userEmail.replace(/[@.]/g, '_')}`;
-          const userProgress = JSON.parse(localStorage.getItem(userProgressKey) || {});
-          
-          // Get completed items
-          const watchedVideosKey = `watchedVideos_${userEmail.replace(/[@.]/g, '_')}`;
-          const completedNotesKey = `completedNotes_${userEmail.replace(/[@.]/g, '_')}`;
-          const completedQuizzesKey = `completedQuizzes_${userEmail.replace(/[@.]/g, '_')}`;
-          
-          const watchedVideos = JSON.parse(localStorage.getItem(watchedVideosKey) || '[]');
-          const completedNotes = JSON.parse(localStorage.getItem(completedNotesKey) || '[]');
-          const completedQuizzes = JSON.parse(localStorage.getItem(completedQuizzesKey) || '[]');
-          
-          // Get certificates
-          const userCertificatesKey = `userCertificates_${userEmail.replace(/[@.]/g, '_')}`;
-          const userCertificates = JSON.parse(localStorage.getItem(userCertificatesKey) || '[]');
-
-          // Get user info
-          const userLog = Array.isArray(userLoginLogs) ? 
-            userLoginLogs.find(log => log && log.email === userEmail) : null;
-          const userName = userLog?.name || userEmail.split('@')[0];
-
-          // Find enrolled courses (approved access)
           const enrolledCourses = Object.keys(userAccessData).filter(courseId => 
             userAccessData[courseId]?.status === 'approved' || userAccessData[courseId]?.canAccess === true
           );
-
-          console.log(`📊 User ${userName} enrolled in:`, enrolledCourses);
-
-          // Calculate analytics for each enrolled course
-          const courseAnalytics = {};
-          let totalCompletedCourses = 0;
-
-          enrolledCourses.forEach(courseId => {
-            const course = courses.find(c => c._id === courseId);
-            if (course) {
-              const courseUserProgress = userProgress[courseId] || {};
-              
-              // Get course content to calculate completion
-              const courseVideos = []; // You might want to fetch actual course videos
-              const courseNotes = [];  // You might want to fetch actual course notes
-              const courseQuizzes = []; // You might want to fetch actual course quizzes
-              
-              const totalItems = courseVideos.length + courseNotes.length + courseQuizzes.length;
-              
-              // Count completed items for this course
-              const completedVideos = watchedVideos.filter(videoId => 
-                courseVideos.some(video => video._id === videoId)
-              ).length;
-              
-              const completedNotesCount = completedNotes.filter(noteId => 
-                courseNotes.some(note => note._id === noteId)
-              ).length;
-              
-              const completedQuizzesCount = completedQuizzes.filter(quizId => 
-                courseQuizzes.some(quiz => quiz._id === quizId)
-              ).length;
-              
-              const completedItems = completedVideos + completedNotesCount + completedQuizzesCount;
-              const completionPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-              
-              // Check if course is completed (100%)
-              const isCompleted = completionPercentage === 100;
-              
-              // Track completion date when course is completed
-              let completionDate = null;
-              if (isCompleted && !courseUserProgress.completionDate) {
-                completionDate = new Date().toISOString();
-                // Update user progress with completion date
-                const updatedUserProgress = {
-                  ...userProgress,
-                  [courseId]: {
-                    ...courseUserProgress,
-                    completionDate: completionDate,
-                    isCompleted: true,
-                    completionPercentage: 100
-                  }
-                };
-                localStorage.setItem(userProgressKey, JSON.stringify(updatedUserProgress));
-              } else if (courseUserProgress.completionDate) {
-                completionDate = courseUserProgress.completionDate;
-              }
-              
-              if (isCompleted) totalCompletedCourses++;
-
-              courseAnalytics[courseId] = {
-                courseTitle: course.title,
-                completionPercentage,
-                isCompleted,
-                completedItems,
-                totalItems,
-                lastActivity: courseUserProgress.lastActivity || new Date().toISOString(),
-                enrolledDate: userAccessData[courseId]?.updatedAt || new Date().toISOString(),
-                completionDate: completionDate,
-                timeSpent: Math.floor(Math.random() * 1000) + 100, // Mock data for time spent
-                engagementScore: Math.floor(Math.random() * 100) + 1 // Mock engagement score
-              };
-            }
-          });
-
-          // Calculate overall analytics
-          const overallProgress = enrolledCourses.length > 0 
-            ? Math.round(Object.values(courseAnalytics).reduce((sum, course) => sum + course.completionPercentage, 0) / enrolledCourses.length)
-            : 0;
-
-          // Add student to analytics data
-          analyticsData.push({
-            id: `student_${userEmail}`,
-            userName: userName,
-            userEmail: userEmail,
-            enrolledCourses: enrolledCourses,
-            analytics: courseAnalytics,
-            certificates: userCertificates,
-            lastActive: userLog?.timestamp ? new Date(userLog.timestamp).toISOString() : new Date().toISOString(),
-            totalLearningTime: Math.floor(Math.random() * 1000) + 100, // Mock data
-            lastLogin: userLog?.timestamp ? new Date(userLog.timestamp).toISOString() : 'Never',
-            overallProgress: overallProgress,
-            totalCompletedCourses: totalCompletedCourses,
-            enrollmentDate: userLog?.timestamp || new Date().toISOString(),
-            status: 'Active',
-            engagementLevel: overallProgress > 80 ? 'High' : overallProgress > 50 ? 'Medium' : 'Low'
-          });
-
-        } catch (error) {
-          console.error(`❌ Error processing data for user ${userEmail}:`, error);
+          totalEnrollments += enrolledCourses.length;
         }
       });
 
-      console.log("📊 Final analytics data:", analyticsData);
-      setAnalyticsData(analyticsData);
-      
-      // Calculate statistics
-      const stats = calculateAnalyticsStats(analyticsData);
-      setAnalyticsStats(stats);
-      
+      // Calculate active users (logged in today)
+      const today = new Date();
+      const todayLogins = userLogs.filter(log => {
+        if (!log || !log.timestamp) return false;
+        const logDate = new Date(log.timestamp);
+        return logDate.toDateString() === today.toDateString();
+      }).length;
+
+      // Calculate course completion rate
+      let completedCourses = 0;
+      uniqueUsers.forEach(userEmail => {
+        if (userEmail && typeof userEmail === 'string') {
+          const userProgressKey = `userProgress_${userEmail.replace(/[@.]/g, '_')}`;
+          const userProgress = JSON.parse(localStorage.getItem(userProgressKey) || {});
+          Object.values(userProgress).forEach(courseProgress => {
+            if (courseProgress && courseProgress.isCompleted) {
+              completedCourses++;
+            }
+          });
+        }
+      });
+
+      const courseCompletionRate = totalEnrollments > 0 ? Math.round((completedCourses / totalEnrollments) * 100) : 0;
+
+      // Calculate revenue (mock data based on enrollments)
+      const revenueThisMonth = totalEnrollments * 9999; // ₹9,999 per course
+
+      // Get popular courses
+      const courseEnrollments = {};
+      courses.forEach(course => {
+        courseEnrollments[course._id] = 0;
+      });
+
+      uniqueUsers.forEach(userEmail => {
+        if (userEmail && typeof userEmail === 'string') {
+          const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
+          const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
+          Object.keys(userAccessData).forEach(courseId => {
+            if (userAccessData[courseId]?.status === 'approved' || userAccessData[courseId]?.canAccess === true) {
+              courseEnrollments[courseId] = (courseEnrollments[courseId] || 0) + 1;
+            }
+          });
+        }
+      });
+
+      const popularCourses = Object.entries(courseEnrollments)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([courseId, count]) => ({
+          courseId,
+          title: courses.find(c => c._id === courseId)?.title || 'Unknown Course',
+          enrollments: count
+        }));
+
+      setQuickStats({
+        totalEnrollments,
+        activeUsers: todayLogins,
+        courseCompletionRate,
+        revenueThisMonth,
+        popularCourses
+      });
+
     } catch (error) {
-      console.error("❌ Error fetching analytics data:", error);
-      setAnalyticsData([]);
-      setAnalyticsStats({
-        totalStudents: 0,
+      console.error("❌ Error fetching quick stats:", error);
+      setQuickStats({
         totalEnrollments: 0,
-        totalCompletedCourses: 0,
-        averageProgress: 0,
-        courseEnrollments: {},
-        courseCompletions: {},
-        monthlyProgress: {},
-        activityData: {},
-        engagementRate: 0,
-        retentionRate: 0,
+        activeUsers: 0,
+        courseCompletionRate: 0,
+        revenueThisMonth: 0,
         popularCourses: []
       });
     }
   };
 
-  const calculateAnalyticsStats = (analyticsData) => {
-    if (!analyticsData || !Array.isArray(analyticsData)) {
-      return {
-        totalStudents: 0,
-        totalEnrollments: 0,
-        totalCompletedCourses: 0,
-        averageProgress: 0,
-        courseEnrollments: {},
-        courseCompletions: {},
-        monthlyProgress: {},
-        activityData: {},
-        engagementRate: 0,
-        retentionRate: 0,
-        popularCourses: []
-      };
-    }
+  // ========== QUICK STATS COMPONENT ==========
 
-    const totalStudents = analyticsData.length;
-    let totalEnrollments = 0;
-    let totalCompletedCourses = 0;
-    let totalProgressSum = 0;
-    let totalEngagementScore = 0;
-    
-    const courseEnrollments = {};
-    const courseCompletions = {};
-    const monthlyProgress = {};
-    const activityData = {};
-    const courseEngagement = {};
-
-    courses.forEach(course => {
-      courseEnrollments[course._id] = 0;
-      courseCompletions[course._id] = 0;
-      courseEngagement[course._id] = 0;
-    });
-
-    analyticsData.forEach(student => {
-      if (!student) return;
-
-      if (student.enrolledCourses && Array.isArray(student.enrolledCourses)) {
-        totalEnrollments += student.enrolledCourses.length;
-        
-        student.enrolledCourses.forEach(courseId => {
-          if (courseId) {
-            courseEnrollments[courseId] = (courseEnrollments[courseId] || 0) + 1;
-          }
-        });
-      }
-
-      if (student.analytics && typeof student.analytics === 'object') {
-        Object.entries(student.analytics).forEach(([courseId, courseAnalytics]) => {
-          if (courseAnalytics && courseAnalytics.isCompleted) {
-            totalCompletedCourses++;
-            courseCompletions[courseId] = (courseCompletions[courseId] || 0) + 1;
-          }
-          totalProgressSum += courseAnalytics.completionPercentage || 0;
-          totalEngagementScore += courseAnalytics.engagementScore || 0;
-          
-          if (courseAnalytics.lastActivity) {
-            try {
-              const month = new Date(courseAnalytics.lastActivity).toLocaleString('default', { month: 'short', year: 'numeric' });
-              monthlyProgress[month] = (monthlyProgress[month] || 0) + 1;
-            } catch (dateError) {
-              console.warn("Invalid date format:", courseAnalytics.lastActivity);
-            }
-          }
-        });
-      }
-
-      if (student.lastActive) {
-        try {
-          const date = new Date(student.lastActive).toLocaleDateString();
-          activityData[date] = (activityData[date] || 0) + 1;
-        } catch (dateError) {
-          console.warn("Invalid lastActive date:", student.lastActive);
-        }
-      }
-    });
-
-    const averageProgress = totalEnrollments > 0 ? Math.round(totalProgressSum / totalEnrollments) : 0;
-    const engagementRate = totalStudents > 0 ? Math.round((totalEngagementScore / totalStudents)) : 0;
-    const retentionRate = totalStudents > 0 ? Math.round((analyticsData.filter(s => s.overallProgress > 50).length / totalStudents) * 100) : 0;
-
-    // Calculate popular courses
-    const popularCourses = Object.entries(courseEnrollments)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 5)
-      .map(([courseId, count]) => ({
-        courseId,
-        title: courses.find(c => c._id === courseId)?.title || 'Unknown Course',
-        enrollments: count
-      }));
-
-    return {
-      totalStudents,
-      totalEnrollments,
-      totalCompletedCourses,
-      averageProgress,
-      courseEnrollments,
-      courseCompletions,
-      monthlyProgress,
-      activityData,
-      engagementRate,
-      retentionRate,
-      popularCourses
-    };
-  };
-
-  const viewStudentAnalytics = (student) => {
-    setSelectedEnrollment({
-      type: 'student',
-      student: student
-    });
-  };
-
-  // ========== UPDATED ANALYTICS COMPONENT ==========
-
-  const renderAnalytics = () => {
+  const renderQuickStats = () => {
     return (
-      <div className="admin-analytics">
+      <div className="admin-quick-stats">
         <div className="admin-page-header">
-          <h1 className="admin-page-title">Student Analytics</h1>
+          <h1 className="admin-page-title">Quick Stats</h1>
           <div className="admin-page-actions">
-            <button className="admin-btn primary" onClick={fetchAnalyticsData}>
-              🔄 Refresh Data
+            <button className="admin-btn primary" onClick={fetchQuickStats}>
+              🔄 Refresh Stats
             </button>
           </div>
         </div>
 
         <div className="admin-stats-grid">
           <div className="admin-stat-card primary">
-            <div className="admin-stat-icon">👥</div>
+            <div className="admin-stat-icon">📚</div>
             <div className="admin-stat-content">
-              <h3>{analyticsStats.totalStudents}</h3>
-              <p>Total Students</p>
-              <span className="admin-stat-change positive">Active users</span>
+              <h3>{quickStats.totalEnrollments}</h3>
+              <p>Total Enrollments</p>
+              <span className="admin-stat-change positive">Active course enrollments</span>
             </div>
           </div>
           <div className="admin-stat-card success">
-            <div className="admin-stat-icon">📚</div>
+            <div className="admin-stat-icon">👥</div>
             <div className="admin-stat-content">
-              <h3>{analyticsStats.totalEnrollments}</h3>
-              <p>Total Enrollments</p>
-              <span className="admin-stat-change positive">Course enrollments</span>
+              <h3>{quickStats.activeUsers}</h3>
+              <p>Active Today</p>
+              <span className="admin-stat-change positive">Users logged in today</span>
             </div>
           </div>
           <div className="admin-stat-card warning">
-            <div className="admin-stat-icon">📊</div>
+            <div className="admin-stat-icon">🏆</div>
             <div className="admin-stat-content">
-              <h3>{analyticsStats.averageProgress}%</h3>
-              <p>Average Progress</p>
-              <span className="admin-stat-change positive">Overall progress</span>
+              <h3>{quickStats.courseCompletionRate}%</h3>
+              <p>Completion Rate</p>
+              <span className="admin-stat-change positive">Course completion percentage</span>
             </div>
           </div>
           <div className="admin-stat-card info">
-            <div className="admin-stat-icon">🏆</div>
+            <div className="admin-stat-icon">💰</div>
             <div className="admin-stat-content">
-              <h3>{analyticsStats.totalCompletedCourses}</h3>
-              <p>Completed Courses</p>
-              <span className="admin-stat-change positive">Total completions</span>
+              <h3>₹{formatNumber(quickStats.revenueThisMonth)}</h3>
+              <p>Revenue</p>
+              <span className="admin-stat-change positive">Estimated monthly revenue</span>
             </div>
           </div>
         </div>
 
-        {/* Student Analytics Overview */}
-        <div className="admin-analytics-details">
-          <h3>📋 Student Analytics Overview</h3>
-          
-          <div className="analytics-controls">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search students by name or email..."
-                className="search-input"
-              />
-            </div>
-            <div className="filter-controls">
-              <select className="filter-select">
-                <option value="all">All Students</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="in-progress">In Progress</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="admin-table-card">
-            {analyticsData.length > 0 ? (
-              <div className="student-analytics-list">
-                {analyticsData.map((student, index) => {
-                  if (!student) return null;
-                  
-                  // Get enrolled course names
-                  const enrolledCourseNames = student.enrolledCourses?.map(courseId => {
-                    const course = courses.find(c => c._id === courseId);
-                    return course?.title || 'Unknown Course';
-                  }).join(', ') || 'No courses enrolled';
-
-                  // Check if any certificates exist
-                  const hasCertificates = student.certificates && student.certificates.length > 0;
-                  
-                  return (
-                    <div key={student.id || index} className="student-analytics-item">
-                      <div className="student-basic-info">
-                        <div className="student-avatar">
-                          {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                        <div className="student-details">
-                          <div className="student-info-line">
-                            <span className="info-icon">👤</span>
-                            <strong>Name:</strong> {student.userName || 'Unknown User'}
-                          </div>
-                          <div className="student-info-line">
-                            <span className="info-icon">📧</span>
-                            <strong>Email:</strong> {student.userEmail || 'No email'}
-                          </div>
-                          <div className="student-info-line">
-                            <span className="info-icon">🎓</span>
-                            <strong>Enrolled in:</strong> {enrolledCourseNames}
-                          </div>
-                          <div className="student-info-line">
-                            <span className="info-icon">📊</span>
-                            <strong>Overall Progress:</strong> 
-                            <span className="progress-value">{student.overallProgress || 0}%</span>
-                            <div className="mini-progress-bar">
-                              <div 
-                                className="mini-progress-fill" 
-                                style={{ width: `${student.overallProgress || 0}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          <div className="student-info-line">
-                            <span className="info-icon">🕐</span>
-                            <strong>Last Login:</strong> {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}
-                          </div>
-                          <div className="student-info-line">
-                            <span className="info-icon">📜</span>
-                            <strong>Certificates:</strong> 
-                            <span className={`certificate-status ${hasCertificates ? 'generated' : 'not-generated'}`}>
-                              {hasCertificates ? '✅ Generated' : '❌ Not Yet Generated'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="student-additional-info">
-                        <div className="additional-metric">
-                          <span className="metric-label">Completed Courses</span>
-                          <span className="metric-value">{student.totalCompletedCourses || 0}</span>
-                        </div>
-                        <div className="additional-metric">
-                          <span className="metric-label">Learning Time</span>
-                          <span className="metric-value">{Math.round((student.totalLearningTime || 0) / 60)}h</span>
-                        </div>
-                        <div className="additional-metric">
-                          <span className="metric-label">Engagement</span>
-                          <span className={`engagement-value ${student.engagementLevel?.toLowerCase()}`}>
-                            {student.engagementLevel || 'Low'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="student-actions">
-                        <button 
-                          className="admin-btn action primary"
-                          onClick={() => viewStudentAnalytics(student)}
-                        >
-                          View Details
-                        </button>
-                        <button className="admin-btn action secondary">
-                          Contact
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        {/* Popular Courses */}
+        <div className="admin-popular-courses">
+          <h3>🎯 Popular Courses</h3>
+          <div className="popular-courses-list">
+            {quickStats.popularCourses.length > 0 ? (
+              quickStats.popularCourses.map((course, index) => (
+                <div key={course.courseId} className="popular-course-item">
+                  <div className="popular-course-rank">#{index + 1}</div>
+                  <div className="popular-course-info">
+                    <h4>{course.title}</h4>
+                    <p>{course.enrollments} enrollments</p>
+                  </div>
+                  <div className="popular-course-actions">
+                    <button 
+                      className="admin-btn action primary"
+                      onClick={() => {
+                        const foundCourse = courses.find(c => c._id === course.courseId);
+                        if (foundCourse) handleEditCourse(foundCourse);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="admin-empty-message">
-                <div className="admin-empty-icon">📊</div>
-                <h3>No Student Data Available</h3>
-                <p>Student analytics data will appear here as users enroll in courses and engage with content.</p>
-                <button className="admin-btn primary" onClick={fetchAnalyticsData}>
-                  🔄 Check for Data
-                </button>
+                <p>No enrollment data available yet</p>
               </div>
             )}
           </div>
         </div>
-      </div>
-    );
-  };
 
-  // ========== UPDATED STUDENT DETAILS MODAL ==========
-
-  const renderEnrollmentDetailsModal = () => {
-    if (!selectedEnrollment) return null;
-
-    if (selectedEnrollment.type === 'student') {
-      const student = selectedEnrollment.student;
-      
-      // Get detailed course information
-      const enrolledCoursesDetails = student.enrolledCourses?.map(courseId => {
-        const course = courses.find(c => c._id === courseId);
-        const analytics = student.analytics?.[courseId] || {};
-        return {
-          course,
-          analytics
-        };
-      }).filter(detail => detail.course) || [];
-
-      return (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal large">
-            <div className="admin-modal-header">
-              <h2>Student Analytics Details</h2>
-              <button 
-                className="admin-modal-close" 
-                onClick={handleCloseEnrollmentDetails}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="admin-modal-content">
-              <div className="student-analytics-header detailed">
-                <div className="student-avatar large">
-                  {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
-                </div>
-                <div className="student-basic-info">
-                  <h3>👤 {student.userName || 'Unknown User'}</h3>
-                  <div className="student-info-grid">
-                    <div className="info-item">
-                      <span className="info-label">📧 Email:</span>
-                      <span className="info-value">{student.userEmail || 'No email'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">🆔 User ID:</span>
-                      <span className="info-value">{student.id || 'N/A'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">🎓 Enrolled Courses:</span>
-                      <span className="info-value">{student.enrolledCourses?.length || 0}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">📅 Last Login:</span>
-                      <span className="info-value">
-                        {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className={`engagement-badge large ${student.engagementLevel?.toLowerCase()}`}>
-                  {student.engagementLevel} Engagement
-                </div>
+        {/* Recent Activity */}
+        <div className="admin-recent-activity">
+          <h3>📈 Recent Platform Activity</h3>
+          <div className="activity-stats">
+            <div className="activity-stat">
+              <span className="activity-icon">👤</span>
+              <div className="activity-info">
+                <strong>New Registrations</strong>
+                <span>{userStats.uniqueUsers} total users</span>
               </div>
-
-              <div className="analytics-metrics-grid">
-                <div className="analytics-metric-card">
-                  <div className="metric-icon">📊</div>
-                  <div className="metric-content">
-                    <h4>Overall Progress</h4>
-                    <div className="metric-value">{student.overallProgress || 0}%</div>
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${student.overallProgress || 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="analytics-metric-card">
-                  <div className="metric-icon">🏆</div>
-                  <div className="metric-content">
-                    <h4>Completed Courses</h4>
-                    <div className="metric-value">{student.totalCompletedCourses || 0}</div>
-                  </div>
-                </div>
-                <div className="analytics-metric-card">
-                  <div className="metric-icon">⏱️</div>
-                  <div className="metric-content">
-                    <h4>Learning Time</h4>
-                    <div className="metric-value">{Math.round((student.totalLearningTime || 0) / 60)}h</div>
-                  </div>
-                </div>
-                <div className="analytics-metric-card">
-                  <div className="metric-icon">📜</div>
-                  <div className="metric-content">
-                    <h4>Certificates</h4>
-                    <div className="metric-value">{student.certificates?.length || 0}</div>
-                  </div>
-                </div>
-              </div>
-
-              {enrolledCoursesDetails.length > 0 ? (
-                <div className="course-analytics-section">
-                  <h4>Course-wise Progress</h4>
-                  <div className="course-analytics-list">
-                    {enrolledCoursesDetails.map(({ course, analytics }) => (
-                      <div key={course._id} className="course-analytics-item">
-                        <div className="course-analytics-header">
-                          <h5>{course.title}</h5>
-                          <span className="progress-percentage">{analytics.completionPercentage || 0}%</span>
-                        </div>
-                        <div className="progress-bar">
-                          <div 
-                            className="progress-fill" 
-                            style={{ width: `${analytics.completionPercentage || 0}%` }}
-                          ></div>
-                        </div>
-                        <div className="course-metrics">
-                          <div className="course-metric">
-                            <span>Status:</span>
-                            <span className={`status ${analytics.isCompleted ? 'completed' : 'in-progress'}`}>
-                              {analytics.isCompleted ? '✅ Completed' : '📚 In Progress'}
-                            </span>
-                          </div>
-                          <div className="course-metric">
-                            <span>Time Spent:</span>
-                            <span>{Math.round((analytics.timeSpent || 0) / 60)} minutes</span>
-                          </div>
-                          <div className="course-metric">
-                            <span>Last Activity:</span>
-                            <span>
-                              {analytics.lastActivity ? new Date(analytics.lastActivity).toLocaleDateString() : 'No activity'}
-                            </span>
-                          </div>
-                          <div className="course-metric">
-                            <span>Enrolled Date:</span>
-                            <span>
-                              {analytics.enrolledDate ? new Date(analytics.enrolledDate).toLocaleDateString() : 'Unknown'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="no-courses-message">
-                  <p>This student is not enrolled in any courses yet.</p>
-                </div>
-              )}
-
-              {student.certificates && student.certificates.length > 0 && (
-                <div className="certificates-section">
-                  <h4>🎓 Certificates Earned</h4>
-                  <div className="certificates-list">
-                    {student.certificates.map((cert, index) => (
-                      <div key={index} className="certificate-item">
-                        <span className="certificate-icon">📜</span>
-                        <div className="certificate-info">
-                          <strong>{cert.courseTitle || 'Unknown Course'}</strong>
-                          <span>Issued: {cert.issueDate ? new Date(cert.issueDate).toLocaleDateString() : 'Unknown date'}</span>
-                        </div>
-                        <span className="certificate-id">{cert.certificateId || 'N/A'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-            
-            <div className="admin-modal-actions">
-              <button 
-                onClick={handleCloseEnrollmentDetails}
-                className="admin-btn secondary"
-              >
-                Close
-              </button>
-              <button className="admin-btn primary">
-                Export Student Data
-              </button>
+            <div className="activity-stat">
+              <span className="activity-icon">📜</span>
+              <div className="activity-info">
+                <strong>Certificates Issued</strong>
+                <span>{certificateStats.totalIssued} total certificates</span>
+              </div>
+            </div>
+            <div className="activity-stat">
+              <span className="activity-icon">💬</span>
+              <div className="activity-info">
+                <strong>Student Reviews</strong>
+                <span>{reviewStats.totalReviews} total reviews</span>
+              </div>
+            </div>
+            <div className="activity-stat">
+              <span className="activity-icon">✅</span>
+              <div className="activity-info">
+                <strong>Approvals Processed</strong>
+                <span>{approvalStats.total} total enrollments</span>
+              </div>
             </div>
           </div>
         </div>
-      );
-    }
-
-    return null;
-  };
-
-  const handleCloseEnrollmentDetails = () => {
-    setSelectedEnrollment(null);
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -1364,12 +904,12 @@ function AdminDashboard() {
     fetchUserData();
     fetchStudentReviews();
     fetchPaymentHistory();
-    fetchAnalyticsData();
+    fetchQuickStats(); // Replaced analytics with quick stats
     fetchCertificateStats();
     fetchPendingApprovals();
 
     const interval = setInterval(() => {
-      fetchAnalyticsData();
+      fetchQuickStats(); // Replaced analytics with quick stats
       fetchCertificateStats();
       fetchStudentReviews();
       fetchPendingApprovals();
@@ -2036,19 +1576,24 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       const byCourse = {};
       const recentCertificates = [];
 
-      analyticsData.forEach(student => {
-        if (student.certificates && Array.isArray(student.certificates)) {
-          totalIssued += student.certificates.length;
+      // Get all unique users to check for certificates
+      const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+      
+      uniqueUsers.forEach(userEmail => {
+        if (userEmail && typeof userEmail === 'string') {
+          const userCertificatesKey = `userCertificates_${userEmail.replace(/[@.]/g, '_')}`;
+          const userCertificates = JSON.parse(localStorage.getItem(userCertificatesKey) || '[]');
+          totalIssued += userCertificates.length;
           
-          student.certificates.forEach(cert => {
+          userCertificates.forEach(cert => {
             if (cert && cert.courseId) {
               byCourse[cert.courseId] = (byCourse[cert.courseId] || 0) + 1;
             }
             
             recentCertificates.push({
               ...cert,
-              userName: student.userName,
-              userEmail: student.userEmail
+              userName: userEmail.split('@')[0],
+              userEmail: userEmail
             });
           });
         }
@@ -3446,7 +2991,19 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 datasets: [
                   {
                     label: 'Students Enrolled',
-                    data: courses.map(course => analyticsStats.courseEnrollments[course._id] || 0),
+                    data: courses.map(course => {
+                      let count = 0;
+                      uniqueUsers.forEach(userEmail => {
+                        if (userEmail && typeof userEmail === 'string') {
+                          const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
+                          const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
+                          if (userAccessData[course._id]?.status === 'approved' || userAccessData[course._id]?.canAccess === true) {
+                            count++;
+                          }
+                        }
+                      });
+                      return count;
+                    }),
                     backgroundColor: 'rgba(79, 70, 229, 0.7)',
                     borderColor: 'rgba(79, 70, 229, 1)',
                     borderWidth: 1,
@@ -3475,27 +3032,27 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
         </div>
 
         <div className="admin-chart-card">
-          <h3>Student Analytics Overview</h3>
+          <h3>Platform Overview</h3>
           <div className="admin-chart-container">
             <Doughnut 
               data={{
-                labels: ['Completed', 'In Progress', 'Not Started'],
+                labels: ['Total Users', 'Active Today', 'Total Enrollments'],
                 datasets: [
                   {
                     data: [
-                      analyticsStats.totalCompletedCourses,
-                      analyticsStats.totalEnrollments - analyticsStats.totalCompletedCourses,
-                      analyticsStats.totalStudents - analyticsStats.totalEnrollments
+                      userStats.uniqueUsers,
+                      quickStats.activeUsers,
+                      quickStats.totalEnrollments
                     ],
                     backgroundColor: [
+                      'rgba(79, 70, 229, 0.7)',
                       'rgba(34, 197, 94, 0.7)',
-                      'rgba(234, 179, 8, 0.7)',
-                      'rgba(239, 68, 68, 0.7)'
+                      'rgba(234, 179, 8, 0.7)'
                     ],
                     borderColor: [
+                      'rgba(79, 70, 229, 1)',
                       'rgba(34, 197, 94, 1)',
-                      'rgba(234, 179, 8, 1)',
-                      'rgba(239, 68, 68, 1)'
+                      'rgba(234, 179, 8, 1)'
                     ],
                     borderWidth: 1,
                   },
@@ -3515,20 +3072,33 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
         </div>
 
         <div className="admin-chart-card">
-          <h3>Monthly Activity</h3>
+          <h3>Content Distribution</h3>
           <div className="admin-chart-container">
-            <Line 
+            <Pie 
               data={{
-                labels: Object.keys(analyticsStats.monthlyProgress),
+                labels: ['Videos', 'Notes', 'Quizzes', 'Courses'],
                 datasets: [
                   {
-                    label: 'Learning Progress',
-                    data: Object.values(analyticsStats.monthlyProgress),
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                  }
+                    data: [
+                      stats.totalVideos,
+                      stats.totalNotes,
+                      stats.totalQuizzes,
+                      courses.length
+                    ],
+                    backgroundColor: [
+                      'rgba(59, 130, 246, 0.7)',
+                      'rgba(16, 185, 129, 0.7)',
+                      'rgba(245, 158, 11, 0.7)',
+                      'rgba(139, 92, 246, 0.7)'
+                    ],
+                    borderColor: [
+                      'rgba(59, 130, 246, 1)',
+                      'rgba(16, 185, 129, 1)',
+                      'rgba(245, 158, 11, 1)',
+                      'rgba(139, 92, 246, 1)'
+                    ],
+                    borderWidth: 1,
+                  },
                 ],
               }}
               options={{
@@ -3536,14 +3106,9 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    position: 'top',
+                    position: 'right',
                   },
                 },
-                scales: {
-                  y: {
-                    beginAtZero: true
-                  }
-                }
               }}
             />
           </div>
@@ -3620,10 +3185,10 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 <span>Students</span>
               </button>
             </li>
-            <li className={`admin-menu-item ${activeTab === 'analytics' && !viewingQuiz ? 'active' : ''}`}>
-              <button onClick={() => { setActiveTab('analytics'); setViewingQuiz(null); }}>
+            <li className={`admin-menu-item ${activeTab === 'quick-stats' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('quick-stats'); setViewingQuiz(null); }}>
                 <span className="admin-menu-icon">📈</span>
-                <span>Analytics</span>
+                <span>Quick Stats</span>
               </button>
             </li>
             <li className={`admin-menu-item ${activeTab === 'feedbacks' && !viewingQuiz ? 'active' : ''}`}>
@@ -3949,8 +3514,8 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 </div>
               )}
 
-              {/* Analytics Section - UPDATED */}
-              {activeTab === 'analytics' && renderAnalytics()}
+              {/* Quick Stats Section - REPLACED ANALYTICS */}
+              {activeTab === 'quick-stats' && renderQuickStats()}
 
               {/* Student Feedback & Reviews */}
               {activeTab === 'feedbacks' && (
@@ -4609,9 +4174,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
       {/* Approval Sidebar */}
       {renderApprovalSidebar()}
-
-      {/* Enrollment Details Modal */}
-      {renderEnrollmentDetailsModal()}
 
       {/* Payment Modal */}
       {renderPaymentModal()}

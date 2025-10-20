@@ -56,7 +56,7 @@ export default function UserDashboard() {
     studentEmail: '',
     studentPhone: '',
     paymentMethod: 'razorpay',
-    paymentOption: 'full', // Changed default to full payment
+    paymentOption: 'full',
     agreeToTerms: false
   });
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
@@ -96,7 +96,7 @@ export default function UserDashboard() {
   // Note viewing state - UPDATED for PDF handling
   const [selectedNote, setSelectedNote] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null); // NEW: For PDF URL storage
+  const [pdfUrl, setPdfUrl] = useState(null);
 
   // Navbar toggle state
   const [isNavbarOpen, setIsNavbarOpen] = useState(true);
@@ -158,19 +158,18 @@ export default function UserDashboard() {
 
           return {
             _id: courseId,
-            id: courseId, // Add id for compatibility
+            id: courseId,
             title: course.title || 'Untitled Course',
             description: course.description || 'Comprehensive course covering essential topics.',
             image: course.image || getCourseImage(course.title),
             duration: course.duration || '6 Months',
             level: course.level || 'Intermediate',
-            price: coursePrice, // FIXED: Use only the price field
+            price: coursePrice,
             instructor: course.instructor || 'Industry Expert',
             features: course.features || ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
             color: getCourseColor(course.title),
             category: course.category || 'Healthcare',
             createdAt: course.createdAt || new Date().toISOString(),
-            // Add any additional fields from admin
             ...course
           };
         });
@@ -179,7 +178,6 @@ export default function UserDashboard() {
         setAvailableCourses(formattedCourses);
         return formattedCourses;
       } else {
-        // If no courses found in localStorage, use demo courses
         console.log("📚 No courses found in admin dashboard, using demo courses");
         const demoCourses = getDemoCourses();
         setAvailableCourses(demoCourses);
@@ -203,7 +201,7 @@ export default function UserDashboard() {
       image: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "6 Months",
       level: "Advanced",
-      price: "₹15,999", // FIXED: Single price only
+      price: "₹15,999",
       instructor: "Dr. Sarah Wilson",
       features: ['Industry-recognized certification', 'Placement assistance', 'Lifetime access'],
       color: "#2563eb",
@@ -217,7 +215,7 @@ export default function UserDashboard() {
       image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
       duration: "8 Months",
       level: "Intermediate",
-      price: "₹18,999", // FIXED: Single price only
+      price: "₹18,999",
       instructor: "Prof. Michael Chen",
       features: ['Real-world projects', 'Expert mentorship', 'Career guidance'],
       color: "#10b981",
@@ -294,7 +292,6 @@ export default function UserDashboard() {
 
     window.addEventListener('storage', handleStorageChange);
     
-    // Also check for changes periodically
     const interval = setInterval(() => {
       const currentCourses = JSON.stringify(availableCourses);
       const savedCourses = localStorage.getItem('clinigoalCourses');
@@ -302,7 +299,7 @@ export default function UserDashboard() {
         console.log("🔄 Courses updated, refreshing...");
         loadCourses();
       }
-    }, 3000); // Check every 3 seconds
+    }, 3000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -342,7 +339,6 @@ export default function UserDashboard() {
         let width = img.width;
         let height = img.height;
         
-        // Calculate new dimensions
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -352,15 +348,12 @@ export default function UserDashboard() {
           height = maxHeight;
         }
         
-        // Resize the canvas
         canvas.width = width;
         canvas.height = height;
         
-        // Draw the image on canvas
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Get the compressed data URL
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(compressedDataUrl);
       };
@@ -402,18 +395,15 @@ export default function UserDashboard() {
       timestamp: Date.now()
     };
 
-    // Save to pending approvals in localStorage
     const existingApprovals = JSON.parse(localStorage.getItem('pendingEnrollments') || '[]');
     const updatedApprovals = [...existingApprovals, enrollmentData];
     localStorage.setItem('pendingEnrollments', JSON.stringify(updatedApprovals));
 
-    // Also save to admin approvals storage
     const adminApprovals = JSON.parse(localStorage.getItem('adminApprovals') || '{}');
     const pending = adminApprovals.pending || [];
     adminApprovals.pending = [...pending, enrollmentData];
     localStorage.setItem('adminApprovals', JSON.stringify(adminApprovals));
 
-    // Update user's access status
     const userEmail = localStorage.getItem('userEmail') || userData.userEmail;
     const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
     const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
@@ -426,7 +416,6 @@ export default function UserDashboard() {
     
     localStorage.setItem(userAccessKey, JSON.stringify(userAccessData));
     
-    // Update local state
     setPendingApprovals(updatedApprovals);
     setCourseAccess(userAccessData);
   };
@@ -434,17 +423,14 @@ export default function UserDashboard() {
   // NEW: Load approval data
   const loadApprovalData = () => {
     try {
-      // Load approved courses from localStorage
       const savedApprovedCourses = JSON.parse(localStorage.getItem('approvedCourses') || '[]');
       setApprovedCourses(new Set(savedApprovedCourses));
       
-      // Load user's course access status
       const userEmail = localStorage.getItem('userEmail') || userData.userEmail;
       const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
       const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
       setCourseAccess(userAccessData);
       
-      // Load pending approvals
       const pendingEnrollments = JSON.parse(localStorage.getItem('pendingEnrollments') || '[]');
       setPendingApprovals(pendingEnrollments);
       
@@ -462,7 +448,6 @@ export default function UserDashboard() {
       setCourseAccess(userAccessData);
     };
 
-    // Check for updates every 3 seconds
     const interval = setInterval(checkForAccessUpdates, 3000);
     
     return () => clearInterval(interval);
@@ -486,7 +471,44 @@ export default function UserDashboard() {
     };
   }, [timerInterval]);
 
-  // Fetch all user data - UPDATED to use admin courses
+  // NEW: Function to check for admin notes updates
+  const checkForAdminNotes = () => {
+    try {
+      const adminNotes = JSON.parse(localStorage.getItem('clinigoalNotes') || '[]');
+      console.log("🔄 Checking for admin notes updates. Total notes:", adminNotes.length);
+      
+      if (selectedCourse) {
+        console.log("🔄 Refreshing content for current course:", selectedCourse.title);
+        fetchCourseContent(selectedCourse._id);
+      }
+      
+      return adminNotes;
+    } catch (error) {
+      console.error('Error checking admin notes:', error);
+      return [];
+    }
+  };
+
+  // NEW: Effect to listen for note updates from admin
+  useEffect(() => {
+    const handleNoteUpdates = () => {
+      console.log("📝 Note update detected, refreshing...");
+      checkForAdminNotes();
+    };
+
+    window.addEventListener('storage', handleNoteUpdates);
+    
+    const interval = setInterval(() => {
+      checkForAdminNotes();
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('storage', handleNoteUpdates);
+      clearInterval(interval);
+    };
+  }, [selectedCourse]);
+
+  // UPDATED: Fetch all user data with enhanced note loading
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -496,14 +518,12 @@ export default function UserDashboard() {
 
         setUserData({ userName, userEmail, userId });
 
-        // Load profile photo from sessionStorage first, then localStorage
         const savedProfilePhoto = sessionStorage.getItem('userProfilePhoto') || 
                                 localStorage.getItem('userProfilePhoto');
         if (savedProfilePhoto) {
           setProfilePhoto(savedProfilePhoto);
         }
 
-        // Load completed items from localStorage
         const savedWatchedVideos = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
         setWatchedVideos(savedWatchedVideos);
         
@@ -513,17 +533,14 @@ export default function UserDashboard() {
         const savedCompletedQuizzes = JSON.parse(localStorage.getItem('completedQuizzes') || '[]');
         setCompletedQuizzes(savedCompletedQuizzes);
 
-        // Load paid courses from localStorage
         const savedPaidCourses = localStorage.getItem('paidCourses');
         if (savedPaidCourses) {
           setPaidCourses(new Set(JSON.parse(savedPaidCourses)));
         }
 
-        // Load certificates from localStorage
         const savedCertificates = JSON.parse(localStorage.getItem('userCertificates') || '[]');
         setCertificates(savedCertificates);
 
-        // Load user settings from localStorage
         const savedSettings = JSON.parse(localStorage.getItem('userSettings') || '{}');
         setUserSettings({
           notifications: savedSettings.notifications !== undefined ? savedSettings.notifications : true,
@@ -531,21 +548,16 @@ export default function UserDashboard() {
           darkMode: savedSettings.darkMode !== undefined ? savedSettings.darkMode : false
         });
 
-        // Load payment history from localStorage
         const savedPaymentHistory = JSON.parse(localStorage.getItem('userPaymentHistory') || '[]');
         setPaymentHistory(savedPaymentHistory);
 
-        // Load approval data
         loadApprovalData();
 
-        // Load courses from admin dashboard
         loadCourses();
 
-        // Start with no enrolled courses so all courses show enrollment option
         setEnrolledCourses([]);
         localStorage.setItem('userEnrollments', JSON.stringify([]));
 
-        // Fetch student reviews from API
         try {
           const reviewsResponse = await fetch(`${API_BASE_URL}/api/reviews`);
           if (reviewsResponse.ok) {
@@ -554,7 +566,6 @@ export default function UserDashboard() {
           }
         } catch (error) {
           console.log('Reviews API not available, using demo reviews');
-          // If no reviews exist, create some demo reviews
           const demoReviews = [
             {
               _id: '1',
@@ -572,7 +583,7 @@ export default function UserDashboard() {
               userName: "Student123",
               rating: 4,
               reviewText: "Great introduction to bioinformatics. The practical examples were very helpful.",
-              createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
+              createdAt: new Date(Date.now() - 86400000).toISOString()
             }
           ];
           setReviews(demoReviews);
@@ -588,39 +599,44 @@ export default function UserDashboard() {
     fetchUserData();
   }, []);
 
-  // NEW: Note viewing functions - UPDATED for PDF handling
+  // UPDATED: Note viewing functions with enhanced PDF handling
   const handleViewNote = (note) => {
+    console.log("📖 Viewing note:", note);
     setSelectedNote(note);
     
-    // Check if note has PDF URL or file
     if (note.pdfUrl) {
-      // If note has a direct PDF URL, use it
+      console.log("📄 Using PDF URL:", note.pdfUrl);
       setPdfUrl(note.pdfUrl);
     } else if (note.fileUrl) {
-      // If note has a file URL, use it
+      console.log("📄 Using file URL:", note.fileUrl);
       setPdfUrl(note.fileUrl);
-    } else if (note.content && note.fileType === 'pdf') {
-      // If note has content and is marked as PDF, create a blob URL
+    } else if (note.file) {
+      console.log("📄 Using file object");
       try {
-        // For demo purposes, create a sample PDF blob
-        // In a real app, you would fetch the actual PDF file
+        const url = URL.createObjectURL(note.file);
+        setPdfUrl(url);
+      } catch (error) {
+        console.error('Error creating URL from file:', error);
+        setPdfUrl(null);
+      }
+    } else if (note.content && note.fileType === 'pdf') {
+      try {
+        console.log("📄 Creating PDF blob from content");
         const pdfContent = note.content;
         const blob = new Blob([pdfContent], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
       } catch (error) {
         console.error('Error creating PDF URL:', error);
-        // Fallback to text content
         setPdfUrl(null);
       }
     } else {
-      // For text content, don't set PDF URL
+      console.log("📄 No PDF available, using text content");
       setPdfUrl(null);
     }
     
     setShowNoteModal(true);
     
-    // Mark as completed when viewed
     if (!completedNotes.includes(note._id)) {
       handleCompleteNote(note._id);
     }
@@ -629,7 +645,6 @@ export default function UserDashboard() {
   const handleCloseNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
-    // Clean up PDF URL to prevent memory leaks
     if (pdfUrl && pdfUrl.startsWith('blob:')) {
       URL.revokeObjectURL(pdfUrl);
     }
@@ -646,7 +661,6 @@ export default function UserDashboard() {
       link.click();
       document.body.removeChild(link);
     } else if (selectedNote?.content) {
-      // Fallback: download as text file
       const blob = new Blob([selectedNote.content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -659,17 +673,238 @@ export default function UserDashboard() {
     }
   };
 
-  // Profile photo functions with compression and error handling
+  // UPDATED: Fetch course content with enhanced note loading
+  const fetchCourseContent = async (courseId) => {
+    console.log("🔄 Fetching course content for courseId:", courseId);
+    
+    try {
+      const [videosRes, notesRes, quizzesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/videos/course/${courseId}`),
+        fetch(`${API_BASE_URL}/api/notes/course/${courseId}`),
+        fetch(`${API_BASE_URL}/api/quizzes/course/${courseId}`)
+      ]);
+
+      console.log("📡 API Response status:", {
+        videos: videosRes.status,
+        notes: notesRes.status,
+        quizzes: quizzesRes.status
+      });
+
+      let videos = [];
+      let notes = [];
+      let quizzes = [];
+
+      if (videosRes.ok) {
+        videos = await videosRes.json();
+        console.log("🎬 Videos from course endpoint:", videos);
+      } else {
+        console.log("⚠️ Course-specific videos endpoint failed, falling back to all videos");
+        const allVideosRes = await fetch(`${API_BASE_URL}/api/admin/videos`);
+        if (allVideosRes.ok) {
+          const allVideos = await allVideosRes.json();
+          videos = allVideos.filter(video => video.course === courseId);
+          console.log("🎬 Filtered videos:", videos);
+        }
+      }
+
+      // UPDATED: Enhanced notes loading with multiple fallback methods
+      if (notesRes.ok) {
+        notes = await notesRes.json();
+        console.log("📝 Notes from API:", notes);
+      } else {
+        console.log("⚠️ Course-specific notes endpoint failed, trying fallback methods");
+        
+        // Method 1: Try admin notes endpoint
+        try {
+          const allNotesRes = await fetch(`${API_BASE_URL}/api/admin/notes`);
+          if (allNotesRes.ok) {
+            const allNotes = await allNotesRes.json();
+            notes = allNotes.filter(note => note.course === courseId);
+            console.log("📝 Filtered notes from admin API:", notes);
+          }
+        } catch (apiError) {
+          console.log("❌ Admin notes API failed, trying localStorage");
+        }
+
+        // Method 2: Load from localStorage (where admin stores notes)
+        if (notes.length === 0) {
+          try {
+            const adminNotes = JSON.parse(localStorage.getItem('clinigoalNotes') || '[]');
+            console.log("💾 Notes from localStorage:", adminNotes);
+            
+            notes = adminNotes.filter(note => {
+              const noteCourseId = note.courseId || note.course;
+              return noteCourseId === courseId;
+            });
+            
+            console.log("📝 Filtered notes for course", courseId, ":", notes);
+            
+            if (notes.length === 0) {
+              const currentCourse = availableCourses.find(c => c._id === courseId);
+              if (currentCourse) {
+                notes = adminNotes.filter(note => {
+                  const noteCourseTitle = note.courseTitle || '';
+                  return noteCourseTitle.includes(currentCourse.title) || 
+                         currentCourse.title.includes(noteCourseTitle);
+                });
+                console.log("📝 Notes matched by title:", notes);
+              }
+            }
+          } catch (localStorageError) {
+            console.error('❌ Error loading notes from localStorage:', localStorageError);
+          }
+        }
+
+        // Method 3: Load from admin courses data
+        if (notes.length === 0) {
+          try {
+            const adminCourses = JSON.parse(localStorage.getItem('clinigoalCourses') || '[]');
+            const currentCourse = adminCourses.find(c => c._id === courseId);
+            if (currentCourse && currentCourse.notes) {
+              notes = currentCourse.notes.map((note, index) => ({
+                _id: note._id || `note_${courseId}_${index}`,
+                title: note.title || 'Untitled Note',
+                description: note.description || 'Study material',
+                fileType: note.fileType || 'pdf',
+                content: note.content || '',
+                course: courseId,
+                pages: note.pages || 1,
+                uploadedAt: note.uploadedAt || new Date().toISOString()
+              }));
+              console.log("📝 Notes from course data:", notes);
+            }
+          } catch (courseError) {
+            console.error('❌ Error loading notes from course data:', courseError);
+          }
+        }
+      }
+
+      if (quizzesRes.ok) {
+        quizzes = await quizzesRes.json();
+      } else {
+        const allQuizzesRes = await fetch(`${API_BASE_URL}/api/admin/quizzes`);
+        if (allQuizzesRes.ok) {
+          const allQuizzes = await allQuizzesRes.json();
+          quizzes = allQuizzes.filter(quiz => quiz.course === courseId);
+        }
+      }
+
+      console.log("📊 Final content for course", courseId, ":", {
+        videosCount: videos.length,
+        notesCount: notes.length,
+        quizzesCount: quizzes.length
+      });
+
+      const formattedNotes = notes.map(note => ({
+        _id: note._id || `note_${Date.now()}_${Math.random()}`,
+        title: note.title || 'Untitled Note',
+        description: note.description || 'Study material for this course',
+        fileType: note.fileType || 'pdf',
+        content: note.content || note.text || '',
+        pdfUrl: note.pdfUrl || note.fileUrl || null,
+        pages: note.pages || 1,
+        uploadedAt: note.uploadedAt || note.createdAt || new Date().toISOString(),
+        ...note
+      }));
+
+      setCourseContent({
+        videos,
+        notes: formattedNotes,
+        quizzes
+      });
+    } catch (error) {
+      console.error('❌ Error fetching course content:', error);
+      
+      if (isCourseAccessible(courseId)) {
+        console.log("📋 Setting enhanced demo content for course:", courseId);
+        
+        let actualNotes = [];
+        try {
+          const adminNotes = JSON.parse(localStorage.getItem('clinigoalNotes') || '[]');
+          actualNotes = adminNotes.filter(note => {
+            const noteCourseId = note.courseId || note.course;
+            return noteCourseId === courseId;
+          });
+          
+          console.log("🔍 Found actual notes for course:", actualNotes.length);
+        } catch (e) {
+          console.error('Error loading actual notes:', e);
+        }
+
+        if (actualNotes.length === 0) {
+          actualNotes = [
+            {
+              _id: '1',
+              title: 'Course Study Guide',
+              description: 'Comprehensive study material for the entire course',
+              fileType: 'pdf',
+              pages: 45,
+              pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+              content: `# Course Study Guide\n\n## Module 1: Introduction\n\nStart your learning journey with this comprehensive guide.`
+            },
+            {
+              _id: '2',
+              title: 'Practice Exercises',
+              description: 'Hands-on exercises to reinforce learning',
+              fileType: 'pdf',
+              pages: 23,
+              content: `# Practice Exercises\n\n## Exercise 1: Basic Concepts\n\nPractice what you've learned.`
+            }
+          ];
+        }
+
+        setCourseContent({
+          videos: [
+            {
+              _id: '1',
+              title: 'Introduction to Course',
+              description: 'Get started with the course overview and learning objectives',
+              duration: 1200,
+              thumbnail: 'https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+              module: 'Module 1'
+            }
+          ],
+          notes: actualNotes,
+          quizzes: [
+            {
+              _id: '1',
+              title: 'Module 1 Assessment',
+              description: 'Test your knowledge from the first module',
+              timeLimit: 30,
+              passingScore: 70,
+              questions: [
+                {
+                  _id: 'q1',
+                  questionText: "What is the primary goal of this course?",
+                  options: [
+                    { id: 'q1_opt1', optionText: "To learn new skills", isCorrect: true },
+                    { id: 'q1_opt2', optionText: "To get a certificate", isCorrect: false }
+                  ]
+                }
+              ]
+            }
+          ]
+        });
+      } else {
+        console.log("🚫 No demo content - course not approved:", courseId);
+        setCourseContent({
+          videos: [],
+          notes: [],
+          quizzes: []
+        });
+      }
+    }
+  };
+
+  // Profile photo functions
   const handleProfilePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (limit to 2MB)
       if (file.size > 2 * 1024 * 1024) {
         alert('Image size exceeds 2MB. Please choose a smaller image.');
         return;
       }
       
-      // Check file type
       if (!file.type.match('image.*')) {
         alert('Please select an image file (JPEG, PNG, etc.)');
         return;
@@ -678,18 +913,14 @@ export default function UserDashboard() {
       setIsUploading(true);
       
       try {
-        // Read the file as data URL
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {
             const originalDataUrl = event.target.result;
-            
-            // Compress the image
             const compressedDataUrl = await compressImage(originalDataUrl, 200, 200, 0.7);
             
-            // Check compressed size
-            const compressedSize = Math.round(compressedDataUrl.length * 3/4); // Approximate size in bytes
-            if (compressedSize > 500 * 1024) { // 500KB limit
+            const compressedSize = Math.round(compressedDataUrl.length * 3/4);
+            if (compressedSize > 500 * 1024) {
               alert('Compressed image is still too large. Please choose a smaller image.');
               setIsUploading(false);
               return;
@@ -697,12 +928,10 @@ export default function UserDashboard() {
             
             setProfilePhoto(compressedDataUrl);
             
-            // Try to save to sessionStorage first
             try {
               sessionStorage.setItem('userProfilePhoto', compressedDataUrl);
             } catch (sessionStorageError) {
               console.error('Session storage error:', sessionStorageError);
-              // Fallback to localStorage
               try {
                 localStorage.setItem('userProfilePhoto', compressedDataUrl);
               } catch (localStorageError) {
@@ -761,7 +990,6 @@ export default function UserDashboard() {
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
     
-    // Validate passwords
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setPasswordChangeStatus({
         type: 'error',
@@ -778,21 +1006,18 @@ export default function UserDashboard() {
       return;
     }
     
-    // Simulate password change
     setTimeout(() => {
       setPasswordChangeStatus({
         type: 'success',
         message: 'Password changed successfully'
       });
       
-      // Reset form
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
       
-      // Clear status after 3 seconds
       setTimeout(() => {
         setPasswordChangeStatus(null);
       }, 3000);
@@ -801,7 +1026,6 @@ export default function UserDashboard() {
 
   // Export data function
   const handleExportData = () => {
-    // Collect user data
     const userDataForExport = {
       profile: {
         userName: userData.userName,
@@ -818,7 +1042,6 @@ export default function UserDashboard() {
       exportDate: new Date().toISOString()
     };
     
-    // Convert to JSON and download
     const dataStr = JSON.stringify(userDataForExport, null, 2);
     const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
     
@@ -837,15 +1060,10 @@ export default function UserDashboard() {
       return;
     }
     
-    // Simulate account deletion
     alert('Account deletion simulated. In a real application, this would delete your account and all associated data.');
     
-    // Reset state
     setShowDeleteConfirm(false);
     setDeleteConfirmationText('');
-    
-    // In a real app, you would redirect to login or home page
-    // window.location.href = '/login';
   };
 
   // Payment History Functions
@@ -875,7 +1093,6 @@ export default function UserDashboard() {
   };
 
   const downloadReceipt = (payment) => {
-    // Create a printable receipt
     const receiptWindow = window.open('', '_blank');
     receiptWindow.document.write(`
       <!DOCTYPE html>
@@ -1020,7 +1237,6 @@ export default function UserDashboard() {
     
     receiptWindow.document.close();
     
-    // Give time for the content to load before printing
     setTimeout(() => {
       receiptWindow.print();
     }, 500);
@@ -1050,238 +1266,6 @@ export default function UserDashboard() {
       uniqueStudents,
       paymentMethods
     };
-  };
-
-  // Fetch course content when a course is selected
-  const fetchCourseContent = async (courseId) => {
-    console.log("🔄 Fetching course content for courseId:", courseId);
-    
-    try {
-      // Try the new course-specific endpoints first
-      const [videosRes, notesRes, quizzesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/videos/course/${courseId}`),
-        fetch(`${API_BASE_URL}/api/notes/course/${courseId}`),
-        fetch(`${API_BASE_URL}/api/quizzes/course/${courseId}`)
-      ]);
-
-      console.log("📡 API Response status:", {
-        videos: videosRes.status,
-        notes: notesRes.status,
-        quizzes: quizzesRes.status
-      });
-
-      let videos = [];
-      let notes = [];
-      let quizzes = [];
-
-      if (videosRes.ok) {
-        videos = await videosRes.json();
-        console.log("🎬 Videos from course endpoint:", videos);
-      } else {
-        console.log("⚠️ Course-specific videos endpoint failed, falling back to all videos");
-        // Fallback to all videos and filter
-       const allVideosRes = await fetch(`${API_BASE_URL}/api/admin/videos`);
-        if (allVideosRes.ok) {
-          const allVideos = await allVideosRes.json();
-          videos = allVideos.filter(video => video.course === courseId);
-          console.log("🎬 Filtered videos:", videos);
-        }
-      }
-
-      if (notesRes.ok) {
-        notes = await notesRes.json();
-      } else {
-        const allNotesRes = await fetch(`${API_BASE_URL}/api/admin/notes`);
-        if (allNotesRes.ok) {
-          const allNotes = await allNotesRes.json();
-          notes = allNotes.filter(note => note.course === courseId);
-        }
-      }
-
-      if (quizzesRes.ok) {
-        quizzes = await quizzesRes.json();
-      } else {
-       const allQuizzesRes = await fetch(`${API_BASE_URL}/api/admin/quizzes`);
-        if (allQuizzesRes.ok) {
-          const allQuizzes = await allQuizzesRes.json();
-          quizzes = allQuizzes.filter(quiz => quiz.course === courseId);
-        }
-      }
-
-      console.log("📊 Final content for course", courseId, ":", {
-        videosCount: videos.length,
-        notesCount: notes.length,
-        quizzesCount: quizzes.length
-      });
-
-      setCourseContent({
-        videos,
-        notes,
-        quizzes
-      });
-    } catch (error) {
-      console.error('❌ Error fetching course content:', error);
-      
-      // Set demo content for approved courses
-      if (isCourseAccessible(courseId)) {
-        console.log("📋 Setting demo content for course:", courseId);
-        setCourseContent({
-          videos: [
-            {
-              _id: '1',
-              title: 'Introduction to Course',
-              description: 'Get started with the course overview and learning objectives',
-              duration: 1200,
-              thumbnail: 'https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-              module: 'Module 1'
-            },
-            {
-              _id: '2',
-              title: 'Advanced Concepts',
-              description: 'Deep dive into advanced topics and practical applications',
-              duration: 1800,
-              thumbnail: 'https://images.unsplash.com/photo-1581091226835-a8a0058f0a35?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-              module: 'Module 2'
-            }
-          ],
-          notes: [
-            {
-              _id: '1',
-              title: 'Course Study Guide',
-              description: 'Comprehensive study material for the entire course',
-              fileType: 'pdf',
-              pages: 45,
-              pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', // Sample PDF URL
-              content: `
-# Course Study Guide
-
-## Module 1: Introduction to Clinical Research
-
-### Learning Objectives
-- Understand the fundamentals of clinical research
-- Learn about regulatory requirements
-- Explore ethical considerations in clinical trials
-
-### Key Concepts
-1. **Clinical Trial Phases**
-   - Phase I: Safety testing
-   - Phase II: Efficacy and side effects
-   - Phase III: Large-scale testing
-   - Phase IV: Post-marketing surveillance
-
-2. **Regulatory Framework**
-   - ICH-GCP guidelines
-   - FDA regulations
-   - EMA requirements
-
-### Study Tips
-- Review case studies regularly
-- Participate in discussion forums
-- Complete all practice exercises
-
-## Module 2: Advanced Research Methodologies
-
-### Statistical Analysis
-- Understanding p-values and confidence intervals
-- Sample size calculation
-- Data interpretation techniques
-
-### Case Study Analysis
-Real-world examples of successful clinical trials and common pitfalls to avoid.
-              `
-            },
-            {
-              _id: '2',
-              title: 'Practice Exercises',
-              description: 'Hands-on exercises to reinforce learning',
-              fileType: 'pdf',
-              pages: 23,
-              content: `
-# Practice Exercises
-
-## Exercise 1: Protocol Development
-
-**Scenario:** You are designing a Phase III clinical trial for a new diabetes medication.
-
-**Tasks:**
-1. Define primary and secondary endpoints
-2. Create inclusion and exclusion criteria
-3. Develop a statistical analysis plan
-4. Outline patient monitoring procedures
-
-## Exercise 2: Regulatory Compliance
-
-**Scenario:** Your clinical trial site is undergoing an FDA inspection.
-
-**Tasks:**
-1. Prepare essential documents for review
-2. Identify potential compliance issues
-3. Develop corrective action plans
-4. Create audit response documentation
-
-## Exercise 3: Data Management
-
-**Scenario:** You have collected data from 500 patients across 10 sites.
-
-**Tasks:**
-1. Design data validation checks
-2. Create data cleaning procedures
-3. Develop data analysis plan
-4. Prepare data for regulatory submission
-
-## Exercise 4: Patient Safety
-
-**Scenario:** A serious adverse event occurs during your trial.
-
-**Tasks:**
-1. Document the event properly
-2. Notify relevant authorities
-3. Implement safety measures
-4. Update risk-benefit assessment
-              `
-            }
-          ],
-          quizzes: [
-            {
-              _id: '1',
-              title: 'Module 1 Assessment',
-              description: 'Test your knowledge from the first module',
-              timeLimit: 30,
-              passingScore: 70,
-              questions: [
-                {
-                  _id: 'q1',
-                  questionText: "What is the primary goal of clinical research?",
-                  options: [
-                    { id: 'q1_opt1', optionText: "To develop new drugs", isCorrect: false },
-                    { id: 'q1_opt2', optionText: "To determine the safety and effectiveness of medical interventions", isCorrect: true },
-                    { id: 'q1_opt3', optionText: "To train medical professionals", isCorrect: false },
-                    { id: 'q1_opt4', optionText: "To market pharmaceutical products", isCorrect: false }
-                  ]
-                },
-                {
-                  _id: 'q2',
-                  questionText: "What does GCP stand for?",
-                  options: [
-                    { id: 'q2_opt1', optionText: "General Clinical Practices", isCorrect: false },
-                    { id: 'q2_opt2', optionText: "Good Clinical Practices", isCorrect: true },
-                    { id: 'q2_opt3', optionText: "Guided Clinical Procedures", isCorrect: false },
-                    { id: 'q2_opt4', optionText: "Global Clinical Protocols", isCorrect: false }
-                  ]
-                }
-              ]
-            }
-          ]
-        });
-      } else {
-        console.log("🚫 No demo content - course not approved:", courseId);
-        setCourseContent({
-          videos: [],
-          notes: [],
-          quizzes: []
-        });
-      }
-    }
   };
 
   // Calculate course completion percentage
@@ -1324,7 +1308,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       ? Math.round(accessibleCourses.reduce((acc, course) => acc + calculateCourseCompletion(course._id), 0) / totalCourses)
       : 0;
     
-    // Calculate total learning time from course data
     const totalLearningTime = accessibleCourses.reduce((acc, course) => {
       return acc + (course.timeSpent || 0);
     }, 0);
@@ -1367,7 +1350,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     setIsGeneratingCertificate(true);
     
     try {
-      // Simulate certificate generation process
       const certificate = {
         _id: `cert_${Date.now()}`,
         courseId: course._id,
@@ -1379,14 +1361,11 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         duration: course.duration
       };
 
-      // Add to certificates list
       setCertificates(prev => [...prev, certificate]);
       
-      // Show certificate modal
       setCertificateData(certificate);
       setShowCertificateModal(true);
       
-      // Save to localStorage
       const savedCertificates = JSON.parse(localStorage.getItem('userCertificates') || '[]');
       localStorage.setItem('userCertificates', JSON.stringify([...savedCertificates, certificate]));
       
@@ -1531,7 +1510,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     
     certificateWindow.document.close();
     
-    // Give time for the content to load before printing
     setTimeout(() => {
       certificateWindow.print();
     }, 500);
@@ -1542,7 +1520,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     if (!completedNotes.includes(noteId)) {
       setCompletedNotes(prev => [...prev, noteId]);
       
-      // Update local storage
       const savedCompletedNotes = JSON.parse(localStorage.getItem('completedNotes') || '[]');
       localStorage.setItem('completedNotes', JSON.stringify([...savedCompletedNotes, noteId]));
     }
@@ -1553,7 +1530,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     try {
       console.log("🚀 Starting quiz:", quiz.title);
       
-      // If the quiz doesn't have questions, fetch them from the server
       if (!quiz.questions || quiz.questions.length === 0) {
         try {
          const response = await fetch(`${API_BASE_URL}/api/admin/quizzes/${quiz._id}`);
@@ -1563,12 +1539,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             setQuizAnswers({});
             setQuizResults(null);
             
-            // Initialize timer and question tracking
             setQuizTimer(0);
             setQuestionStartTime({});
             setQuestionTimes({});
             
-            // Start the timer
             const interval = setInterval(() => {
               setQuizTimer(prev => prev + 1);
             }, 1000);
@@ -1581,7 +1555,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         }
       }
       
-      // Ensure questions have proper IDs
       const quizWithProperIds = {
         ...quiz,
         questions: quiz.questions?.map((question, qIndex) => ({
@@ -1596,17 +1569,14 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       
       console.log("🎯 Quiz with proper IDs:", quizWithProperIds);
       
-      // Use the quiz with proper IDs
       setActiveQuiz(quizWithProperIds);
       setQuizAnswers({});
       setQuizResults(null);
       
-      // Initialize timer and question tracking
       setQuizTimer(0);
       setQuestionStartTime({});
       setQuestionTimes({});
       
-      // Start the timer
       const interval = setInterval(() => {
         setQuizTimer(prev => prev + 1);
       }, 1000);
@@ -1620,7 +1590,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
   const handleAnswerSelect = (questionId, optionId) => {
     console.log("📝 Answer selected:", { questionId, optionId });
     
-    // Record time spent on this question
     if (questionStartTime[questionId]) {
       const timeSpent = Math.floor(Date.now() / 1000) - questionStartTime[questionId];
       setQuestionTimes(prev => ({
@@ -1634,7 +1603,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       [questionId]: optionId
     }));
     
-    // Set start time for the next question
     setQuestionStartTime(prev => ({
       ...prev,
       [questionId]: Math.floor(Date.now() / 1000)
@@ -1646,7 +1614,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
   const submitQuiz = async () => {
     if (!activeQuiz) return;
 
-    // Stop the timer
     if (timerInterval) {
       clearInterval(timerInterval);
       setTimerInterval(null);
@@ -1657,11 +1624,9 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     console.log("Active quiz questions:", activeQuiz.questions);
 
     try {
-      // Calculate results locally first
       let correctAnswers = 0;
       let totalQuestions = activeQuiz.questions.length;
 
-      // Prepare detailed results for each question
       const detailedResults = activeQuiz.questions.map((question, questionIndex) => {
         const questionId = question._id || `q${questionIndex}`;
         const selectedOptionId = quizAnswers[questionId];
@@ -1673,15 +1638,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           options: question.options
         });
 
-        // Find the selected option
         const selectedOption = question.options.find(opt => 
           opt.id === selectedOptionId || opt._id === selectedOptionId
         );
         
-        // Find the correct option
         const correctOption = question.options.find(opt => opt.isCorrect === true);
         
-        // Check if the selected option is correct
         const isCorrect = selectedOption && selectedOption.isCorrect === true;
         
         if (isCorrect) {
@@ -1707,7 +1669,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       const score = Math.round((correctAnswers / totalQuestions) * 100);
       const passed = score >= (activeQuiz.passingScore || 70);
 
-      // Format the time
       const formattedTime = formatTime(quizTimer);
 
       const results = {
@@ -1722,16 +1683,13 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
 
       console.log("📊 Quiz results:", results);
 
-      // Mark quiz as completed if passed
       if (passed && activeQuiz._id && !completedQuizzes.includes(activeQuiz._id)) {
         setCompletedQuizzes(prev => [...prev, activeQuiz._id]);
         
-        // Update local storage
         const savedCompletedQuizzes = JSON.parse(localStorage.getItem('completedQuizzes') || '[]');
         localStorage.setItem('completedQuizzes', JSON.stringify([...savedCompletedQuizzes, activeQuiz._id]));
       }
 
-      // Try to submit to server if available
       try {
         const response = await fetch(`${API_BASE_URL}/api/quizzes/${activeQuiz._id}/submit`, {
           method: 'POST',
@@ -1748,7 +1706,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         if (response.ok) {
           const serverResults = await response.json();
           console.log("✅ Quiz submitted to server successfully");
-          // Use server results if available, otherwise use local results
           setQuizResults(serverResults);
         } else {
           console.log("⚠️ Server submission failed, using local results");
@@ -1759,7 +1716,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         setQuizResults(results);
       }
 
-      // Update local course progress if quiz passed
       if (results.passed && selectedCourse) {
         const updatedCourses = enrolledCourses.map(course => 
           course.id === selectedCourse.id 
@@ -1768,7 +1724,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         );
         setEnrolledCourses(updatedCourses);
         
-        // Update localStorage
         localStorage.setItem('userEnrollments', JSON.stringify(updatedCourses));
       }
 
@@ -1812,7 +1767,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       studentEmail: userData.userEmail,
       studentPhone: '',
       paymentMethod: 'razorpay',
-      paymentOption: 'full', // Default to full payment
+      paymentOption: 'full',
       agreeToTerms: false
     });
     setShowEnrollmentForm(true);
@@ -1830,33 +1785,25 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
   const handleRazorPayPayment = async () => {
     if (!enrollmentCourse) return;
     
-    // Get the payment amount based on selection - USING REAL COURSE PRICE
     const paymentAmount = enrollmentForm.paymentOption === 'demo' 
       ? "₹1.00" 
-      : enrollmentCourse.price; // Use actual course price from admin
+      : enrollmentCourse.price;
     
-    // Show payment confirmation
     alert(`🎉 Payment Successful!\n\nYou have successfully paid ${paymentAmount} for ${enrollmentCourse.title}.\n\nYour enrollment is now pending admin approval. You will get access once approved.`);
     
-    // Update paid courses
     const updatedPaidCourses = new Set([...paidCourses, enrollmentCourse._id]);
     setPaidCourses(updatedPaidCourses);
     localStorage.setItem('paidCourses', JSON.stringify([...updatedPaidCourses]));
     
-    // Add to payment history with actual course price
     const payment = addPaymentToHistory(enrollmentCourse, paymentAmount, 'razorpay');
     
-    // Submit for approval
     submitEnrollmentForApproval(enrollmentCourse, paymentAmount);
     
-    // Show success
     setEnrollmentSuccess(true);
     
-    // Close the enrollment form after 3 seconds
     setTimeout(() => {
       setShowEnrollmentForm(false);
       setEnrollmentSuccess(false);
-      // Optionally redirect to dashboard or payment history
       setActiveSection('dashboard');
     }, 3000);
   };
@@ -1870,22 +1817,18 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       return;
     }
     
-    // Use the updated RazorPay payment function
     await handleRazorPayPayment();
   };
 
   const handleWatchVideo = async (video) => {
     try {
-      // Add video to watched videos list
       if (!watchedVideos.includes(video._id)) {
         setWatchedVideos(prev => [...prev, video._id]);
         
-        // Update local storage
         const savedWatchedVideos = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
         localStorage.setItem('watchedVideos', JSON.stringify([...savedWatchedVideos, video._id]));
       }
       
-      // Mark video as watched and update progress
       await fetch(`${API_BASE_URL}/api/courses/${selectedCourse.id}/videos/${video._id}/watch`, {
         method: 'POST',
         headers: {
@@ -1895,7 +1838,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         console.log('Watch API not available, updating locally');
       });
 
-      // Update local progress
       if (selectedCourse) {
         const updatedCourses = enrolledCourses.map(course => 
           course.id === selectedCourse.id 
@@ -1904,7 +1846,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         );
         setEnrolledCourses(updatedCourses);
         
-        // Update localStorage
         localStorage.setItem('userEnrollments', JSON.stringify(updatedCourses));
       }
     } catch (error) {
@@ -1958,13 +1899,11 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     e.preventDefault();
     
     try {
-      // Get current user info
       const currentUser = {
         name: userData.userName,
         email: userData.userEmail
       };
       
-      // Create a comprehensive review object
       const newReview = {
         _id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         courseId: reviewForm.courseId,
@@ -1980,7 +1919,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
 
       console.log("📝 Submitting review:", newReview);
 
-      // Method 1: Save to user's personal review storage
       const userKey = `userReviews_${currentUser.email.replace(/[@.]/g, '_')}`;
       const userExistingReviews = JSON.parse(localStorage.getItem(userKey) || '[]');
       userExistingReviews.push(newReview);
@@ -1988,14 +1926,12 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       
       console.log(`💾 Saved to user storage: ${userKey}`, userExistingReviews.length);
 
-      // Method 2: Update centralized storage for admin dashboard
       const centralizedReviews = JSON.parse(localStorage.getItem('allStudentReviews') || '[]');
-      centralizedReviews.unshift(newReview); // Add to beginning
+      centralizedReviews.unshift(newReview);
       localStorage.setItem('allStudentReviews', JSON.stringify(centralizedReviews));
       
       console.log("💾 Saved to centralized storage:", centralizedReviews.length);
 
-      // Method 3: Try to submit to API
       try {
         const response = await fetch(`${API_BASE_URL}/api/reviews`, {
           method: 'POST',
@@ -2018,10 +1954,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         setReviews(prev => [newReview, ...prev]);
       }
       
-      // Show success message
       setReviewSubmitted(true);
       
-      // Reset form
       setReviewForm({
         courseId: '',
         rating: 5,
@@ -2029,7 +1963,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         anonymous: false
       });
       
-      // Reset submission status after 3 seconds
       setTimeout(() => setReviewSubmitted(false), 3000);
       
       console.log("🎉 Review submitted successfully!");
@@ -2080,7 +2013,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
           <div className="course-level">{course.level}</div>
           
-          {/* Status Badge */}
           {status === 'pending' && (
             <div className="status-badge pending">⏳ Pending Approval</div>
           )}
@@ -2111,7 +2043,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           <div className="course-meta">
             <span className="duration">⏱️ {course.duration}</span>
             <div className="price-section">
-              {/* FIXED: Show only the actual admin price */}
               <span className="price">{course.price}</span>
             </div>
           </div>
@@ -2137,7 +2068,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <button className="btn-secondary">
                   Course Details
                 </button>
-                {/* FIXED: Show "Enroll Now" without price */}
                 <button 
                   onClick={() => handleEnrollmentClick(course)}
                   className="btn-primary"
@@ -2399,10 +2329,8 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               <p>{selectedNote.description}</p>
             </div>
             
-            {/* UPDATED: PDF Viewer Section */}
             <div className="note-viewer-container full-height">
               {pdfUrl ? (
-                // Display PDF using iframe
                 <div className="pdf-viewer">
                   <iframe 
                     src={pdfUrl} 
@@ -2419,12 +2347,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   </iframe>
                 </div>
               ) : selectedNote.content ? (
-                // Display text content as fallback
                 <div className="note-text-content full-height">
                   <pre>{selectedNote.content}</pre>
                 </div>
               ) : (
-                // No content available
                 <div className="no-content-message">
                   <div className="empty-icon">📄</div>
                   <h3>No Content Available</h3>
@@ -2520,7 +2446,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         </div>
 
-        {/* Dashboard Features Section */}
         {accessibleCourses.length > 0 ? (
           <div className="dashboard-features">
             <div className="section-header">
@@ -2606,7 +2531,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         )}
 
-        {/* Pending Approvals Section */}
         {pendingApprovals.length > 0 && (
           <div className="pending-approvals-section">
             <div className="section-header">
@@ -2696,7 +2620,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // UPDATED: Available Courses Section with FIXED Price Display and "Enroll Now" button
+  // UPDATED: Available Courses Section with enhanced note loading
   const renderAvailableCourses = () => (
     <div className="available-courses-content">
       <div className="section-header">
@@ -2750,7 +2674,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         </div>
       )}
       
-      {/* UPDATED: Enrollment Form Modal with FIXED Course Price Display */}
       {showEnrollmentForm && enrollmentCourse && (
         <div className="enrollment-modal-overlay popup-overlay">
           <div className="enrollment-modal popup-modal">
@@ -2791,7 +2714,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     <p><strong>Instructor:</strong> {enrollmentCourse.instructor}</p>
                     <p><strong>Duration:</strong> {enrollmentCourse.duration}</p>
                     <div className="price-options">
-                      {/* FIXED: Show only the actual course price */}
                       <p><strong>Course Price:</strong> <span className="course-price">{enrollmentCourse.price}</span></p>
                       <p><strong>Demo Price:</strong> <span className="demo-price">₹1.00</span></p>
                     </div>
@@ -2799,7 +2721,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                   </div>
                 </div>
 
-                {/* Payment Option Selection */}
                 <div className="form-group">
                   <label>Select Payment Option *</label>
                   <div className="payment-options">
@@ -2837,7 +2758,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                       <label htmlFor="full-payment" className="payment-option-label">
                         <div className="payment-option-header">
                           <span className="payment-option-title">Full Payment</span>
-                          {/* FIXED: Show only the actual course price */}
                           <span className="payment-option-price">{enrollmentCourse.price}</span>
                         </div>
                         <p className="payment-option-description">
@@ -2923,7 +2843,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                 <div className="payment-summary">
                   <div className="payment-total">
                     <span className="total-label">Total Amount:</span>
-                    {/* FIXED: Show only the selected price */}
                     <span className="total-amount">
                       {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price}
                     </span>
@@ -2944,7 +2863,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                     disabled={!enrollmentForm.agreeToTerms}
                   >
                     <span className="razorpay-text">
-                      {/* FIXED: Show only the selected price without "fee" */}
                       Pay {enrollmentForm.paymentOption === 'demo' ? '₹1.00' : enrollmentCourse.price} - Go to RazorPay
                     </span>
                   </button>
@@ -3075,7 +2993,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
 
   // Student Review Section with Enhanced Storage
   const renderStudentReview = () => {
-    // Load user's own reviews
     const userReviews = loadUserReviews();
     const displayReviews = userReviews.length > 0 ? userReviews : reviews;
 
@@ -3269,7 +3186,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
       </div>
 
       <div className="settings-container">
-        {/* Profile Settings */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="settings-icon">👤</div>
@@ -3332,7 +3248,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         </div>
 
-        {/* Appearance Settings */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="settings-icon">🎨</div>
@@ -3361,7 +3276,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         </div>
 
-        {/* Password Change */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="settings-icon">🔒</div>
@@ -3423,7 +3337,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
         </div>
 
-        {/* Account Actions */}
         <div className="settings-card">
           <div className="settings-card-header">
             <div className="settings-icon">⚙️</div>
@@ -3487,6 +3400,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     </div>
   );
 
+  // UPDATED: Course Content Section with enhanced note loading
   const renderCourseContent = () => {
     if (!selectedCourse || !isCourseAccessible(selectedCourse._id)) {
       return (
@@ -3541,9 +3455,20 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             <ProgressBar progress={completionPercentage} />
             <span className="progress-label">{completionPercentage}% Complete</span>
           </div>
+          
+          <button 
+            className="btn-secondary refresh-btn"
+            onClick={() => {
+              console.log("🔄 Manually refreshing course content...");
+              fetchCourseContent(selectedCourse._id);
+              checkForAdminNotes();
+            }}
+            title="Refresh content to see latest notes"
+          >
+            🔄 Refresh Content
+          </button>
         </div>
 
-        {/* Certificate Section - Only show if course is completed */}
         {isCompleted && (
           <div className="certificate-section">
             <div className="certificate-card premium">
@@ -3579,7 +3504,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
           </div>
 
           <div className="tab-content">
-            {/* Videos Tab */}
             <div className="content-section">
               <h2>Video Lectures</h2>
               {courseContent.videos.length > 0 ? (
@@ -3640,9 +3564,21 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               )}
             </div>
 
-            {/* Notes Tab */}
             <div className="content-section">
-              <h2>Notes & Study Materials</h2>
+              <div className="section-header-with-action">
+                <h2>Notes & Study Materials</h2>
+                <button 
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    console.log("🔄 Refreshing notes...");
+                    fetchCourseContent(selectedCourse._id);
+                    checkForAdminNotes();
+                  }}
+                >
+                  🔄 Refresh Notes
+                </button>
+              </div>
+              
               {courseContent.notes.length > 0 ? (
                 <div className="notes-grid">
                   {courseContent.notes.map(note => {
@@ -3658,6 +3594,11 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
                           <p>{note.description}</p>
                           <div className="note-meta">
                             <span>{note.fileType?.toUpperCase() || 'PDF'} • {note.pages || 'N/A'} pages</span>
+                            {note.uploadedAt && (
+                              <span className="upload-date">
+                                Added: {new Date(note.uploadedAt).toLocaleDateString()}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="note-actions">
@@ -3683,22 +3624,28 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               ) : (
                 <div className="empty-state">
                   <div className="empty-icon">📝</div>
-                  <h3>No Notes Available</h3>
-                  <p>Notes and study materials will be added soon by the instructor.</p>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => {
-                      console.log("🔄 Refreshing course content...");
-                      fetchCourseContent(selectedCourse.courseId || selectedCourse.id || selectedCourse._id);
-                    }}
-                  >
-                    Refresh
-                  </button>
+                  <h3>No Notes Available Yet</h3>
+                  <p>Notes and study materials haven't been added to this course yet.</p>
+                  <div className="empty-actions">
+                    <button 
+                      className="btn-secondary"
+                      onClick={() => {
+                        console.log("🔄 Refreshing course content...");
+                        fetchCourseContent(selectedCourse.courseId || selectedCourse.id || selectedCourse._id);
+                        checkForAdminNotes();
+                      }}
+                    >
+                      Check for New Notes
+                    </button>
+                    <p className="empty-hint">
+                      💡 <strong>Note:</strong> The course instructor needs to upload notes through the admin dashboard.
+                      They will appear here automatically once uploaded.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Quizzes Tab */}
             <div className="content-section">
               <h2>Assessments</h2>
               {courseContent.quizzes.length > 0 ? (
@@ -3781,7 +3728,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             )}
           </div>
 
-          {/* Detailed Results Section */}
           <div className="detailed-results">
             <h3>Question Review</h3>
             <div className="questions-review">
@@ -4027,7 +3973,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
 
   return (
     <div className="user-dashboard">
-      {/* Navbar Toggle Button */}
       <button 
         className={`navbar-toggle ${isNavbarOpen ? 'open' : ''}`}
         onClick={toggleNavbar}
@@ -4037,12 +3982,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         <span className="toggle-line"></span>
       </button>
 
-      {/* Overlay for mobile */}
       {isMobile && isNavbarOpen && (
         <div className="sidebar-overlay active" onClick={closeSidebar}></div>
       )}
 
-      {/* Sidebar */}
       <div className={`dashboard-sidebar ${isNavbarOpen ? 'open' : 'closed'} ${!isNavbarOpen && !isMobile ? 'mini' : ''}`}>
         <div className="sidebar-header">
           <div className="clinigoal-logo">
@@ -4166,7 +4109,6 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
         </div>
       </div>
 
-      {/* Main Content */}
       <div className={`dashboard-main ${!isNavbarOpen ? 'expanded' : ''}`}>
         {activeQuiz ? renderQuiz() : 
          activeSection === 'course-content' ? renderCourseContent() :
@@ -4181,13 +4123,10 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
          renderDashboard()}
       </div>
 
-      {/* Certificate Modal */}
       {renderCertificateModal()}
 
-      {/* Payment Details Modal */}
       {renderPaymentModal()}
 
-      {/* Note Viewing Modal */}
       {renderNoteModal()}
     </div>
   );
