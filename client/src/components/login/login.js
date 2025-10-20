@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { trackUserLogin } from "../../utils/userTracking";
-import "./Login.css";
+import "./Login.css"; // We'll use the simplified CSS
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -13,7 +13,6 @@ export default function Login() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ 
@@ -21,10 +20,6 @@ export default function Login() {
       [e.target.name]: e.target.value 
     });
     if (error) setError("");
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -101,110 +96,60 @@ export default function Login() {
 
   return (
     <div className="login-container">
-      <div className="login-background">
-        <div className="login-particles">
-          {[...Array(15)].map((_, i) => (
-            <div key={i} className="particle" style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`
-            }}></div>
-          ))}
-        </div>
-      </div>
-      
       <div className="login-card">
         <div className="login-header">
-          <div className="logo">
-            <h2></h2>
-          </div>
-          <h1>Welcome Back</h1>
-          <p>Sign in to your account to continue</p>
+          <h2>Login</h2>
+          <p>Sign in to your account</p>
         </div>
 
         {error && (
           <div className="error-message">
-            <span className="error-icon">⚠️</span>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="login-form">
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <div className="input-container">
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                className={error && !formData.email ? "error" : ""}
-                placeholder="Enter your email"
-              />
-              <span className="input-icon">✉️</span>
-            </div>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              disabled={loading}
+              placeholder="Enter your email"
+            />
           </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <div className="input-container">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                className={error && !formData.password ? "error" : ""}
-                placeholder="Enter your password"
-                minLength="6"
-              />
-              <span className="input-icon">🔒</span>
-              <button 
-                type="button"
-                className="password-toggle"
-                onClick={togglePasswordVisibility}
-                tabIndex="-1"
-              >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
-              </button>
-            </div>
-          </div>
-          
-          <div className="form-options">
-            <div className="remember-me">
-              <input type="checkbox" id="remember" />
-              <label htmlFor="remember">Remember me</label>
-            </div>
-            <Link to="/forgot-password" className="forgot-password">
-              Forgot Password?
-            </Link>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              disabled={loading}
+              placeholder="Enter your password"
+              minLength="6"
+            />
           </div>
 
           <button 
             type="submit" 
-            className={`login-btn ${loading ? "loading" : ""}`}
+            className="login-btn"
             disabled={loading}
           >
-            {loading ? (
-              <>
-                <div className="spinner"></div>
-                Signing In...
-              </>
-            ) : (
-              "Sign In"
-            )}
+            {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
-        <div className="login-footer">
-          <p>
-            Don't have an account?{" "}
-            <Link to="/signup" className="signup-link">Create Account</Link>
-          </p>
+        <div className="register-link">
+          <p>Don't have an account? <Link to="/signup">Create Account</Link></p>
+          <p><Link to="/forgot-password">Forgot your password? Reset here</Link></p>
         </div>
       </div>
     </div>

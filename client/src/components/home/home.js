@@ -425,7 +425,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Get Started</span>
-            <h2 className="section-title">Simple Registration Process</h2>
+            <h2 className="section-title"></h2>
             <p className="section-description">
               Join Clinigoal in just 4 simple steps and start your learning journey
             </p>
@@ -520,7 +520,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Our Programs</span>
-            <h2 className="section-title">Featured Courses</h2>
+            <h2 className="section-title"></h2>
             <p className="section-description">
               Specialized programs designed for healthcare professionals seeking career advancement
             </p>
@@ -586,7 +586,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Why Choose Us</span>
-            <h2 className="section-title">Why Choose Clinigoal</h2>
+            <h2 className="section-title"></h2>
             <p className="section-description">
               We provide the best learning experience for healthcare professionals with industry-focused curriculum
             </p>
@@ -639,7 +639,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Testimonials</span>
-            <h2 className="section-title">What Our Students Say</h2>
+            <h2 className="section-title"></h2>
             <p className="section-description">
               Hear from professionals who transformed their careers with Clinigoal
             </p>
@@ -705,7 +705,7 @@ const Home = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-subtitle">Industry Insights</span>
-            <h2 className="section-title">Why Healthcare Sciences?</h2>
+            <h2 className="section-title"></h2>
             <p className="section-description">
               The healthcare and life sciences industry is rapidly evolving with tremendous growth opportunities
             </p>
