@@ -681,7 +681,7 @@ function AdminDashboard() {
     );
   };
 
-  // ========== ANALYTICS FUNCTIONS (REPLACED PROGRESS TRACKING) ==========
+  // ========== ANALYTICS FUNCTIONS ==========
 
   const fetchAnalyticsData = () => {
     try {
@@ -982,60 +982,13 @@ function AdminDashboard() {
   // ========== UPDATED ANALYTICS COMPONENT ==========
 
   const renderAnalytics = () => {
-    const courseAnalyticsData = {
-      labels: courses.map(course => course.title),
-      datasets: [
-        {
-          label: 'Enrollments',
-          data: courses.map(course => analyticsStats.courseEnrollments[course._id] || 0),
-          backgroundColor: 'rgba(79, 70, 229, 0.7)',
-          borderColor: 'rgba(79, 70, 229, 1)',
-          borderWidth: 1,
-        },
-        {
-          label: 'Completions',
-          data: courses.map(course => analyticsStats.courseCompletions[course._id] || 0),
-          backgroundColor: 'rgba(34, 197, 94, 0.7)',
-          borderColor: 'rgba(34, 197, 94, 1)',
-          borderWidth: 1,
-        }
-      ]
-    };
-
-    const engagementData = {
-      labels: ['High', 'Medium', 'Low'],
-      datasets: [
-        {
-          data: [
-            analyticsData.filter(s => s.engagementLevel === 'High').length,
-            analyticsData.filter(s => s.engagementLevel === 'Medium').length,
-            analyticsData.filter(s => s.engagementLevel === 'Low').length
-          ],
-          backgroundColor: [
-            'rgba(34, 197, 94, 0.7)',
-            'rgba(234, 179, 8, 0.7)',
-            'rgba(239, 68, 68, 0.7)'
-          ],
-          borderColor: [
-            'rgba(34, 197, 94, 1)',
-            'rgba(234, 179, 8, 1)',
-            'rgba(239, 68, 68, 1)'
-          ],
-          borderWidth: 1,
-        },
-      ],
-    };
-
     return (
       <div className="admin-analytics">
         <div className="admin-page-header">
-          <h1 className="admin-page-title">Learning Analytics</h1>
+          <h1 className="admin-page-title">Student Analytics</h1>
           <div className="admin-page-actions">
             <button className="admin-btn primary" onClick={fetchAnalyticsData}>
               🔄 Refresh Data
-            </button>
-            <button className="admin-btn secondary" onClick={() => setActiveTab('students')}>
-              👥 View All Students
             </button>
           </div>
         </div>
@@ -1060,9 +1013,9 @@ function AdminDashboard() {
           <div className="admin-stat-card warning">
             <div className="admin-stat-icon">📊</div>
             <div className="admin-stat-content">
-              <h3>{analyticsStats.engagementRate}%</h3>
-              <p>Engagement Rate</p>
-              <span className="admin-stat-change positive">Overall engagement</span>
+              <h3>{analyticsStats.averageProgress}%</h3>
+              <p>Average Progress</p>
+              <span className="admin-stat-change positive">Overall progress</span>
             </div>
           </div>
           <div className="admin-stat-card info">
@@ -1075,75 +1028,6 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Analytics Charts */}
-        <div className="admin-charts-section">
-          <div className="admin-chart-card">
-            <h3>Course Performance</h3>
-            <div className="admin-chart-container">
-              <Bar 
-                data={courseAnalyticsData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        precision: 0
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="admin-chart-card">
-            <h3>Student Engagement</h3>
-            <div className="admin-chart-container">
-              <Doughnut 
-                data={engagementData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'right',
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Popular Courses */}
-        <div className="admin-analytics-section">
-          <h3>🎯 Popular Courses</h3>
-          <div className="popular-courses-grid">
-            {analyticsStats.popularCourses.map((course, index) => (
-              <div key={course.courseId} className="popular-course-card">
-                <div className="popular-course-rank">#{index + 1}</div>
-                <div className="popular-course-info">
-                  <h4>{course.title}</h4>
-                  <p>{course.enrollments} enrollments</p>
-                </div>
-                <div className="popular-course-metric">
-                  <div className="metric-value">
-                    {Math.round((course.enrollments / analyticsStats.totalEnrollments) * 100)}%
-                  </div>
-                  <div className="metric-label">of total</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Student Analytics Overview */}
         <div className="admin-analytics-details">
           <h3>📋 Student Analytics Overview</h3>
@@ -1152,75 +1036,105 @@ function AdminDashboard() {
             <div className="search-box">
               <input
                 type="text"
-                placeholder="Search students..."
+                placeholder="Search students by name or email..."
                 className="search-input"
               />
             </div>
             <div className="filter-controls">
               <select className="filter-select">
-                <option value="all">All Engagement Levels</option>
-                <option value="high">High Engagement</option>
-                <option value="medium">Medium Engagement</option>
-                <option value="low">Low Engagement</option>
+                <option value="all">All Students</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="in-progress">In Progress</option>
               </select>
             </div>
           </div>
 
           <div className="admin-table-card">
             {analyticsData.length > 0 ? (
-              <div className="student-analytics-grid">
+              <div className="student-analytics-list">
                 {analyticsData.map((student, index) => {
                   if (!student) return null;
                   
+                  // Get enrolled course names
+                  const enrolledCourseNames = student.enrolledCourses?.map(courseId => {
+                    const course = courses.find(c => c._id === courseId);
+                    return course?.title || 'Unknown Course';
+                  }).join(', ') || 'No courses enrolled';
+
+                  // Check if any certificates exist
+                  const hasCertificates = student.certificates && student.certificates.length > 0;
+                  
                   return (
-                    <div key={student.id || index} className="student-analytics-card">
-                      <div className="student-analytics-header">
-                        <div className="student-avatar-large">
+                    <div key={student.id || index} className="student-analytics-item">
+                      <div className="student-basic-info">
+                        <div className="student-avatar">
                           {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
                         </div>
-                        <div className="student-basic-info">
-                          <h4>👤 {student.userName || 'Unknown User'}</h4>
-                          <p>📧 {student.userEmail || 'No email'}</p>
-                          <p>🎓 Enrolled in: {student.enrolledCourses?.length || 0} courses</p>
-                        </div>
-                        <div className={`engagement-badge ${student.engagementLevel?.toLowerCase()}`}>
-                          {student.engagementLevel} Engagement
+                        <div className="student-details">
+                          <div className="student-info-line">
+                            <span className="info-icon">👤</span>
+                            <strong>Name:</strong> {student.userName || 'Unknown User'}
+                          </div>
+                          <div className="student-info-line">
+                            <span className="info-icon">📧</span>
+                            <strong>Email:</strong> {student.userEmail || 'No email'}
+                          </div>
+                          <div className="student-info-line">
+                            <span className="info-icon">🎓</span>
+                            <strong>Enrolled in:</strong> {enrolledCourseNames}
+                          </div>
+                          <div className="student-info-line">
+                            <span className="info-icon">📊</span>
+                            <strong>Overall Progress:</strong> 
+                            <span className="progress-value">{student.overallProgress || 0}%</span>
+                            <div className="mini-progress-bar">
+                              <div 
+                                className="mini-progress-fill" 
+                                style={{ width: `${student.overallProgress || 0}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="student-info-line">
+                            <span className="info-icon">🕐</span>
+                            <strong>Last Login:</strong> {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}
+                          </div>
+                          <div className="student-info-line">
+                            <span className="info-icon">📜</span>
+                            <strong>Certificates:</strong> 
+                            <span className={`certificate-status ${hasCertificates ? 'generated' : 'not-generated'}`}>
+                              {hasCertificates ? '✅ Generated' : '❌ Not Yet Generated'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="student-metrics">
-                        <div className="metric">
-                          <span className="metric-label">Overall Progress</span>
-                          <div className="metric-value">{student.overallProgress || 0}%</div>
-                          <div className="progress-bar">
-                            <div 
-                              className="progress-fill" 
-                              style={{ width: `${student.overallProgress || 0}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        <div className="metric">
+                      <div className="student-additional-info">
+                        <div className="additional-metric">
                           <span className="metric-label">Completed Courses</span>
-                          <div className="metric-value">{student.totalCompletedCourses || 0}</div>
+                          <span className="metric-value">{student.totalCompletedCourses || 0}</span>
                         </div>
-                        <div className="metric">
+                        <div className="additional-metric">
                           <span className="metric-label">Learning Time</span>
-                          <div className="metric-value">{Math.round((student.totalLearningTime || 0) / 60)}h</div>
+                          <span className="metric-value">{Math.round((student.totalLearningTime || 0) / 60)}h</span>
                         </div>
-                        <div className="metric">
-                          <span className="metric-label">Last Active</span>
-                          <div className="metric-value">
-                            {student.lastActive ? new Date(student.lastActive).toLocaleDateString() : 'Never'}
-                          </div>
+                        <div className="additional-metric">
+                          <span className="metric-label">Engagement</span>
+                          <span className={`engagement-value ${student.engagementLevel?.toLowerCase()}`}>
+                            {student.engagementLevel || 'Low'}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="student-analytics-actions">
+                      <div className="student-actions">
                         <button 
                           className="admin-btn action primary"
                           onClick={() => viewStudentAnalytics(student)}
                         >
-                          View Detailed Analytics
+                          View Details
+                        </button>
+                        <button className="admin-btn action secondary">
+                          Contact
                         </button>
                       </div>
                     </div>
@@ -1230,7 +1144,7 @@ function AdminDashboard() {
             ) : (
               <div className="admin-empty-message">
                 <div className="admin-empty-icon">📊</div>
-                <h3>No Analytics Data Available</h3>
+                <h3>No Student Data Available</h3>
                 <p>Student analytics data will appear here as users enroll in courses and engage with content.</p>
                 <button className="admin-btn primary" onClick={fetchAnalyticsData}>
                   🔄 Check for Data
@@ -1251,6 +1165,16 @@ function AdminDashboard() {
     if (selectedEnrollment.type === 'student') {
       const student = selectedEnrollment.student;
       
+      // Get detailed course information
+      const enrolledCoursesDetails = student.enrolledCourses?.map(courseId => {
+        const course = courses.find(c => c._id === courseId);
+        const analytics = student.analytics?.[courseId] || {};
+        return {
+          course,
+          analytics
+        };
+      }).filter(detail => detail.course) || [];
+
       return (
         <div className="admin-modal-overlay">
           <div className="admin-modal large">
@@ -1271,9 +1195,26 @@ function AdminDashboard() {
                 </div>
                 <div className="student-basic-info">
                   <h3>👤 {student.userName || 'Unknown User'}</h3>
-                  <p>📧 {student.userEmail || 'No email'}</p>
-                  <p>🎓 Enrolled in: {student.enrolledCourses?.length || 0} courses</p>
-                  <p>📅 Last Login: {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}</p>
+                  <div className="student-info-grid">
+                    <div className="info-item">
+                      <span className="info-label">📧 Email:</span>
+                      <span className="info-value">{student.userEmail || 'No email'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">🆔 User ID:</span>
+                      <span className="info-value">{student.id || 'N/A'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">🎓 Enrolled Courses:</span>
+                      <span className="info-value">{student.enrolledCourses?.length || 0}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">📅 Last Login:</span>
+                      <span className="info-value">
+                        {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div className={`engagement-badge large ${student.engagementLevel?.toLowerCase()}`}>
                   {student.engagementLevel} Engagement
@@ -1286,6 +1227,12 @@ function AdminDashboard() {
                   <div className="metric-content">
                     <h4>Overall Progress</h4>
                     <div className="metric-value">{student.overallProgress || 0}%</div>
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${student.overallProgress || 0}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
                 <div className="analytics-metric-card">
@@ -1311,54 +1258,71 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              {student.enrolledCourses && student.enrolledCourses.length > 0 && (
+              {enrolledCoursesDetails.length > 0 ? (
                 <div className="course-analytics-section">
-                  <h4>Course-wise Analytics</h4>
+                  <h4>Course-wise Progress</h4>
                   <div className="course-analytics-list">
-                    {student.enrolledCourses.map(courseId => {
-                      const course = courses.find(c => c._id === courseId);
-                      const analytics = student.analytics?.[courseId] || {};
-                      
-                      if (!course) return null;
-
-                      return (
-                        <div key={courseId} className="course-analytics-item">
-                          <div className="course-analytics-header">
-                            <h5>{course.title}</h5>
-                            <span className="progress-percentage">{analytics.completionPercentage || 0}%</span>
+                    {enrolledCoursesDetails.map(({ course, analytics }) => (
+                      <div key={course._id} className="course-analytics-item">
+                        <div className="course-analytics-header">
+                          <h5>{course.title}</h5>
+                          <span className="progress-percentage">{analytics.completionPercentage || 0}%</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill" 
+                            style={{ width: `${analytics.completionPercentage || 0}%` }}
+                          ></div>
+                        </div>
+                        <div className="course-metrics">
+                          <div className="course-metric">
+                            <span>Status:</span>
+                            <span className={`status ${analytics.isCompleted ? 'completed' : 'in-progress'}`}>
+                              {analytics.isCompleted ? '✅ Completed' : '📚 In Progress'}
+                            </span>
                           </div>
-                          <div className="progress-bar">
-                            <div 
-                              className="progress-fill" 
-                              style={{ width: `${analytics.completionPercentage || 0}%` }}
-                            ></div>
+                          <div className="course-metric">
+                            <span>Time Spent:</span>
+                            <span>{Math.round((analytics.timeSpent || 0) / 60)} minutes</span>
                           </div>
-                          <div className="course-metrics">
-                            <div className="course-metric">
-                              <span>Time Spent:</span>
-                              <span>{Math.round((analytics.timeSpent || 0) / 60)} minutes</span>
-                            </div>
-                            <div className="course-metric">
-                              <span>Engagement Score:</span>
-                              <span>{analytics.engagementScore || 0}/100</span>
-                            </div>
-                            <div className="course-metric">
-                              <span>Last Activity:</span>
-                              <span>
-                                {analytics.lastActivity ? new Date(analytics.lastActivity).toLocaleDateString() : 'No activity'}
-                              </span>
-                            </div>
+                          <div className="course-metric">
+                            <span>Last Activity:</span>
+                            <span>
+                              {analytics.lastActivity ? new Date(analytics.lastActivity).toLocaleDateString() : 'No activity'}
+                            </span>
+                          </div>
+                          <div className="course-metric">
+                            <span>Enrolled Date:</span>
+                            <span>
+                              {analytics.enrolledDate ? new Date(analytics.enrolledDate).toLocaleDateString() : 'Unknown'}
+                            </span>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
+                </div>
+              ) : (
+                <div className="no-courses-message">
+                  <p>This student is not enrolled in any courses yet.</p>
                 </div>
               )}
 
-              {(!student.enrolledCourses || student.enrolledCourses.length === 0) && (
-                <div className="no-courses-message">
-                  <p>This student is not enrolled in any courses yet.</p>
+              {student.certificates && student.certificates.length > 0 && (
+                <div className="certificates-section">
+                  <h4>🎓 Certificates Earned</h4>
+                  <div className="certificates-list">
+                    {student.certificates.map((cert, index) => (
+                      <div key={index} className="certificate-item">
+                        <span className="certificate-icon">📜</span>
+                        <div className="certificate-info">
+                          <strong>{cert.courseTitle || 'Unknown Course'}</strong>
+                          <span>Issued: {cert.issueDate ? new Date(cert.issueDate).toLocaleDateString() : 'Unknown date'}</span>
+                        </div>
+                        <span className="certificate-id">{cert.certificateId || 'N/A'}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1370,41 +1334,20 @@ function AdminDashboard() {
               >
                 Close
               </button>
+              <button className="admin-btn primary">
+                Export Student Data
+              </button>
             </div>
           </div>
         </div>
       );
     }
 
-    // ... rest of your existing modal code for non-student enrollments
-    return (
-      <div className="admin-modal-overlay">
-        <div className="admin-modal large">
-          <div className="admin-modal-header">
-            <h2>Enrollment Details</h2>
-            <button 
-              className="admin-modal-close" 
-              onClick={handleCloseEnrollmentDetails}
-            >
-              ×
-            </button>
-          </div>
-          
-          <div className="admin-modal-content">
-            {/* Existing enrollment details content */}
-          </div>
-          
-          <div className="admin-modal-actions">
-            <button 
-              onClick={handleCloseEnrollmentDetails}
-              className="admin-btn secondary"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
+  };
+
+  const handleCloseEnrollmentDetails = () => {
+    setSelectedEnrollment(null);
   };
 
   useEffect(() => {
@@ -1725,10 +1668,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
         enrollment: enrollment
       });
     }
-  };
-
-  const handleCloseEnrollmentDetails = () => {
-    setSelectedEnrollment(null);
   };
 
   const renderApprovalSidebar = () => {
@@ -2089,7 +2028,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     );
   };
 
-  // ========== REMAINING FUNCTIONS (unchanged) ==========
+  // ========== REMAINING FUNCTIONS ==========
 
   const fetchCertificateStats = () => {
     try {
@@ -4010,7 +3949,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 </div>
               )}
 
-              {/* Analytics Section - REPLACED PROGRESS TRACKING */}
+              {/* Analytics Section - UPDATED */}
               {activeTab === 'analytics' && renderAnalytics()}
 
               {/* Student Feedback & Reviews */}

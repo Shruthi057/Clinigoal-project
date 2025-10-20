@@ -93,9 +93,10 @@ export default function UserDashboard() {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Note viewing state
+  // Note viewing state - UPDATED for PDF handling
   const [selectedNote, setSelectedNote] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null); // NEW: For PDF URL storage
 
   // Navbar toggle state
   const [isNavbarOpen, setIsNavbarOpen] = useState(true);
@@ -587,9 +588,36 @@ export default function UserDashboard() {
     fetchUserData();
   }, []);
 
-  // NEW: Note viewing functions
+  // NEW: Note viewing functions - UPDATED for PDF handling
   const handleViewNote = (note) => {
     setSelectedNote(note);
+    
+    // Check if note has PDF URL or file
+    if (note.pdfUrl) {
+      // If note has a direct PDF URL, use it
+      setPdfUrl(note.pdfUrl);
+    } else if (note.fileUrl) {
+      // If note has a file URL, use it
+      setPdfUrl(note.fileUrl);
+    } else if (note.content && note.fileType === 'pdf') {
+      // If note has content and is marked as PDF, create a blob URL
+      try {
+        // For demo purposes, create a sample PDF blob
+        // In a real app, you would fetch the actual PDF file
+        const pdfContent = note.content;
+        const blob = new Blob([pdfContent], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (error) {
+        console.error('Error creating PDF URL:', error);
+        // Fallback to text content
+        setPdfUrl(null);
+      }
+    } else {
+      // For text content, don't set PDF URL
+      setPdfUrl(null);
+    }
+    
     setShowNoteModal(true);
     
     // Mark as completed when viewed
@@ -601,6 +629,34 @@ export default function UserDashboard() {
   const handleCloseNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
+    // Clean up PDF URL to prevent memory leaks
+    if (pdfUrl && pdfUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(pdfUrl);
+    }
+    setPdfUrl(null);
+  };
+
+  // NEW: Function to handle PDF download
+  const handleDownloadPDF = () => {
+    if (pdfUrl) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `${selectedNote.title || 'document'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (selectedNote?.content) {
+      // Fallback: download as text file
+      const blob = new Blob([selectedNote.content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${selectedNote.title || 'document'}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   // Profile photo functions with compression and error handling
@@ -1095,6 +1151,7 @@ export default function UserDashboard() {
               description: 'Comprehensive study material for the entire course',
               fileType: 'pdf',
               pages: 45,
+              pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', // Sample PDF URL
               content: `
 # Course Study Guide
 
@@ -2313,7 +2370,7 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
     );
   };
 
-  // Note Viewing Modal - IMPROVED: Full page modal
+  // Note Viewing Modal - UPDATED: Proper PDF handling
   const renderNoteModal = () => {
     if (!showNoteModal || !selectedNote) return null;
 
@@ -2342,8 +2399,38 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
               <p>{selectedNote.description}</p>
             </div>
             
-            <div className="note-text-content full-height">
-              <pre>{selectedNote.content}</pre>
+            {/* UPDATED: PDF Viewer Section */}
+            <div className="note-viewer-container full-height">
+              {pdfUrl ? (
+                // Display PDF using iframe
+                <div className="pdf-viewer">
+                  <iframe 
+                    src={pdfUrl} 
+                    title={selectedNote.title}
+                    width="100%" 
+                    height="100%"
+                    style={{ border: 'none' }}
+                  >
+                    <p>Your browser does not support PDF viewing. 
+                      <a href={pdfUrl} download={`${selectedNote.title}.pdf`}>
+                        Download the PDF instead.
+                      </a>
+                    </p>
+                  </iframe>
+                </div>
+              ) : selectedNote.content ? (
+                // Display text content as fallback
+                <div className="note-text-content full-height">
+                  <pre>{selectedNote.content}</pre>
+                </div>
+              ) : (
+                // No content available
+                <div className="no-content-message">
+                  <div className="empty-icon">📄</div>
+                  <h3>No Content Available</h3>
+                  <p>This note doesn't have any viewable content yet.</p>
+                </div>
+              )}
             </div>
           </div>
           
@@ -2354,8 +2441,11 @@ Real-world examples of successful clinical trials and common pitfalls to avoid.
             >
               Close
             </button>
-            <button className="btn-secondary">
-              📥 Download PDF
+            <button 
+              onClick={handleDownloadPDF}
+              className="btn-secondary"
+            >
+              📥 Download {pdfUrl ? 'PDF' : 'File'}
             </button>
           </div>
         </div>
