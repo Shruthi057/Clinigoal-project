@@ -162,9 +162,9 @@ function AdminDashboard() {
     search: ''
   });
 
-  // Progress Tracking State
-  const [adminProgress, setAdminProgress] = useState([]);
-  const [progressStats, setProgressStats] = useState({
+  // Analytics State (Replaced Progress Tracking)
+  const [analyticsData, setAnalyticsData] = useState([]);
+  const [analyticsStats, setAnalyticsStats] = useState({
     totalStudents: 0,
     totalEnrollments: 0,
     totalCompletedCourses: 0,
@@ -172,7 +172,10 @@ function AdminDashboard() {
     courseEnrollments: {},
     courseCompletions: {},
     monthlyProgress: {},
-    activityData: {}
+    activityData: {},
+    engagementRate: 0,
+    retentionRate: 0,
+    popularCourses: []
   });
 
   const [certificateStats, setCertificateStats] = useState({
@@ -678,13 +681,13 @@ function AdminDashboard() {
     );
   };
 
-  // ========== PROGRESS TRACKING FUNCTIONS ==========
+  // ========== ANALYTICS FUNCTIONS (REPLACED PROGRESS TRACKING) ==========
 
-  const fetchAdminProgress = () => {
+  const fetchAnalyticsData = () => {
     try {
-      console.log("🔄 Fetching admin progress data...");
+      console.log("📊 Fetching analytics data...");
       
-      const progressData = [];
+      const analyticsData = [];
       
       // Get all unique users
       const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
@@ -737,8 +740,8 @@ function AdminDashboard() {
 
           console.log(`📊 User ${userName} enrolled in:`, enrolledCourses);
 
-          // Calculate progress for each enrolled course
-          const courseProgress = {};
+          // Calculate analytics for each enrolled course
+          const courseAnalytics = {};
           let totalCompletedCourses = 0;
 
           enrolledCourses.forEach(courseId => {
@@ -793,7 +796,7 @@ function AdminDashboard() {
               
               if (isCompleted) totalCompletedCourses++;
 
-              courseProgress[courseId] = {
+              courseAnalytics[courseId] = {
                 courseTitle: course.title,
                 completionPercentage,
                 isCompleted,
@@ -802,29 +805,24 @@ function AdminDashboard() {
                 lastActivity: courseUserProgress.lastActivity || new Date().toISOString(),
                 enrolledDate: userAccessData[courseId]?.updatedAt || new Date().toISOString(),
                 completionDate: completionDate,
-                modules: courseUserProgress.modules || {
-                  'Module 1': '⏳ In Progress',
-                  'Module 2': '❌ Not Started',
-                  'Module 3': '❌ Not Started',
-                  'Module 4': '❌ Not Started',
-                  'Module 5': '❌ Not Started'
-                }
+                timeSpent: Math.floor(Math.random() * 1000) + 100, // Mock data for time spent
+                engagementScore: Math.floor(Math.random() * 100) + 1 // Mock engagement score
               };
             }
           });
 
-          // Calculate overall progress
+          // Calculate overall analytics
           const overallProgress = enrolledCourses.length > 0 
-            ? Math.round(Object.values(courseProgress).reduce((sum, course) => sum + course.completionPercentage, 0) / enrolledCourses.length)
+            ? Math.round(Object.values(courseAnalytics).reduce((sum, course) => sum + course.completionPercentage, 0) / enrolledCourses.length)
             : 0;
 
-          // Add student to progress data
-          progressData.push({
+          // Add student to analytics data
+          analyticsData.push({
             id: `student_${userEmail}`,
             userName: userName,
             userEmail: userEmail,
             enrolledCourses: enrolledCourses,
-            progress: courseProgress,
+            analytics: courseAnalytics,
             certificates: userCertificates,
             lastActive: userLog?.timestamp ? new Date(userLog.timestamp).toISOString() : new Date().toISOString(),
             totalLearningTime: Math.floor(Math.random() * 1000) + 100, // Mock data
@@ -832,7 +830,8 @@ function AdminDashboard() {
             overallProgress: overallProgress,
             totalCompletedCourses: totalCompletedCourses,
             enrollmentDate: userLog?.timestamp || new Date().toISOString(),
-            status: 'Active'
+            status: 'Active',
+            engagementLevel: overallProgress > 80 ? 'High' : overallProgress > 50 ? 'Medium' : 'Low'
           });
 
         } catch (error) {
@@ -840,17 +839,17 @@ function AdminDashboard() {
         }
       });
 
-      console.log("📊 Final progress data:", progressData);
-      setAdminProgress(progressData);
+      console.log("📊 Final analytics data:", analyticsData);
+      setAnalyticsData(analyticsData);
       
       // Calculate statistics
-      const stats = calculateProgressStats(progressData);
-      setProgressStats(stats);
+      const stats = calculateAnalyticsStats(analyticsData);
+      setAnalyticsStats(stats);
       
     } catch (error) {
-      console.error("❌ Error fetching admin progress:", error);
-      setAdminProgress([]);
-      setProgressStats({
+      console.error("❌ Error fetching analytics data:", error);
+      setAnalyticsData([]);
+      setAnalyticsStats({
         totalStudents: 0,
         totalEnrollments: 0,
         totalCompletedCourses: 0,
@@ -858,13 +857,16 @@ function AdminDashboard() {
         courseEnrollments: {},
         courseCompletions: {},
         monthlyProgress: {},
-        activityData: {}
+        activityData: {},
+        engagementRate: 0,
+        retentionRate: 0,
+        popularCourses: []
       });
     }
   };
 
-  const calculateProgressStats = (progressData) => {
-    if (!progressData || !Array.isArray(progressData)) {
+  const calculateAnalyticsStats = (analyticsData) => {
+    if (!analyticsData || !Array.isArray(analyticsData)) {
       return {
         totalStudents: 0,
         totalEnrollments: 0,
@@ -873,26 +875,32 @@ function AdminDashboard() {
         courseEnrollments: {},
         courseCompletions: {},
         monthlyProgress: {},
-        activityData: {}
+        activityData: {},
+        engagementRate: 0,
+        retentionRate: 0,
+        popularCourses: []
       };
     }
 
-    const totalStudents = progressData.length;
+    const totalStudents = analyticsData.length;
     let totalEnrollments = 0;
     let totalCompletedCourses = 0;
     let totalProgressSum = 0;
+    let totalEngagementScore = 0;
     
     const courseEnrollments = {};
     const courseCompletions = {};
     const monthlyProgress = {};
     const activityData = {};
+    const courseEngagement = {};
 
     courses.forEach(course => {
       courseEnrollments[course._id] = 0;
       courseCompletions[course._id] = 0;
+      courseEngagement[course._id] = 0;
     });
 
-    progressData.forEach(student => {
+    analyticsData.forEach(student => {
       if (!student) return;
 
       if (student.enrolledCourses && Array.isArray(student.enrolledCourses)) {
@@ -905,20 +913,21 @@ function AdminDashboard() {
         });
       }
 
-      if (student.progress && typeof student.progress === 'object') {
-        Object.entries(student.progress).forEach(([courseId, courseProgress]) => {
-          if (courseProgress && courseProgress.isCompleted) {
+      if (student.analytics && typeof student.analytics === 'object') {
+        Object.entries(student.analytics).forEach(([courseId, courseAnalytics]) => {
+          if (courseAnalytics && courseAnalytics.isCompleted) {
             totalCompletedCourses++;
             courseCompletions[courseId] = (courseCompletions[courseId] || 0) + 1;
           }
-          totalProgressSum += courseProgress.completionPercentage || 0;
+          totalProgressSum += courseAnalytics.completionPercentage || 0;
+          totalEngagementScore += courseAnalytics.engagementScore || 0;
           
-          if (courseProgress.lastActivity) {
+          if (courseAnalytics.lastActivity) {
             try {
-              const month = new Date(courseProgress.lastActivity).toLocaleString('default', { month: 'short', year: 'numeric' });
+              const month = new Date(courseAnalytics.lastActivity).toLocaleString('default', { month: 'short', year: 'numeric' });
               monthlyProgress[month] = (monthlyProgress[month] || 0) + 1;
             } catch (dateError) {
-              console.warn("Invalid date format:", courseProgress.lastActivity);
+              console.warn("Invalid date format:", courseAnalytics.lastActivity);
             }
           }
         });
@@ -935,6 +944,18 @@ function AdminDashboard() {
     });
 
     const averageProgress = totalEnrollments > 0 ? Math.round(totalProgressSum / totalEnrollments) : 0;
+    const engagementRate = totalStudents > 0 ? Math.round((totalEngagementScore / totalStudents)) : 0;
+    const retentionRate = totalStudents > 0 ? Math.round((analyticsData.filter(s => s.overallProgress > 50).length / totalStudents) * 100) : 0;
+
+    // Calculate popular courses
+    const popularCourses = Object.entries(courseEnrollments)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([courseId, count]) => ({
+        courseId,
+        title: courses.find(c => c._id === courseId)?.title || 'Unknown Course',
+        enrollments: count
+      }));
 
     return {
       totalStudents,
@@ -944,33 +965,36 @@ function AdminDashboard() {
       courseEnrollments,
       courseCompletions,
       monthlyProgress,
-      activityData
+      activityData,
+      engagementRate,
+      retentionRate,
+      popularCourses
     };
   };
 
-  const viewStudentDetails = (student) => {
+  const viewStudentAnalytics = (student) => {
     setSelectedEnrollment({
       type: 'student',
       student: student
     });
   };
 
-  // ========== UPDATED PROGRESS TRACKING COMPONENT ==========
+  // ========== UPDATED ANALYTICS COMPONENT ==========
 
-  const renderProgressTracking = () => {
-    const courseProgressData = {
+  const renderAnalytics = () => {
+    const courseAnalyticsData = {
       labels: courses.map(course => course.title),
       datasets: [
         {
           label: 'Enrollments',
-          data: courses.map(course => progressStats.courseEnrollments[course._id] || 0),
+          data: courses.map(course => analyticsStats.courseEnrollments[course._id] || 0),
           backgroundColor: 'rgba(79, 70, 229, 0.7)',
           borderColor: 'rgba(79, 70, 229, 1)',
           borderWidth: 1,
         },
         {
           label: 'Completions',
-          data: courses.map(course => progressStats.courseCompletions[course._id] || 0),
+          data: courses.map(course => analyticsStats.courseCompletions[course._id] || 0),
           backgroundColor: 'rgba(34, 197, 94, 0.7)',
           borderColor: 'rgba(34, 197, 94, 1)',
           borderWidth: 1,
@@ -978,36 +1002,36 @@ function AdminDashboard() {
       ]
     };
 
-    // Function to get progress status icons
-    const getProgressStatus = (completionPercentage, itemType) => {
-      if (completionPercentage === 100) return '✅ Completed';
-      if (completionPercentage > 0) return '⏳ In Progress';
-      return '❌ Not Started';
-    };
-
-    // Function to calculate individual item progress
-    const calculateItemProgress = (student, courseId) => {
-      const progress = student.progress?.[courseId] || {};
-      
-      // Mock data for demonstration - replace with actual data from your system
-      const videoProgress = Math.random() > 0.5 ? 100 : Math.random() > 0.3 ? 50 : 0;
-      const notesProgress = Math.random() > 0.6 ? 100 : Math.random() > 0.4 ? 50 : 0;
-      const quizProgress = Math.random() > 0.7 ? 100 : Math.random() > 0.5 ? 50 : 0;
-      
-      return {
-        video: videoProgress,
-        notes: notesProgress,
-        quiz: quizProgress,
-        overall: progress.completionPercentage || 0
-      };
+    const engagementData = {
+      labels: ['High', 'Medium', 'Low'],
+      datasets: [
+        {
+          data: [
+            analyticsData.filter(s => s.engagementLevel === 'High').length,
+            analyticsData.filter(s => s.engagementLevel === 'Medium').length,
+            analyticsData.filter(s => s.engagementLevel === 'Low').length
+          ],
+          backgroundColor: [
+            'rgba(34, 197, 94, 0.7)',
+            'rgba(234, 179, 8, 0.7)',
+            'rgba(239, 68, 68, 0.7)'
+          ],
+          borderColor: [
+            'rgba(34, 197, 94, 1)',
+            'rgba(234, 179, 8, 1)',
+            'rgba(239, 68, 68, 1)'
+          ],
+          borderWidth: 1,
+        },
+      ],
     };
 
     return (
-      <div className="admin-progress-tracking">
+      <div className="admin-analytics">
         <div className="admin-page-header">
-          <h1 className="admin-page-title">Student Progress Tracking</h1>
+          <h1 className="admin-page-title">Learning Analytics</h1>
           <div className="admin-page-actions">
-            <button className="admin-btn primary" onClick={fetchAdminProgress}>
+            <button className="admin-btn primary" onClick={fetchAnalyticsData}>
               🔄 Refresh Data
             </button>
             <button className="admin-btn secondary" onClick={() => setActiveTab('students')}>
@@ -1020,7 +1044,7 @@ function AdminDashboard() {
           <div className="admin-stat-card primary">
             <div className="admin-stat-icon">👥</div>
             <div className="admin-stat-content">
-              <h3>{progressStats.totalStudents}</h3>
+              <h3>{analyticsStats.totalStudents}</h3>
               <p>Total Students</p>
               <span className="admin-stat-change positive">Active users</span>
             </div>
@@ -1028,34 +1052,103 @@ function AdminDashboard() {
           <div className="admin-stat-card success">
             <div className="admin-stat-icon">📚</div>
             <div className="admin-stat-content">
-              <h3>{progressStats.totalEnrollments}</h3>
+              <h3>{analyticsStats.totalEnrollments}</h3>
               <p>Total Enrollments</p>
               <span className="admin-stat-change positive">Course enrollments</span>
             </div>
           </div>
           <div className="admin-stat-card warning">
-            <div className="admin-stat-icon">🎯</div>
+            <div className="admin-stat-icon">📊</div>
             <div className="admin-stat-content">
-              <h3>{progressStats.averageProgress}%</h3>
-              <p>Average Progress</p>
-              <span className="admin-stat-change positive">Overall completion</span>
+              <h3>{analyticsStats.engagementRate}%</h3>
+              <p>Engagement Rate</p>
+              <span className="admin-stat-change positive">Overall engagement</span>
             </div>
           </div>
           <div className="admin-stat-card info">
             <div className="admin-stat-icon">🏆</div>
             <div className="admin-stat-content">
-              <h3>{progressStats.totalCompletedCourses}</h3>
+              <h3>{analyticsStats.totalCompletedCourses}</h3>
               <p>Completed Courses</p>
               <span className="admin-stat-change positive">Total completions</span>
             </div>
           </div>
         </div>
 
-        {/* Student Progress Table - UPDATED FORMAT */}
-        <div className="admin-progress-details">
-          <h3>📋 Student Progress Details</h3>
+        {/* Analytics Charts */}
+        <div className="admin-charts-section">
+          <div className="admin-chart-card">
+            <h3>Course Performance</h3>
+            <div className="admin-chart-container">
+              <Bar 
+                data={courseAnalyticsData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        precision: 0
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="admin-chart-card">
+            <h3>Student Engagement</h3>
+            <div className="admin-chart-container">
+              <Doughnut 
+                data={engagementData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'right',
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Popular Courses */}
+        <div className="admin-analytics-section">
+          <h3>🎯 Popular Courses</h3>
+          <div className="popular-courses-grid">
+            {analyticsStats.popularCourses.map((course, index) => (
+              <div key={course.courseId} className="popular-course-card">
+                <div className="popular-course-rank">#{index + 1}</div>
+                <div className="popular-course-info">
+                  <h4>{course.title}</h4>
+                  <p>{course.enrollments} enrollments</p>
+                </div>
+                <div className="popular-course-metric">
+                  <div className="metric-value">
+                    {Math.round((course.enrollments / analyticsStats.totalEnrollments) * 100)}%
+                  </div>
+                  <div className="metric-label">of total</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Student Analytics Overview */}
+        <div className="admin-analytics-details">
+          <h3>📋 Student Analytics Overview</h3>
           
-          <div className="progress-controls">
+          <div className="analytics-controls">
             <div className="search-box">
               <input
                 type="text"
@@ -1065,29 +1158,23 @@ function AdminDashboard() {
             </div>
             <div className="filter-controls">
               <select className="filter-select">
-                <option value="all">All Courses</option>
-                {courses.map(course => (
-                  <option key={course._id} value={course._id}>{course.title}</option>
-                ))}
-              </select>
-              <select className="filter-select">
-                <option value="all">All Progress</option>
-                <option value="completed">Completed</option>
-                <option value="in-progress">In Progress</option>
-                <option value="not-started">Not Started</option>
+                <option value="all">All Engagement Levels</option>
+                <option value="high">High Engagement</option>
+                <option value="medium">Medium Engagement</option>
+                <option value="low">Low Engagement</option>
               </select>
             </div>
           </div>
 
           <div className="admin-table-card">
-            {adminProgress.length > 0 ? (
-              <div className="student-progress-grid">
-                {adminProgress.map((student, index) => {
+            {analyticsData.length > 0 ? (
+              <div className="student-analytics-grid">
+                {analyticsData.map((student, index) => {
                   if (!student) return null;
                   
                   return (
-                    <div key={student.id || index} className="student-progress-card">
-                      <div className="student-progress-header">
+                    <div key={student.id || index} className="student-analytics-card">
+                      <div className="student-analytics-header">
                         <div className="student-avatar-large">
                           {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
                         </div>
@@ -1096,91 +1183,44 @@ function AdminDashboard() {
                           <p>📧 {student.userEmail || 'No email'}</p>
                           <p>🎓 Enrolled in: {student.enrolledCourses?.length || 0} courses</p>
                         </div>
-                        <div className="student-overall-progress">
-                          <div 
-                            className="overall-progress-circle"
-                            style={{ '--progress': `${student.overallProgress || 0}%` }}
-                          >
-                            <span>{student.overallProgress || 0}%</span>
+                        <div className={`engagement-badge ${student.engagementLevel?.toLowerCase()}`}>
+                          {student.engagementLevel} Engagement
+                        </div>
+                      </div>
+
+                      <div className="student-metrics">
+                        <div className="metric">
+                          <span className="metric-label">Overall Progress</span>
+                          <div className="metric-value">{student.overallProgress || 0}%</div>
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill" 
+                              style={{ width: `${student.overallProgress || 0}%` }}
+                            ></div>
                           </div>
-                          <p>Overall Progress</p>
+                        </div>
+                        <div className="metric">
+                          <span className="metric-label">Completed Courses</span>
+                          <div className="metric-value">{student.totalCompletedCourses || 0}</div>
+                        </div>
+                        <div className="metric">
+                          <span className="metric-label">Learning Time</span>
+                          <div className="metric-value">{Math.round((student.totalLearningTime || 0) / 60)}h</div>
+                        </div>
+                        <div className="metric">
+                          <span className="metric-label">Last Active</span>
+                          <div className="metric-value">
+                            {student.lastActive ? new Date(student.lastActive).toLocaleDateString() : 'Never'}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="student-courses-progress">
-                        {student.enrolledCourses && student.enrolledCourses.map(courseId => {
-                          const course = courses.find(c => c._id === courseId);
-                          const progress = student.progress?.[courseId] || {};
-                          const itemProgress = calculateItemProgress(student, courseId);
-                          
-                          if (!course) return null;
-
-                          return (
-                            <div key={courseId} className="course-progress-detail">
-                              <div className="course-progress-header">
-                                <h5>{course.title}</h5>
-                                <span className="progress-percentage">{progress.completionPercentage || 0}%</span>
-                              </div>
-                              
-                              <div className="progress-breakdown">
-                                <div className="progress-item">
-                                  <span>Video:</span>
-                                  <span className={`status ${itemProgress.video === 100 ? 'completed' : itemProgress.video > 0 ? 'in-progress' : 'not-started'}`}>
-                                    {getProgressStatus(itemProgress.video, 'video')}
-                                  </span>
-                                </div>
-                                <div className="progress-item">
-                                  <span>Notes:</span>
-                                  <span className={`status ${itemProgress.notes === 100 ? 'completed' : itemProgress.notes > 0 ? 'in-progress' : 'not-started'}`}>
-                                    {getProgressStatus(itemProgress.notes, 'notes')}
-                                  </span>
-                                </div>
-                                <div className="progress-item">
-                                  <span>Quiz:</span>
-                                  <span className={`status ${itemProgress.quiz === 100 ? 'completed' : itemProgress.quiz > 0 ? 'in-progress' : 'not-started'}`}>
-                                    {getProgressStatus(itemProgress.quiz, 'quiz')}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="progress-meta">
-                                <div className="meta-item">
-                                  <span>Overall Progress: {progress.completionPercentage || 0}%</span>
-                                </div>
-                                <div className="meta-item">
-                                  <span>Last Login: {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}</span>
-                                </div>
-                                <div className="meta-item">
-                                  <span>Certificates: {student.certificates && student.certificates.length > 0 ? '✅ Generated' : '❌ Not Yet Generated'}</span>
-                                </div>
-                              </div>
-
-                              <div className="progress-bar-container">
-                                <div 
-                                  className="progress-bar-fill" 
-                                  style={{ width: `${progress.completionPercentage || 0}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {(!student.enrolledCourses || student.enrolledCourses.length === 0) && (
-                        <div className="no-courses-message">
-                          <p>This student is not enrolled in any courses yet.</p>
-                        </div>
-                      )}
-
-                      <div className="student-progress-actions">
+                      <div className="student-analytics-actions">
                         <button 
                           className="admin-btn action primary"
-                          onClick={() => viewStudentDetails(student)}
+                          onClick={() => viewStudentAnalytics(student)}
                         >
-                          View Detailed Progress
-                        </button>
-                        <button className="admin-btn action secondary">
-                          Send Reminder
+                          View Detailed Analytics
                         </button>
                       </div>
                     </div>
@@ -1190,61 +1230,13 @@ function AdminDashboard() {
             ) : (
               <div className="admin-empty-message">
                 <div className="admin-empty-icon">📊</div>
-                <h3>No Progress Data Available</h3>
-                <p>Student progress data will appear here as users enroll in courses and make progress.</p>
-                <p>Make sure students are enrolling in courses from the user dashboard.</p>
-                <button className="admin-btn primary" onClick={fetchAdminProgress}>
+                <h3>No Analytics Data Available</h3>
+                <p>Student analytics data will appear here as users enroll in courses and engage with content.</p>
+                <button className="admin-btn primary" onClick={fetchAnalyticsData}>
                   🔄 Check for Data
                 </button>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Course-wise Progress Breakdown */}
-        <div className="course-progress-breakdown">
-          <h3>🎯 Course-wise Progress Breakdown</h3>
-          <div className="course-progress-grid">
-            {courses.map(course => {
-              const enrollments = progressStats.courseEnrollments[course._id] || 0;
-              const completions = progressStats.courseCompletions[course._id] || 0;
-              const completionRate = enrollments > 0 ? Math.round((completions / enrollments) * 100) : 0;
-              
-              return (
-                <div key={course._id} className="course-progress-card">
-                  <div className="course-header">
-                    <h4>{course.title}</h4>
-                    <span className="course-level">{course.level}</span>
-                  </div>
-                  <div className="course-stats">
-                    <div className="stat-item">
-                      <span className="stat-value">{enrollments}</span>
-                      <span className="stat-label">Enrolled</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-value">{completions}</span>
-                      <span className="stat-label">Completed</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-value">{completionRate}%</span>
-                      <span className="stat-label">Completion Rate</span>
-                    </div>
-                  </div>
-                  <div className="progress-breakdown">
-                    <div className="progress-item">
-                      <span>Completion Rate:</span>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill" 
-                          style={{ width: `${completionRate}%` }}
-                        ></div>
-                      </div>
-                      <span>{completionRate}%</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -1259,35 +1251,11 @@ function AdminDashboard() {
     if (selectedEnrollment.type === 'student') {
       const student = selectedEnrollment.student;
       
-      // Calculate progress for the first enrolled course (you can modify this to show all)
-      const firstCourseId = student.enrolledCourses && student.enrolledCourses[0];
-      const course = courses.find(c => c._id === firstCourseId);
-      const progress = student.progress?.[firstCourseId] || {};
-      
-      // Mock item progress - replace with actual data
-      const itemProgress = {
-        video: Math.random() > 0.5 ? 100 : Math.random() > 0.3 ? 50 : 0,
-        notes: Math.random() > 0.6 ? 100 : Math.random() > 0.4 ? 50 : 0,
-        quiz: Math.random() > 0.7 ? 100 : Math.random() > 0.5 ? 50 : 0
-      };
-
-      const getStatusIcon = (percentage) => {
-        if (percentage === 100) return '✅';
-        if (percentage > 0) return '⏳';
-        return '❌';
-      };
-
-      const getStatusText = (percentage) => {
-        if (percentage === 100) return 'Completed';
-        if (percentage > 0) return 'In Progress';
-        return 'Not Started';
-      };
-
       return (
         <div className="admin-modal-overlay">
           <div className="admin-modal large">
             <div className="admin-modal-header">
-              <h2>Student Progress Details</h2>
+              <h2>Student Analytics Details</h2>
               <button 
                 className="admin-modal-close" 
                 onClick={handleCloseEnrollmentDetails}
@@ -1297,7 +1265,7 @@ function AdminDashboard() {
             </div>
             
             <div className="admin-modal-content">
-              <div className="student-progress-header detailed">
+              <div className="student-analytics-header detailed">
                 <div className="student-avatar large">
                   {student.userName ? student.userName.charAt(0).toUpperCase() : 'U'}
                 </div>
@@ -1307,59 +1275,83 @@ function AdminDashboard() {
                   <p>🎓 Enrolled in: {student.enrolledCourses?.length || 0} courses</p>
                   <p>📅 Last Login: {student.lastLogin === 'Never' ? 'Never' : new Date(student.lastLogin).toLocaleDateString()}</p>
                 </div>
-                <div className="student-overall-progress">
-                  <div 
-                    className="overall-progress-circle"
-                    style={{ '--progress': `${student.overallProgress || 0}%` }}
-                  >
-                    <span>{student.overallProgress || 0}%</span>
-                  </div>
-                  <p>Overall Progress</p>
+                <div className={`engagement-badge large ${student.engagementLevel?.toLowerCase()}`}>
+                  {student.engagementLevel} Engagement
                 </div>
               </div>
 
-              {course && (
-                <div className="detailed-progress-section">
-                  <h4>Current Course: {course.title}</h4>
-                  
-                  <div className="progress-breakdown-detailed">
-                    <div className="progress-item-detailed">
-                      <span>Video:</span>
-                      <span className={`status ${itemProgress.video === 100 ? 'completed' : itemProgress.video > 0 ? 'in-progress' : 'not-started'}`}>
-                        {getStatusIcon(itemProgress.video)} {getStatusText(itemProgress.video)}
-                      </span>
-                    </div>
-                    <div className="progress-item-detailed">
-                      <span>Notes:</span>
-                      <span className={`status ${itemProgress.notes === 100 ? 'completed' : itemProgress.notes > 0 ? 'in-progress' : 'not-started'}`}>
-                        {getStatusIcon(itemProgress.notes)} {getStatusText(itemProgress.notes)}
-                      </span>
-                    </div>
-                    <div className="progress-item-detailed">
-                      <span>Quiz:</span>
-                      <span className={`status ${itemProgress.quiz === 100 ? 'completed' : itemProgress.quiz > 0 ? 'in-progress' : 'not-started'}`}>
-                        {getStatusIcon(itemProgress.quiz)} {getStatusText(itemProgress.quiz)}
-                      </span>
-                    </div>
+              <div className="analytics-metrics-grid">
+                <div className="analytics-metric-card">
+                  <div className="metric-icon">📊</div>
+                  <div className="metric-content">
+                    <h4>Overall Progress</h4>
+                    <div className="metric-value">{student.overallProgress || 0}%</div>
                   </div>
-
-                  <div className="progress-summary">
-                    <div className="summary-item">
-                      <strong>Overall Progress: {progress.completionPercentage || 0}%</strong>
-                    </div>
-                    <div className="summary-item">
-                      <span>Certificates: {student.certificates && student.certificates.length > 0 ? '✅ Generated' : '❌ Not Yet Generated'}</span>
-                    </div>
+                </div>
+                <div className="analytics-metric-card">
+                  <div className="metric-icon">🏆</div>
+                  <div className="metric-content">
+                    <h4>Completed Courses</h4>
+                    <div className="metric-value">{student.totalCompletedCourses || 0}</div>
                   </div>
+                </div>
+                <div className="analytics-metric-card">
+                  <div className="metric-icon">⏱️</div>
+                  <div className="metric-content">
+                    <h4>Learning Time</h4>
+                    <div className="metric-value">{Math.round((student.totalLearningTime || 0) / 60)}h</div>
+                  </div>
+                </div>
+                <div className="analytics-metric-card">
+                  <div className="metric-icon">📜</div>
+                  <div className="metric-content">
+                    <h4>Certificates</h4>
+                    <div className="metric-value">{student.certificates?.length || 0}</div>
+                  </div>
+                </div>
+              </div>
 
-                  <div className="progress-bar-detailed">
-                    <div className="progress-bar-container">
-                      <div 
-                        className="progress-bar-fill" 
-                        style={{ width: `${progress.completionPercentage || 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="progress-text">{progress.completionPercentage || 0}% Complete</span>
+              {student.enrolledCourses && student.enrolledCourses.length > 0 && (
+                <div className="course-analytics-section">
+                  <h4>Course-wise Analytics</h4>
+                  <div className="course-analytics-list">
+                    {student.enrolledCourses.map(courseId => {
+                      const course = courses.find(c => c._id === courseId);
+                      const analytics = student.analytics?.[courseId] || {};
+                      
+                      if (!course) return null;
+
+                      return (
+                        <div key={courseId} className="course-analytics-item">
+                          <div className="course-analytics-header">
+                            <h5>{course.title}</h5>
+                            <span className="progress-percentage">{analytics.completionPercentage || 0}%</span>
+                          </div>
+                          <div className="progress-bar">
+                            <div 
+                              className="progress-fill" 
+                              style={{ width: `${analytics.completionPercentage || 0}%` }}
+                            ></div>
+                          </div>
+                          <div className="course-metrics">
+                            <div className="course-metric">
+                              <span>Time Spent:</span>
+                              <span>{Math.round((analytics.timeSpent || 0) / 60)} minutes</span>
+                            </div>
+                            <div className="course-metric">
+                              <span>Engagement Score:</span>
+                              <span>{analytics.engagementScore || 0}/100</span>
+                            </div>
+                            <div className="course-metric">
+                              <span>Last Activity:</span>
+                              <span>
+                                {analytics.lastActivity ? new Date(analytics.lastActivity).toLocaleDateString() : 'No activity'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1429,12 +1421,12 @@ function AdminDashboard() {
     fetchUserData();
     fetchStudentReviews();
     fetchPaymentHistory();
-    fetchAdminProgress();
+    fetchAnalyticsData();
     fetchCertificateStats();
     fetchPendingApprovals();
 
     const interval = setInterval(() => {
-      fetchAdminProgress();
+      fetchAnalyticsData();
       fetchCertificateStats();
       fetchStudentReviews();
       fetchPendingApprovals();
@@ -1723,9 +1715,15 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     `);
   };
 
+  // ========== FIXED EYE ICON FUNCTION ==========
+
   const handleViewEnrollmentDetails = (enrollment) => {
     if (enrollment) {
-      setSelectedEnrollment(enrollment);
+      console.log("👁️ Viewing enrollment details:", enrollment);
+      setSelectedEnrollment({
+        type: 'enrollment',
+        enrollment: enrollment
+      });
     }
   };
 
@@ -2099,7 +2097,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
       const byCourse = {};
       const recentCertificates = [];
 
-      adminProgress.forEach(student => {
+      analyticsData.forEach(student => {
         if (student.certificates && Array.isArray(student.certificates)) {
           totalIssued += student.certificates.length;
           
@@ -3509,7 +3507,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 datasets: [
                   {
                     label: 'Students Enrolled',
-                    data: courses.map(course => progressStats.courseEnrollments[course._id] || 0),
+                    data: courses.map(course => analyticsStats.courseEnrollments[course._id] || 0),
                     backgroundColor: 'rgba(79, 70, 229, 0.7)',
                     borderColor: 'rgba(79, 70, 229, 1)',
                     borderWidth: 1,
@@ -3538,7 +3536,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
         </div>
 
         <div className="admin-chart-card">
-          <h3>Student Progress Overview</h3>
+          <h3>Student Analytics Overview</h3>
           <div className="admin-chart-container">
             <Doughnut 
               data={{
@@ -3546,9 +3544,9 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 datasets: [
                   {
                     data: [
-                      progressStats.totalCompletedCourses,
-                      progressStats.totalEnrollments - progressStats.totalCompletedCourses,
-                      progressStats.totalStudents - progressStats.totalEnrollments
+                      analyticsStats.totalCompletedCourses,
+                      analyticsStats.totalEnrollments - analyticsStats.totalCompletedCourses,
+                      analyticsStats.totalStudents - analyticsStats.totalEnrollments
                     ],
                     backgroundColor: [
                       'rgba(34, 197, 94, 0.7)',
@@ -3582,11 +3580,11 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
           <div className="admin-chart-container">
             <Line 
               data={{
-                labels: Object.keys(progressStats.monthlyProgress),
+                labels: Object.keys(analyticsStats.monthlyProgress),
                 datasets: [
                   {
                     label: 'Learning Progress',
-                    data: Object.values(progressStats.monthlyProgress),
+                    data: Object.values(analyticsStats.monthlyProgress),
                     borderColor: 'rgba(59, 130, 246, 1)',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     fill: true,
@@ -3683,10 +3681,10 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 <span>Students</span>
               </button>
             </li>
-            <li className={`admin-menu-item ${activeTab === 'progress' && !viewingQuiz ? 'active' : ''}`}>
-              <button onClick={() => { setActiveTab('progress'); setViewingQuiz(null); }}>
-                <span className="admin-menu-icon">📊</span>
-                <span>Progress Tracking</span>
+            <li className={`admin-menu-item ${activeTab === 'analytics' && !viewingQuiz ? 'active' : ''}`}>
+              <button onClick={() => { setActiveTab('analytics'); setViewingQuiz(null); }}>
+                <span className="admin-menu-icon">📈</span>
+                <span>Analytics</span>
               </button>
             </li>
             <li className={`admin-menu-item ${activeTab === 'feedbacks' && !viewingQuiz ? 'active' : ''}`}>
@@ -4012,8 +4010,8 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 </div>
               )}
 
-              {/* Progress Tracking - UPDATED */}
-              {activeTab === 'progress' && renderProgressTracking()}
+              {/* Analytics Section - REPLACED PROGRESS TRACKING */}
+              {activeTab === 'analytics' && renderAnalytics()}
 
               {/* Student Feedback & Reviews */}
               {activeTab === 'feedbacks' && (
