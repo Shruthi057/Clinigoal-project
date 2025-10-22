@@ -1,6 +1,7 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken"; // ✅ Added missing import
 import dotenv from "dotenv";
 import User from "../models/User.js";
 
@@ -14,6 +15,24 @@ const otpStore = {};
 // Email service status tracking
 let emailServiceEnabled = true;
 let lastEmailError = null;
+
+// ==================== AUTHENTICATION MIDDLEWARE ====================
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Access token required" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+    if (err) {
+      return res.status(403).json({ success: false, message: "Invalid or expired token" });
+    }
+    req.user = user;
+    next();
+  });
+};
 
 // 1️⃣ Enhanced Email Transporter with better configuration
 const createTransporter = () => {
@@ -153,19 +172,116 @@ const sendSubscriptionEmail = async (email) => {
   }
 };
 
+// ==================== AUTHENTICATION ROUTES ====================
+
+// Register route
+router.post("/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "Name, email and password are required" });
+    }
+    
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "User already exists" });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create user
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword
+    });
+    
+    await user.save();
+    
+    res.json({ 
+      success: true,
+      message: "User registered successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error("❌ Registration error:", error);
+    res.status(500).json({ success: false, message: "Registration failed: " + error.message });
+  }
+});
+
+// Login route
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    // Update last active
+    user.learningStats.lastActive = new Date();
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user._id, 
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("❌ Login error:", error);
+    res.status(500).json({ success: false, message: "Login failed: " + error.message });
+  }
+});
+
 // 4️⃣ Send OTP - Main endpoint with enhanced error handling
 router.post("/send-otp", async (req, res) => {
   const { email } = req.body;
 
   // Input validation
   if (!email || !email.includes('@')) {
-    return res.status(400).json({ message: "Valid email is required" });
+    return res.status(400).json({ success: false, message: "Valid email is required" });
   }
 
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
@@ -176,6 +292,7 @@ router.post("/send-otp", async (req, res) => {
     };
 
     let response = {
+      success: true,
       message: "OTP sent successfully",
       method: "email"
     };
@@ -219,6 +336,7 @@ router.post("/send-otp", async (req, res) => {
     }
 
     res.status(500).json({ 
+      success: false,
       message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -287,22 +405,22 @@ router.post("/reset-password", async (req, res) => {
 
   // Input validation
   if (!email || !otp || !newPassword) {
-    return res.status(400).json({ message: "Email, OTP, and new password are required" });
+    return res.status(400).json({ success: false, message: "Email, OTP, and new password are required" });
   }
 
   if (newPassword.length < 6) {
-    return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
   }
 
   const record = otpStore[email];
   
   if (!record) {
-    return res.status(400).json({ message: "No OTP sent for this email" });
+    return res.status(400).json({ success: false, message: "No OTP sent for this email" });
   }
 
   if (Date.now() > record.expiresAt) {
     delete otpStore[email];
-    return res.status(400).json({ message: "OTP has expired" });
+    return res.status(400).json({ success: false, message: "OTP has expired" });
   }
 
   // Track attempts to prevent brute force
@@ -310,11 +428,12 @@ router.post("/reset-password", async (req, res) => {
   
   if (record.attempts > 5) {
     delete otpStore[email];
-    return res.status(400).json({ message: "Too many failed attempts. Please request a new OTP." });
+    return res.status(400).json({ success: false, message: "Too many failed attempts. Please request a new OTP." });
   }
 
   if (parseInt(otp) !== record.otp) {
     return res.status(400).json({ 
+      success: false,
       message: "Invalid OTP", 
       attemptsRemaining: 5 - record.attempts 
     });
@@ -328,11 +447,69 @@ router.post("/reset-password", async (req, res) => {
     delete otpStore[email];
 
     console.log(`✅ Password reset successful for: ${email}`);
-    res.json({ message: "Password reset successfully" });
+    res.json({ success: true, message: "Password reset successfully" });
 
   } catch (err) {
     console.error("❌ Password reset error:", err);
-    res.status(500).json({ message: "Failed to reset password" });
+    res.status(500).json({ success: false, message: "Failed to reset password" });
+  }
+});
+
+// Check if user exists route
+router.post("/check-user", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+    
+    const user = await User.findOne({ email });
+    
+    if (user) {
+      return res.json({ 
+        success: true,
+        exists: true, 
+        message: "User found in database" 
+      });
+    } else {
+      return res.json({ 
+        success: true,
+        exists: false, 
+        message: "User not found in database" 
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error checking user:", error);
+    res.status(500).json({ success: false, message: "Failed to check user: " + error.message });
+  }
+});
+
+// Get current user profile (protected route)
+router.get("/profile", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+        learningStats: user.learningStats,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error fetching profile:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch profile: " + error.message });
   }
 });
 
@@ -340,6 +517,7 @@ router.post("/reset-password", async (req, res) => {
 router.get("/email-status", async (req, res) => {
   const health = await checkEmailHealth();
   res.json({
+    success: true,
     emailServiceEnabled,
     lastError: lastEmailError?.message,
     timestamp: new Date().toISOString()
@@ -350,6 +528,7 @@ router.get("/email-status", async (req, res) => {
 router.post("/reset-email-service", async (req, res) => {
   const health = await checkEmailHealth();
   res.json({
+    success: health,
     message: health ? "Email service restored" : "Email service still unavailable",
     emailServiceEnabled: health
   });

@@ -153,12 +153,20 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
+    // Add timeout settings to prevent connection timeout
+    connectionTimeout: 30000, // 30 seconds
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    // Additional settings for better reliability
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 10,
     tls: {
       rejectUnauthorized: false
     }
   });
 
-  // Verify transporter configuration
+  // Verify transporter configuration with better error handling
   transporter.verify((error, success) => {
     if (error) {
       console.error('❌ Email transporter error:', error.message);
@@ -1629,6 +1637,47 @@ app.get('/api/student/dashboard', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("❌ Error fetching dashboard:", error);
     res.status(500).json({ error: "Failed to fetch dashboard data: " + error.message });
+  }
+});
+
+// ==================== ADMIN PAYMENT ROUTES ====================
+
+// Get all payments (admin) - TEMPORARY FIX
+app.get('/api/admin/payments', async (req, res) => {
+  try {
+    console.log('💰 Fetching payment data');
+    
+    // Return empty array for now since you don't have payment functionality
+    const payments = [];
+    
+    console.log('✅ Payment route working - returning empty array');
+    res.json(payments);
+  } catch (error) {
+    console.error("❌ Error in payments route:", error);
+    res.status(500).json({ error: "Failed to fetch payments: " + error.message });
+  }
+});
+
+// Get payment statistics (admin)
+app.get('/api/admin/payment-stats', async (req, res) => {
+  try {
+    console.log('📊 Fetching payment statistics');
+    
+    // Return placeholder stats
+    const stats = {
+      totalRevenue: 0,
+      totalTransactions: 0,
+      pendingPayments: 0,
+      successfulPayments: 0,
+      failedPayments: 0,
+      monthlyRevenue: [0, 0, 0, 0, 0, 0]
+    };
+    
+    console.log('✅ Payment stats route working');
+    res.json(stats);
+  } catch (error) {
+    console.error("❌ Error in payment stats:", error);
+    res.status(500).json({ error: "Failed to fetch payment stats: " + error.message });
   }
 });
 

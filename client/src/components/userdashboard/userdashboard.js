@@ -93,11 +93,10 @@ export default function UserDashboard() {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Note viewing state - FIXED: Enhanced PDF handling
+  // Note viewing state - UPDATED for PDF handling
   const [selectedNote, setSelectedNote] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
-  const [noteContent, setNoteContent] = useState('');
 
   // Navbar toggle state
   const [isNavbarOpen, setIsNavbarOpen] = useState(true);
@@ -509,52 +508,135 @@ export default function UserDashboard() {
     };
   }, [selectedCourse]);
 
-  // FIXED: Enhanced note viewing functions with proper content handling
+  // UPDATED: Fetch all user data with enhanced note loading
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userName = localStorage.getItem('userName') || 'Student';
+        const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+        const userId = localStorage.getItem('userId') || '';
+
+        setUserData({ userName, userEmail, userId });
+
+        const savedProfilePhoto = sessionStorage.getItem('userProfilePhoto') || 
+                                localStorage.getItem('userProfilePhoto');
+        if (savedProfilePhoto) {
+          setProfilePhoto(savedProfilePhoto);
+        }
+
+        const savedWatchedVideos = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
+        setWatchedVideos(savedWatchedVideos);
+        
+        const savedCompletedNotes = JSON.parse(localStorage.getItem('completedNotes') || '[]');
+        setCompletedNotes(savedCompletedNotes);
+        
+        const savedCompletedQuizzes = JSON.parse(localStorage.getItem('completedQuizzes') || '[]');
+        setCompletedQuizzes(savedCompletedQuizzes);
+
+        const savedPaidCourses = localStorage.getItem('paidCourses');
+        if (savedPaidCourses) {
+          setPaidCourses(new Set(JSON.parse(savedPaidCourses)));
+        }
+
+        const savedCertificates = JSON.parse(localStorage.getItem('userCertificates') || '[]');
+        setCertificates(savedCertificates);
+
+        const savedSettings = JSON.parse(localStorage.getItem('userSettings') || '{}');
+        setUserSettings({
+          notifications: savedSettings.notifications !== undefined ? savedSettings.notifications : true,
+          emailUpdates: savedSettings.emailUpdates !== undefined ? savedSettings.emailUpdates : true,
+          darkMode: savedSettings.darkMode !== undefined ? savedSettings.darkMode : false
+        });
+
+        const savedPaymentHistory = JSON.parse(localStorage.getItem('userPaymentHistory') || '[]');
+        setPaymentHistory(savedPaymentHistory);
+
+        loadApprovalData();
+
+        loadCourses();
+
+        setEnrolledCourses([]);
+        localStorage.setItem('userEnrollments', JSON.stringify([]));
+
+        try {
+          const reviewsResponse = await fetch(`${API_BASE_URL}/api/reviews`);
+          if (reviewsResponse.ok) {
+            const reviewsData = await reviewsResponse.json();
+            setReviews(reviewsData);
+          }
+        } catch (error) {
+          console.log('Reviews API not available, using demo reviews');
+          const demoReviews = [
+            {
+              _id: '1',
+              courseId: '1',
+              courseTitle: "Clinical Research",
+              userName: "Anonymous",
+              rating: 5,
+              reviewText: "Excellent course! The instructor was very knowledgeable and the content was comprehensive.",
+              createdAt: new Date().toISOString()
+            },
+            {
+              _id: '2',
+              courseId: '2',
+              courseTitle: "Bioinformatics",
+              userName: "Student123",
+              rating: 4,
+              reviewText: "Great introduction to bioinformatics. The practical examples were very helpful.",
+              createdAt: new Date(Date.now() - 86400000).toISOString()
+            }
+          ];
+          setReviews(demoReviews);
+        }
+
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // UPDATED: Note viewing functions with enhanced PDF handling
   const handleViewNote = (note) => {
     console.log("📖 Viewing note:", note);
     setSelectedNote(note);
     
-    let contentToDisplay = '';
-    let pdfUrlToUse = null;
-
-    // FIXED: Proper content extraction logic
-    if (note.content) {
-      console.log("📄 Using direct content");
-      contentToDisplay = note.content;
-    } else if (note.text) {
-      console.log("📄 Using text field");
-      contentToDisplay = note.text;
-    } else if (note.description) {
-      console.log("📄 Using description as content");
-      contentToDisplay = note.description;
-    } else {
-      console.log("📄 No content available, using placeholder");
-      contentToDisplay = `# ${note.title || 'Untitled Note'}\n\nThis note doesn't have any content yet. Please check back later or contact the instructor.`;
-    }
-
-    // FIXED: PDF URL handling
     if (note.pdfUrl) {
       console.log("📄 Using PDF URL:", note.pdfUrl);
-      pdfUrlToUse = note.pdfUrl;
+      setPdfUrl(note.pdfUrl);
     } else if (note.fileUrl) {
       console.log("📄 Using file URL:", note.fileUrl);
-      pdfUrlToUse = note.fileUrl;
+      setPdfUrl(note.fileUrl);
     } else if (note.file) {
       console.log("📄 Using file object");
       try {
         const url = URL.createObjectURL(note.file);
-        pdfUrlToUse = url;
+        setPdfUrl(url);
       } catch (error) {
         console.error('Error creating URL from file:', error);
-        pdfUrlToUse = null;
+        setPdfUrl(null);
       }
+    } else if (note.content && note.fileType === 'pdf') {
+      try {
+        console.log("📄 Creating PDF blob from content");
+        const pdfContent = note.content;
+        const blob = new Blob([pdfContent], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (error) {
+        console.error('Error creating PDF URL:', error);
+        setPdfUrl(null);
+      }
+    } else {
+      console.log("📄 No PDF available, using text content");
+      setPdfUrl(null);
     }
-
-    setNoteContent(contentToDisplay);
-    setPdfUrl(pdfUrlToUse);
+    
     setShowNoteModal(true);
     
-    // Mark as completed if not already
     if (!completedNotes.includes(note._id)) {
       handleCompleteNote(note._id);
     }
@@ -563,7 +645,6 @@ export default function UserDashboard() {
   const handleCloseNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
-    setNoteContent('');
     if (pdfUrl && pdfUrl.startsWith('blob:')) {
       URL.revokeObjectURL(pdfUrl);
     }
@@ -579,9 +660,8 @@ export default function UserDashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } else if (noteContent) {
-      // Download as text file if no PDF
-      const blob = new Blob([noteContent], { type: 'text/plain' });
+    } else if (selectedNote?.content) {
+      const blob = new Blob([selectedNote.content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -627,7 +707,7 @@ export default function UserDashboard() {
         }
       }
 
-      // FIXED: Enhanced notes loading with multiple fallback methods
+      // UPDATED: Enhanced notes loading with multiple fallback methods
       if (notesRes.ok) {
         notes = await notesRes.json();
         console.log("📝 Notes from API:", notes);
@@ -715,13 +795,12 @@ export default function UserDashboard() {
         quizzesCount: quizzes.length
       });
 
-      // FIXED: Enhanced note formatting with proper content handling
       const formattedNotes = notes.map(note => ({
         _id: note._id || `note_${Date.now()}_${Math.random()}`,
         title: note.title || 'Untitled Note',
         description: note.description || 'Study material for this course',
         fileType: note.fileType || 'pdf',
-        content: note.content || note.text || note.description || `Content for ${note.title || 'Untitled Note'}`,
+        content: note.content || note.text || '',
         pdfUrl: note.pdfUrl || note.fileUrl || null,
         pages: note.pages || 1,
         uploadedAt: note.uploadedAt || note.createdAt || new Date().toISOString(),
@@ -761,7 +840,7 @@ export default function UserDashboard() {
               fileType: 'pdf',
               pages: 45,
               pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              content: `# Course Study Guide\n\n## Module 1: Introduction\n\nStart your learning journey with this comprehensive guide covering all essential topics.\n\n### Key Topics:\n- Introduction to course concepts\n- Learning objectives\n- Study methodology\n- Assessment criteria\n\nThis material will help you build a strong foundation for your learning journey.`
+              content: `# Course Study Guide\n\n## Module 1: Introduction\n\nStart your learning journey with this comprehensive guide.`
             },
             {
               _id: '2',
@@ -769,7 +848,7 @@ export default function UserDashboard() {
               description: 'Hands-on exercises to reinforce learning',
               fileType: 'pdf',
               pages: 23,
-              content: `# Practice Exercises\n\n## Exercise 1: Basic Concepts\n\nPractice what you've learned with these hands-on exercises.\n\n### Instructions:\n1. Read each question carefully\n2. Apply the concepts learned\n3. Submit your answers for review\n\nThese exercises are designed to reinforce your understanding and prepare you for assessments.`
+              content: `# Practice Exercises\n\n## Exercise 1: Basic Concepts\n\nPractice what you've learned.`
             }
           ];
         }
@@ -2221,7 +2300,7 @@ export default function UserDashboard() {
     );
   };
 
-  // FIXED: Note Viewing Modal with proper content handling
+  // Note Viewing Modal - UPDATED: Proper PDF handling
   const renderNoteModal = () => {
     if (!showNoteModal || !selectedNote) return null;
 
@@ -2267,11 +2346,9 @@ export default function UserDashboard() {
                     </p>
                   </iframe>
                 </div>
-              ) : noteContent ? (
+              ) : selectedNote.content ? (
                 <div className="note-text-content full-height">
-                  <div className="text-content-wrapper">
-                    <pre className="note-content-text">{noteContent}</pre>
-                  </div>
+                  <pre>{selectedNote.content}</pre>
                 </div>
               ) : (
                 <div className="no-content-message">
@@ -3323,7 +3400,7 @@ export default function UserDashboard() {
     </div>
   );
 
-  // FIXED: Course Content Section with enhanced note loading and content display
+  // UPDATED: Course Content Section with enhanced note loading
   const renderCourseContent = () => {
     if (!selectedCourse || !isCourseAccessible(selectedCourse._id)) {
       return (
