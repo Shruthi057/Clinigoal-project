@@ -97,6 +97,7 @@ export default function UserDashboard() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
+  const [noteContent, setNoteContent] = useState('');
 
   // Navbar toggle state
   const [isNavbarOpen, setIsNavbarOpen] = useState(true);
@@ -604,6 +605,11 @@ export default function UserDashboard() {
     console.log("📖 Viewing note:", note);
     setSelectedNote(note);
     
+    // Reset previous state
+    setPdfUrl(null);
+    setNoteContent('');
+    
+    // Try different methods to get PDF content
     if (note.pdfUrl) {
       console.log("📄 Using PDF URL:", note.pdfUrl);
       setPdfUrl(note.pdfUrl);
@@ -617,22 +623,16 @@ export default function UserDashboard() {
         setPdfUrl(url);
       } catch (error) {
         console.error('Error creating URL from file:', error);
-        setPdfUrl(null);
       }
-    } else if (note.content && note.fileType === 'pdf') {
-      try {
-        console.log("📄 Creating PDF blob from content");
-        const pdfContent = note.content;
-        const blob = new Blob([pdfContent], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-      } catch (error) {
-        console.error('Error creating PDF URL:', error);
-        setPdfUrl(null);
-      }
-    } else {
-      console.log("📄 No PDF available, using text content");
-      setPdfUrl(null);
+    } 
+    
+    // Handle content directly
+    if (note.content) {
+      console.log("📝 Using direct content");
+      setNoteContent(note.content);
+    } else if (note.text) {
+      console.log("📝 Using text content");
+      setNoteContent(note.text);
     }
     
     setShowNoteModal(true);
@@ -645,10 +645,13 @@ export default function UserDashboard() {
   const handleCloseNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
+    setPdfUrl(null);
+    setNoteContent('');
+    
+    // Clean up blob URLs
     if (pdfUrl && pdfUrl.startsWith('blob:')) {
       URL.revokeObjectURL(pdfUrl);
     }
-    setPdfUrl(null);
   };
 
   // NEW: Function to handle PDF download
@@ -660,8 +663,8 @@ export default function UserDashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } else if (selectedNote?.content) {
-      const blob = new Blob([selectedNote.content], { type: 'text/plain' });
+    } else if (noteContent) {
+      const blob = new Blob([noteContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -2300,7 +2303,7 @@ export default function UserDashboard() {
     );
   };
 
-  // Note Viewing Modal - UPDATED: Proper PDF handling
+  // UPDATED: Note Viewing Modal - FIXED PDF and content handling
   const renderNoteModal = () => {
     if (!showNoteModal || !selectedNote) return null;
 
@@ -2346,15 +2349,16 @@ export default function UserDashboard() {
                     </p>
                   </iframe>
                 </div>
-              ) : selectedNote.content ? (
+              ) : noteContent ? (
                 <div className="note-text-content full-height">
-                  <pre>{selectedNote.content}</pre>
+                  <pre>{noteContent}</pre>
                 </div>
               ) : (
                 <div className="no-content-message">
                   <div className="empty-icon">📄</div>
                   <h3>No Content Available</h3>
                   <p>This note doesn't have any viewable content yet.</p>
+                  <p>Please check back later or contact the instructor.</p>
                 </div>
               )}
             </div>
