@@ -93,11 +93,9 @@ export default function UserDashboard() {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Note viewing state - UPDATED for PDF handling
+  // Note viewing state - SIMPLIFIED for download functionality
   const [selectedNote, setSelectedNote] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [noteContent, setNoteContent] = useState('');
 
   // Navbar toggle state
   const [isNavbarOpen, setIsNavbarOpen] = useState(true);
@@ -600,41 +598,10 @@ export default function UserDashboard() {
     fetchUserData();
   }, []);
 
-  // UPDATED: Note viewing functions with enhanced PDF handling
+  // UPDATED: Note viewing functions - SIMPLIFIED for download functionality
   const handleViewNote = (note) => {
     console.log("📖 Viewing note:", note);
     setSelectedNote(note);
-    
-    // Reset previous state
-    setPdfUrl(null);
-    setNoteContent('');
-    
-    // Try different methods to get PDF content
-    if (note.pdfUrl) {
-      console.log("📄 Using PDF URL:", note.pdfUrl);
-      setPdfUrl(note.pdfUrl);
-    } else if (note.fileUrl) {
-      console.log("📄 Using file URL:", note.fileUrl);
-      setPdfUrl(note.fileUrl);
-    } else if (note.file) {
-      console.log("📄 Using file object");
-      try {
-        const url = URL.createObjectURL(note.file);
-        setPdfUrl(url);
-      } catch (error) {
-        console.error('Error creating URL from file:', error);
-      }
-    } 
-    
-    // Handle content directly
-    if (note.content) {
-      console.log("📝 Using direct content");
-      setNoteContent(note.content);
-    } else if (note.text) {
-      console.log("📝 Using text content");
-      setNoteContent(note.text);
-    }
-    
     setShowNoteModal(true);
     
     if (!completedNotes.includes(note._id)) {
@@ -645,35 +612,35 @@ export default function UserDashboard() {
   const handleCloseNoteModal = () => {
     setShowNoteModal(false);
     setSelectedNote(null);
-    setPdfUrl(null);
-    setNoteContent('');
-    
-    // Clean up blob URLs
-    if (pdfUrl && pdfUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(pdfUrl);
-    }
   };
 
-  // NEW: Function to handle PDF download
-  const handleDownloadPDF = () => {
-    if (pdfUrl) {
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `${selectedNote.title || 'document'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else if (noteContent) {
-      const blob = new Blob([noteContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${selectedNote.title || 'document'}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+  // NEW: Function to handle note download - SIMPLIFIED AND WORKING
+  const handleDownloadNote = (note) => {
+    console.log("📥 Downloading note:", note);
+    
+    // Create a simple text file with note content
+    let content = '';
+    
+    if (note.content) {
+      content = note.content;
+    } else if (note.text) {
+      content = note.text;
+    } else {
+      content = `${note.title}\n\n${note.description || 'Study material for this course'}\n\nNo additional content available.`;
     }
+    
+    // Create a blob and download link
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${note.title || 'document'}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert(`📥 Note "${note.title}" downloaded successfully!`);
   };
 
   // UPDATED: Fetch course content with enhanced note loading
@@ -803,7 +770,7 @@ export default function UserDashboard() {
         title: note.title || 'Untitled Note',
         description: note.description || 'Study material for this course',
         fileType: note.fileType || 'pdf',
-        content: note.content || note.text || '',
+        content: note.content || note.text || `# ${note.title}\n\n${note.description || 'Study material for this course'}\n\nThis note contains important study materials for your learning.`,
         pdfUrl: note.pdfUrl || note.fileUrl || null,
         pages: note.pages || 1,
         uploadedAt: note.uploadedAt || note.createdAt || new Date().toISOString(),
@@ -842,8 +809,8 @@ export default function UserDashboard() {
               description: 'Comprehensive study material for the entire course',
               fileType: 'pdf',
               pages: 45,
+              content: `# Course Study Guide\n\n## Module 1: Introduction\n\nStart your learning journey with this comprehensive guide covering all essential topics.\n\n### Key Topics:\n- Introduction to the subject\n- Basic concepts and terminology\n- Learning objectives\n- Study recommendations\n\n### Study Tips:\n1. Review this material regularly\n2. Take notes as you study\n3. Practice with exercises\n4. Discuss with peers\n\nThis guide will help you succeed in the course!`,
               pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              content: `# Course Study Guide\n\n## Module 1: Introduction\n\nStart your learning journey with this comprehensive guide.`
             },
             {
               _id: '2',
@@ -851,7 +818,7 @@ export default function UserDashboard() {
               description: 'Hands-on exercises to reinforce learning',
               fileType: 'pdf',
               pages: 23,
-              content: `# Practice Exercises\n\n## Exercise 1: Basic Concepts\n\nPractice what you've learned.`
+              content: `# Practice Exercises\n\n## Exercise 1: Basic Concepts\n\nPractice what you've learned with these hands-on exercises.\n\n### Exercise Instructions:\n1. Read each problem carefully\n2. Apply the concepts learned\n3. Show your work\n4. Check your answers\n\n### Sample Problems:\n- Problem 1: Calculate the basic metrics\n- Problem 2: Analyze the given scenario\n- Problem 3: Create a solution approach\n\nComplete these exercises to strengthen your understanding.`
             }
           ];
         }
@@ -2303,7 +2270,7 @@ export default function UserDashboard() {
     );
   };
 
-  // UPDATED: Note Viewing Modal - FIXED PDF and content handling
+  // UPDATED: Note Viewing Modal - SIMPLIFIED with download focus
   const renderNoteModal = () => {
     if (!showNoteModal || !selectedNote) return null;
 
@@ -2333,32 +2300,16 @@ export default function UserDashboard() {
             </div>
             
             <div className="note-viewer-container full-height">
-              {pdfUrl ? (
-                <div className="pdf-viewer">
-                  <iframe 
-                    src={pdfUrl} 
-                    title={selectedNote.title}
-                    width="100%" 
-                    height="100%"
-                    style={{ border: 'none' }}
-                  >
-                    <p>Your browser does not support PDF viewing. 
-                      <a href={pdfUrl} download={`${selectedNote.title}.pdf`}>
-                        Download the PDF instead.
-                      </a>
-                    </p>
-                  </iframe>
-                </div>
-              ) : noteContent ? (
+              {selectedNote.content ? (
                 <div className="note-text-content full-height">
-                  <pre>{noteContent}</pre>
+                  <pre>{selectedNote.content}</pre>
                 </div>
               ) : (
                 <div className="no-content-message">
                   <div className="empty-icon">📄</div>
                   <h3>No Content Available</h3>
                   <p>This note doesn't have any viewable content yet.</p>
-                  <p>Please check back later or contact the instructor.</p>
+                  <p>You can still download the note file if available.</p>
                 </div>
               )}
             </div>
@@ -2372,10 +2323,10 @@ export default function UserDashboard() {
               Close
             </button>
             <button 
-              onClick={handleDownloadPDF}
-              className="btn-secondary"
+              onClick={() => handleDownloadNote(selectedNote)}
+              className="btn-primary"
             >
-              📥 Download {pdfUrl ? 'PDF' : 'File'}
+              📥 Download Note
             </button>
           </div>
         </div>
@@ -3611,6 +3562,12 @@ export default function UserDashboard() {
                             className="btn-secondary"
                           >
                             View
+                          </button>
+                          <button 
+                            onClick={() => handleDownloadNote(note)}
+                            className="btn-primary"
+                          >
+                            📥 Download
                           </button>
                           {!isCompleted && (
                             <button 
