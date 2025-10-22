@@ -445,6 +445,419 @@
 }
 
 /* ==========================================================================
+  ENHANCED ENROLLMENT PAGE STYLING
+  ========================================================================== */
+
+.enrollment-management {
+  padding: 0;
+}
+
+.enrollment-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.enrollment-stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.enrollment-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, #0077B6, #005A8D);
+}
+
+.enrollment-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.enrollment-stat-icon {
+  font-size: 3rem;
+  opacity: 0.9;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #0077B6, #005A8D);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.enrollment-stat-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.enrollment-stat-content h3 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+  line-height: 1;
+  background: linear-gradient(135deg, #1e293b, #374151);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.enrollment-stat-content p {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.3;
+}
+
+.enrollment-stat-change {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #10b981;
+}
+
+/* Enhanced Enrollment Table */
+.enrollment-table-section {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.enrollment-table-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.enrollment-table-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.enrollment-table-filters {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.enrollment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.enrollment-table th {
+  background: #f8fafc;
+  padding: 1.25rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.enrollment-table td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+  transition: background-color 0.2s ease;
+}
+
+.enrollment-table tr:hover td {
+  background: #f8fafc;
+}
+
+.enrollment-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Enhanced Student Info in Table */
+.enrollment-student-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.enrollment-student-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0077B6, #005A8D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 119, 182, 0.2);
+}
+
+.enrollment-student-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.enrollment-student-name {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+}
+
+.enrollment-student-email {
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.enrollment-course-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.enrollment-course-name {
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.enrollment-course-date {
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+/* ==========================================================================
+  ENHANCED LATEST LOGIN SECTION
+  ========================================================================== */
+
+.latest-login-section {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.latest-login-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #0077B6, #005A8D);
+  color: white;
+}
+
+.latest-login-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.latest-login-header h3::before {
+  content: '🕒';
+  font-size: 1.1rem;
+}
+
+.latest-login-content {
+  padding: 1.5rem 2rem;
+}
+
+.latest-login-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.latest-login-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.latest-login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, #0077B6, #005A8D);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.latest-login-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 119, 182, 0.12);
+  border-color: #0077B6;
+}
+
+.latest-login-card:hover::before {
+  opacity: 1;
+}
+
+.latest-login-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0077B6, #005A8D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
+}
+
+.latest-login-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.latest-login-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.latest-login-name {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.latest-login-time {
+  background: rgba(0, 119, 182, 0.1);
+  color: #0077B6;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.latest-login-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.latest-login-role {
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.latest-login-ip {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-family: 'Monaco', 'Consolas', monospace;
+  line-height: 1.3;
+}
+
+.latest-login-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-indicator.online {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.status-indicator.offline {
+  background: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+}
+
+.status-indicator.recent {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.status-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Empty State for Latest Login */
+.latest-login-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #64748b;
+}
+
+.latest-login-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.latest-login-empty h4 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem 0;
+  color: #64748b;
+}
+
+.latest-login-empty p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+/* ==========================================================================
   COURSE MANAGEMENT STYLING - PROFESSIONAL ENHANCEMENT
   ========================================================================== */
 
@@ -2083,6 +2496,10 @@
   .admin-courses-grid {
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   }
+  
+  .latest-login-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
 }
 
 @media (max-width: 1024px) {
@@ -2134,7 +2551,8 @@
   }
   
   .admin-stats-grid,
-  .admin-course-stats-grid {
+  .admin-course-stats-grid,
+  .enrollment-stats-grid {
     grid-template-columns: 1fr;
   }
   
@@ -2170,6 +2588,31 @@
     max-width: 120px;
   }
   
+  .latest-login-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .latest-login-user {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .latest-login-time {
+    align-self: flex-start;
+  }
+  
+  .enrollment-table-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .enrollment-table-filters {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
   .admin-course-sidebar,
   .admin-approval-sidebar {
     width: 100%;
@@ -2202,54 +2645,34 @@
     padding: 1rem;
   }
   
-  .admin-course-stat-card {
+  .admin-course-stat-card,
+  .enrollment-stat-card {
     padding: 1.5rem;
   }
   
-  .admin-course-stat-icon {
+  .admin-course-stat-icon,
+  .enrollment-stat-icon {
     font-size: 2.5rem;
   }
   
-  .admin-course-stat-content h3 {
+  .admin-course-stat-content h3,
+  .enrollment-stat-content h3 {
     font-size: 2rem;
   }
   
-  .course-sidebar-content,
-  .approval-sidebar-content {
-    padding: 1.5rem;
+  .latest-login-content,
+  .enrollment-table-header {
+    padding: 1rem 1.5rem;
   }
   
-  .admin-content-form {
-    padding: 1.5rem;
+  .latest-login-card {
+    padding: 1.25rem;
   }
   
-  .content-item-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .content-course {
-    align-self: flex-start;
-  }
-  
-  .content-item-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .admin-page-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .admin-btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .form-actions {
-    flex-direction: column;
+  .latest-login-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
   }
   
   .course-price-section {
@@ -2264,6 +2687,32 @@
   .course-action-btn {
     min-width: calc(50% - 0.5rem);
     flex: 1 1 calc(50% - 0.5rem);
+  }
+  
+  .enrollment-student-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .enrollment-student-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+  }
+  
+  .admin-page-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .admin-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .form-actions {
+    flex-direction: column;
   }
   
   .admin-modal-header {

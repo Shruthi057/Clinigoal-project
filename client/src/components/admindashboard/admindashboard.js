@@ -197,6 +197,7 @@ function AdminDashboard() {
   const [rejectedEnrollments, setRejectedEnrollments] = useState([]);
   const [showApprovalSidebar, setShowApprovalSidebar] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [approvalStats, setApprovalStats] = useState({
     pending: 0,
     approved: 0,
@@ -720,8 +721,8 @@ function AdminDashboard() {
 
       const courseCompletionRate = totalEnrollments > 0 ? Math.round((completedCourses / totalEnrollments) * 100) : 0;
 
-      // Calculate revenue (mock data based on enrollments)
-      const revenueThisMonth = totalEnrollments * 9999; // ₹9,999 per course
+      // Calculate revenue from payment history
+      const revenueThisMonth = calculateTotalRevenue();
 
       // Get popular courses
       const courseEnrollments = {};
@@ -770,6 +771,121 @@ function AdminDashboard() {
     }
   };
 
+  // ========== REVENUE CALCULATION FUNCTIONS ==========
+
+  const calculateTotalRevenue = () => {
+    try {
+      let totalRevenue = 0;
+      
+      // Get payment history from all users
+      const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+      
+      uniqueUsers.forEach(userEmail => {
+        if (userEmail && typeof userEmail === 'string') {
+          const userPaymentKey = `userPaymentHistory_${userEmail.replace(/[@.]/g, '_')}`;
+          const userPayments = JSON.parse(localStorage.getItem(userPaymentKey) || '[]');
+          
+          userPayments.forEach(payment => {
+            if (payment && payment.amount && payment.status === 'completed') {
+              // Extract numeric value from amount string (e.g., "₹9,999" -> 9999)
+              const amountStr = payment.amount.replace(/[^0-9]/g, '');
+              const amount = parseInt(amountStr) || 0;
+              totalRevenue += amount;
+            }
+          });
+        }
+      });
+      
+      // Also check global payment history
+      const globalPaymentHistory = JSON.parse(localStorage.getItem('userPaymentHistory') || '[]');
+      globalPaymentHistory.forEach(payment => {
+        if (payment && payment.amount && payment.status === 'completed') {
+          const amountStr = payment.amount.replace(/[^0-9]/g, '');
+          const amount = parseInt(amountStr) || 0;
+          totalRevenue += amount;
+        }
+      });
+      
+      console.log("💰 Total Revenue Calculated:", totalRevenue);
+      return totalRevenue;
+    } catch (error) {
+      console.error("Error calculating revenue:", error);
+      return 0;
+    }
+  };
+
+  // ========== CERTIFICATE COUNT FUNCTIONS ==========
+
+  const fetchCertificateStats = () => {
+    try {
+      let totalIssued = 0;
+      const byCourse = {};
+      const recentCertificates = [];
+
+      // Get all unique users to check for certificates
+      const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+      
+      uniqueUsers.forEach(userEmail => {
+        if (userEmail && typeof userEmail === 'string') {
+          const userCertificatesKey = `userCertificates_${userEmail.replace(/[@.]/g, '_')}`;
+          const userCertificates = JSON.parse(localStorage.getItem(userCertificatesKey) || '[]');
+          totalIssued += userCertificates.length;
+          
+          userCertificates.forEach(cert => {
+            if (cert && cert.courseId) {
+              byCourse[cert.courseId] = (byCourse[cert.courseId] || 0) + 1;
+            }
+            
+            recentCertificates.push({
+              ...cert,
+              userName: userEmail.split('@')[0],
+              userEmail: userEmail
+            });
+          });
+        }
+      });
+
+      // Also check global certificates storage
+      const globalCertificates = JSON.parse(localStorage.getItem('userCertificates') || '[]');
+      totalIssued += globalCertificates.length;
+      
+      globalCertificates.forEach(cert => {
+        if (cert && cert.courseId) {
+          byCourse[cert.courseId] = (byCourse[cert.courseId] || 0) + 1;
+        }
+        
+        recentCertificates.push({
+          ...cert,
+          userName: cert.studentName || 'Student',
+          userEmail: 'unknown@example.com'
+        });
+      });
+
+      recentCertificates.sort((a, b) => new Date(b.issueDate || b.issuedAt) - new Date(a.issueDate || a.issuedAt));
+
+      setCertificateStats({
+        totalIssued,
+        byCourse,
+        recentCertificates: recentCertificates.slice(0, 10)
+      });
+
+      // Update main stats with certificate count
+      setStats(prev => ({
+        ...prev,
+        totalCertificates: totalIssued,
+        totalFees: calculateTotalRevenue()
+      }));
+
+    } catch (error) {
+      console.error("Error fetching certificate stats:", error);
+      setCertificateStats({
+        totalIssued: 0,
+        byCourse: {},
+        recentCertificates: []
+      });
+    }
+  };
+
   // ========== QUICK STATS COMPONENT ==========
 
   const renderQuickStats = () => {
@@ -814,7 +930,35 @@ function AdminDashboard() {
             <div className="admin-stat-content">
               <h3>₹{formatNumber(quickStats.revenueThisMonth)}</h3>
               <p>Revenue</p>
-              <span className="admin-stat-change positive">Estimated monthly revenue</span>
+              <span className="admin-stat-change positive">Total revenue from payments</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Certificate Stats */}
+        <div className="admin-certificate-stats">
+          <h3>📜 Certificate Statistics</h3>
+          <div className="certificate-stats-grid">
+            <div className="certificate-stat-card">
+              <div className="certificate-stat-icon">🏆</div>
+              <div className="certificate-stat-content">
+                <h4>{certificateStats.totalIssued}</h4>
+                <p>Total Certificates Issued</p>
+              </div>
+            </div>
+            <div className="certificate-stat-card">
+              <div className="certificate-stat-icon">📚</div>
+              <div className="certificate-stat-content">
+                <h4>{Object.keys(certificateStats.byCourse).length}</h4>
+                <p>Courses with Certificates</p>
+              </div>
+            </div>
+            <div className="certificate-stat-card">
+              <div className="certificate-stat-icon">👥</div>
+              <div className="certificate-stat-content">
+                <h4>{new Set(certificateStats.recentCertificates.map(c => c.userEmail)).size}</h4>
+                <p>Students Certified</p>
+              </div>
             </div>
           </div>
         </div>
@@ -904,12 +1048,12 @@ function AdminDashboard() {
     fetchUserData();
     fetchStudentReviews();
     fetchPaymentHistory();
-    fetchQuickStats(); // Replaced analytics with quick stats
+    fetchQuickStats();
     fetchCertificateStats();
     fetchPendingApprovals();
 
     const interval = setInterval(() => {
-      fetchQuickStats(); // Replaced analytics with quick stats
+      fetchQuickStats();
       fetchCertificateStats();
       fetchStudentReviews();
       fetchPendingApprovals();
@@ -1203,11 +1347,150 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   const handleViewEnrollmentDetails = (enrollment) => {
     if (enrollment) {
       console.log("👁️ Viewing enrollment details:", enrollment);
-      setSelectedEnrollment({
-        type: 'enrollment',
-        enrollment: enrollment
-      });
+      setSelectedEnrollment(enrollment);
+      setShowEnrollmentModal(true);
     }
+  };
+
+  // ========== ENROLLMENT DETAILS MODAL ==========
+
+  const renderEnrollmentModal = () => {
+    if (!showEnrollmentModal || !selectedEnrollment) return null;
+
+    return (
+      <div className="admin-modal-overlay">
+        <div className="admin-modal">
+          <div className="admin-modal-header">
+            <h2>Enrollment Details</h2>
+            <button 
+              className="admin-modal-close" 
+              onClick={() => setShowEnrollmentModal(false)}
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="admin-modal-content">
+            <div className="admin-detail-section">
+              <h3>Student Information</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Student Name:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.studentName || 'N/A'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Student Email:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.studentEmail || 'N/A'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Enrollment Date:</span>
+                  <span className="admin-detail-value">
+                    {selectedEnrollment.enrollmentDate ? new Date(selectedEnrollment.enrollmentDate).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-detail-section">
+              <h3>Course Information</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Course Title:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.courseTitle || 'N/A'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Course ID:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.courseId || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-detail-section">
+              <h3>Payment Information</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Payment Amount:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.paymentAmount || 'N/A'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Payment Method:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.paymentMethod || 'N/A'}</span>
+                </div>
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Payment Status:</span>
+                  <span className="admin-detail-value">{selectedEnrollment.paymentStatus || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-detail-section">
+              <h3>Enrollment Status</h3>
+              <div className="admin-detail-grid">
+                <div className="admin-detail-item">
+                  <span className="admin-detail-label">Current Status:</span>
+                  <span className={`admin-detail-value status-${selectedEnrollment.status}`}>
+                    {selectedEnrollment.status || 'pending'}
+                  </span>
+                </div>
+                {selectedEnrollment.approvedAt && (
+                  <div className="admin-detail-item">
+                    <span className="admin-detail-label">Approved At:</span>
+                    <span className="admin-detail-value">
+                      {new Date(selectedEnrollment.approvedAt).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {selectedEnrollment.rejectedAt && (
+                  <div className="admin-detail-item">
+                    <span className="admin-detail-label">Rejected At:</span>
+                    <span className="admin-detail-value">
+                      {new Date(selectedEnrollment.rejectedAt).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {selectedEnrollment.rejectionReason && (
+                  <div className="admin-detail-item">
+                    <span className="admin-detail-label">Rejection Reason:</span>
+                    <span className="admin-detail-value">{selectedEnrollment.rejectionReason}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="admin-modal-actions">
+            {selectedEnrollment.status === 'pending' && (
+              <>
+                <button 
+                  onClick={() => {
+                    handleApproveEnrollment(selectedEnrollment);
+                    setShowEnrollmentModal(false);
+                  }}
+                  className="admin-btn success"
+                >
+                  ✅ Approve Enrollment
+                </button>
+                <button 
+                  onClick={() => {
+                    handleRejectEnrollment(selectedEnrollment);
+                    setShowEnrollmentModal(false);
+                  }}
+                  className="admin-btn danger"
+                >
+                  ❌ Reject Enrollment
+                </button>
+              </>
+            )}
+            <button 
+              onClick={() => setShowEnrollmentModal(false)}
+              className="admin-btn secondary"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderApprovalSidebar = () => {
@@ -1569,53 +1852,6 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
   };
 
   // ========== REMAINING FUNCTIONS ==========
-
-  const fetchCertificateStats = () => {
-    try {
-      let totalIssued = 0;
-      const byCourse = {};
-      const recentCertificates = [];
-
-      // Get all unique users to check for certificates
-      const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
-      
-      uniqueUsers.forEach(userEmail => {
-        if (userEmail && typeof userEmail === 'string') {
-          const userCertificatesKey = `userCertificates_${userEmail.replace(/[@.]/g, '_')}`;
-          const userCertificates = JSON.parse(localStorage.getItem(userCertificatesKey) || '[]');
-          totalIssued += userCertificates.length;
-          
-          userCertificates.forEach(cert => {
-            if (cert && cert.courseId) {
-              byCourse[cert.courseId] = (byCourse[cert.courseId] || 0) + 1;
-            }
-            
-            recentCertificates.push({
-              ...cert,
-              userName: userEmail.split('@')[0],
-              userEmail: userEmail
-            });
-          });
-        }
-      });
-
-      recentCertificates.sort((a, b) => new Date(b.issueDate || b.issuedAt) - new Date(a.issueDate || a.issuedAt));
-
-      setCertificateStats({
-        totalIssued,
-        byCourse,
-        recentCertificates: recentCertificates.slice(0, 10)
-      });
-
-    } catch (error) {
-      console.error("Error fetching certificate stats:", error);
-      setCertificateStats({
-        totalIssued: 0,
-        byCourse: {},
-        recentCertificates: []
-      });
-    }
-  };
 
   const fetchStudentReviews = async () => {
     try {
@@ -3348,7 +3584,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                       <div className="admin-stat-content">
                         <h3>Total Revenue</h3>
                         <p className="admin-stat-number">₹{formatNumber(stats.totalFees)}</p>
-                        <span className="admin-stat-change positive">+8% from last month</span>
+                        <span className="admin-stat-change positive">From all payments</span>
                       </div>
                     </div>
                     <div className="admin-stat-card warning">
@@ -4177,6 +4413,9 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
 
       {/* Payment Modal */}
       {renderPaymentModal()}
+
+      {/* Enrollment Details Modal */}
+      {renderEnrollmentModal()}
     </div>
   );
 }

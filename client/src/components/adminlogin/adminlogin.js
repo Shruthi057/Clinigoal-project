@@ -68,7 +68,7 @@ function AdminLogin() {
               <div className="form-group">
                 <label htmlFor="login-email">Email Address</label>
                 <div className="input-container">
-                  <span className="input-icon">✉️</span>
+                  <span className="input-icon"></span>
                   <input
                     id="login-email"
                     type="email"
@@ -83,7 +83,7 @@ function AdminLogin() {
               <div className="form-group">
                 <label htmlFor="login-password">Password</label>
                 <div className="input-container">
-                  <span className="input-icon">🔒</span>
+                  <span className="input-icon"></span>
                   <input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
@@ -134,7 +134,7 @@ function AdminLogin() {
               <div className="form-group">
                 <label htmlFor="register-email">Email Address</label>
                 <div className="input-container">
-                  <span className="input-icon">✉️</span>
+                  <span className="input-icon"></span>
                   <input
                     id="register-email"
                     type="email"
@@ -147,7 +147,7 @@ function AdminLogin() {
               <div className="form-group">
                 <label htmlFor="register-password">Password</label>
                 <div className="input-container">
-                  <span className="input-icon">🔒</span>
+                  <span className="input-icon"></span>
                   <input
                     id="register-password"
                     type={showPassword ? "text" : "password"}
