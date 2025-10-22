@@ -683,19 +683,33 @@ function AdminDashboard() {
       
       // Get all unique users
       const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+      console.log("👥 Unique users found:", uniqueUsers.length);
       
       // Calculate total enrollments from user access data
       let totalEnrollments = 0;
+      const courseEnrollments = {};
+      
+      // Initialize course enrollments object
+      courses.forEach(course => {
+        courseEnrollments[course._id] = 0;
+      });
+
       uniqueUsers.forEach(userEmail => {
         if (userEmail && typeof userEmail === 'string') {
           const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
           const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
-          const enrolledCourses = Object.keys(userAccessData).filter(courseId => 
-            userAccessData[courseId]?.status === 'approved' || userAccessData[courseId]?.canAccess === true
-          );
-          totalEnrollments += enrolledCourses.length;
+          
+          Object.keys(userAccessData).forEach(courseId => {
+            const access = userAccessData[courseId];
+            if (access && (access.status === 'approved' || access.canAccess === true)) {
+              totalEnrollments++;
+              courseEnrollments[courseId] = (courseEnrollments[courseId] || 0) + 1;
+            }
+          });
         }
       });
+
+      console.log("📚 Total enrollments calculated:", totalEnrollments);
 
       // Calculate active users (logged in today)
       const today = new Date();
@@ -704,6 +718,8 @@ function AdminDashboard() {
         const logDate = new Date(log.timestamp);
         return logDate.toDateString() === today.toDateString();
       }).length;
+
+      console.log("👤 Today's logins:", todayLogins);
 
       // Calculate course completion rate
       let completedCourses = 0;
@@ -720,44 +736,38 @@ function AdminDashboard() {
       });
 
       const courseCompletionRate = totalEnrollments > 0 ? Math.round((completedCourses / totalEnrollments) * 100) : 0;
+      console.log("🏆 Course completion rate:", courseCompletionRate + '%');
 
       // Calculate revenue from payment history
       const revenueThisMonth = calculateTotalRevenue();
+      console.log("💰 Revenue this month:", revenueThisMonth);
 
       // Get popular courses
-      const courseEnrollments = {};
-      courses.forEach(course => {
-        courseEnrollments[course._id] = 0;
-      });
-
-      uniqueUsers.forEach(userEmail => {
-        if (userEmail && typeof userEmail === 'string') {
-          const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
-          const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
-          Object.keys(userAccessData).forEach(courseId => {
-            if (userAccessData[courseId]?.status === 'approved' || userAccessData[courseId]?.canAccess === true) {
-              courseEnrollments[courseId] = (courseEnrollments[courseId] || 0) + 1;
-            }
-          });
-        }
-      });
-
       const popularCourses = Object.entries(courseEnrollments)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 3)
-        .map(([courseId, count]) => ({
-          courseId,
-          title: courses.find(c => c._id === courseId)?.title || 'Unknown Course',
-          enrollments: count
-        }));
+        .map(([courseId, count]) => {
+          const course = courses.find(c => c._id === courseId);
+          return {
+            courseId,
+            title: course?.title || 'Unknown Course',
+            enrollments: count
+          };
+        })
+        .filter(course => course.enrollments > 0);
 
-      setQuickStats({
+      console.log("🎯 Popular courses:", popularCourses);
+
+      const updatedQuickStats = {
         totalEnrollments,
         activeUsers: todayLogins,
         courseCompletionRate,
         revenueThisMonth,
         popularCourses
-      });
+      };
+
+      console.log("✅ Final quick stats:", updatedQuickStats);
+      setQuickStats(updatedQuickStats);
 
     } catch (error) {
       console.error("❌ Error fetching quick stats:", error);
@@ -788,7 +798,7 @@ function AdminDashboard() {
           userPayments.forEach(payment => {
             if (payment && payment.amount && payment.status === 'completed') {
               // Extract numeric value from amount string (e.g., "₹9,999" -> 9999)
-              const amountStr = payment.amount.replace(/[^0-9]/g, '');
+              const amountStr = payment.amount.toString().replace(/[^0-9]/g, '');
               const amount = parseInt(amountStr) || 0;
               totalRevenue += amount;
             }
@@ -800,7 +810,7 @@ function AdminDashboard() {
       const globalPaymentHistory = JSON.parse(localStorage.getItem('userPaymentHistory') || '[]');
       globalPaymentHistory.forEach(payment => {
         if (payment && payment.amount && payment.status === 'completed') {
-          const amountStr = payment.amount.replace(/[^0-9]/g, '');
+          const amountStr = payment.amount.toString().replace(/[^0-9]/g, '');
           const amount = parseInt(amountStr) || 0;
           totalRevenue += amount;
         }
@@ -892,14 +902,21 @@ function AdminDashboard() {
     return (
       <div className="admin-quick-stats">
         <div className="admin-page-header">
-          <h1 className="admin-page-title">Quick Stats</h1>
+          <div className="admin-page-header-left">
+            <h1 className="admin-page-title">Quick Stats</h1>
+            <p>Real-time platform analytics and performance metrics</p>
+          </div>
           <div className="admin-page-actions">
             <button className="admin-btn primary" onClick={fetchQuickStats}>
               🔄 Refresh Stats
             </button>
+            <span className="last-update">
+              Last updated: {new Date(lastUpdate).toLocaleTimeString()}
+            </span>
           </div>
         </div>
 
+        {/* Main Stats Grid */}
         <div className="admin-stats-grid">
           <div className="admin-stat-card primary">
             <div className="admin-stat-icon">📚</div>
@@ -931,6 +948,102 @@ function AdminDashboard() {
               <h3>₹{formatNumber(quickStats.revenueThisMonth)}</h3>
               <p>Revenue</p>
               <span className="admin-stat-change positive">Total revenue from payments</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Platform Overview Charts */}
+        <div className="admin-charts-section">
+          <div className="admin-chart-card">
+            <h3>📈 Enrollment Overview</h3>
+            <div className="admin-chart-container">
+              <Bar 
+                data={{
+                  labels: courses.map(course => course.title).slice(0, 5),
+                  datasets: [
+                    {
+                      label: 'Students Enrolled',
+                      data: courses.slice(0, 5).map(course => {
+                        let count = 0;
+                        const uniqueUsers = JSON.parse(localStorage.getItem('uniqueUsers') || '[]');
+                        uniqueUsers.forEach(userEmail => {
+                          if (userEmail && typeof userEmail === 'string') {
+                            const userAccessKey = `userCourseAccess_${userEmail.replace(/[@.]/g, '_')}`;
+                            const userAccessData = JSON.parse(localStorage.getItem(userAccessKey) || '{}');
+                            if (userAccessData[course._id]?.status === 'approved' || userAccessData[course._id]?.canAccess === true) {
+                              count++;
+                            }
+                          }
+                        });
+                        return count;
+                      }),
+                      backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                      borderColor: 'rgba(79, 70, 229, 1)',
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        precision: 0
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="admin-chart-card">
+            <h3>📊 Platform Distribution</h3>
+            <div className="admin-chart-container">
+              <Doughnut 
+                data={{
+                  labels: ['Total Users', 'Active Today', 'Total Enrollments', 'Certificates'],
+                  datasets: [
+                    {
+                      data: [
+                        userStats.uniqueUsers,
+                        quickStats.activeUsers,
+                        quickStats.totalEnrollments,
+                        certificateStats.totalIssued
+                      ],
+                      backgroundColor: [
+                        'rgba(79, 70, 229, 0.7)',
+                        'rgba(34, 197, 94, 0.7)',
+                        'rgba(234, 179, 8, 0.7)',
+                        'rgba(239, 68, 68, 0.7)'
+                      ],
+                      borderColor: [
+                        'rgba(79, 70, 229, 1)',
+                        'rgba(34, 197, 94, 1)',
+                        'rgba(234, 179, 8, 1)',
+                        'rgba(239, 68, 68, 1)'
+                      ],
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'right',
+                    },
+                  },
+                }}
+              />
             </div>
           </div>
         </div>
@@ -1030,38 +1143,44 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Data Sources Info */}
+        <div className="admin-data-sources">
+          <h3>🔍 Data Sources</h3>
+          <div className="data-sources-list">
+            <div className="data-source-item">
+              <span className="data-source-icon">👥</span>
+              <div className="data-source-info">
+                <strong>User Data</strong>
+                <span>From user registrations and login logs</span>
+              </div>
+            </div>
+            <div className="data-source-item">
+              <span className="data-source-icon">📚</span>
+              <div className="data-source-info">
+                <strong>Course Enrollments</strong>
+                <span>From user course access permissions</span>
+              </div>
+            </div>
+            <div className="data-source-item">
+              <span className="data-source-icon">💰</span>
+              <div className="data-source-info">
+                <strong>Revenue Data</strong>
+                <span>From payment history and transactions</span>
+              </div>
+            </div>
+            <div className="data-source-item">
+              <span className="data-source-icon">📜</span>
+              <div className="data-source-info">
+                <strong>Certificates</strong>
+                <span>From issued course completion certificates</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
-
-  useEffect(() => {
-    // Load courses first
-    loadCourses();
-    
-    // Then load other data
-    fetchStats();
-    fetchAllData();
-    fetchChartData();
-    fetchStudents();
-    fetchStudentProgress();
-    fetchFeedbacks();
-    fetchUserData();
-    fetchStudentReviews();
-    fetchPaymentHistory();
-    fetchQuickStats();
-    fetchCertificateStats();
-    fetchPendingApprovals();
-
-    const interval = setInterval(() => {
-      fetchQuickStats();
-      fetchCertificateStats();
-      fetchStudentReviews();
-      fetchPendingApprovals();
-      setLastUpdate(Date.now());
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // ========== APPROVAL SYSTEM FUNCTIONS ==========
 
@@ -3353,6 +3472,37 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
     );
   };
 
+  // ========== USE EFFECT ==========
+
+  useEffect(() => {
+    // Load courses first
+    loadCourses();
+    
+    // Then load other data
+    fetchStats();
+    fetchAllData();
+    fetchChartData();
+    fetchStudents();
+    fetchStudentProgress();
+    fetchFeedbacks();
+    fetchUserData();
+    fetchStudentReviews();
+    fetchPaymentHistory();
+    fetchQuickStats();
+    fetchCertificateStats();
+    fetchPendingApprovals();
+
+    const interval = setInterval(() => {
+      fetchQuickStats();
+      fetchCertificateStats();
+      fetchStudentReviews();
+      fetchPendingApprovals();
+      setLastUpdate(Date.now());
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   // ========== RENDER FUNCTION ==========
 
   return (
@@ -3750,7 +3900,7 @@ Course Enrollments: ${Array.isArray(courseEnrollments) ? courseEnrollments.lengt
                 </div>
               )}
 
-              {/* Quick Stats Section - REPLACED ANALYTICS */}
+              {/* Quick Stats Section - UPDATED */}
               {activeTab === 'quick-stats' && renderQuickStats()}
 
               {/* Student Feedback & Reviews */}
